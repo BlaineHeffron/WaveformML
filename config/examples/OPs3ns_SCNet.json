@@ -6,7 +6,7 @@
   },
   "system_config":{
     "model_name": "Positron_OrthoPositronium",
-    "num_type":2,
+    "n_type":2,
     "type_names": ["Positron","OrthoPositronium"],
     "n_samples": 150,
     "gpu_enabled": true
