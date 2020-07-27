@@ -129,9 +129,10 @@ dmypy.json
 .pyre/
 
 # project specific
-configs/
-logs/
-model/
-results/
+configs/*.json
+logs/*
+model/*
+results/*
 tests/
+tests/*
 
