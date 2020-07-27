@@ -14,8 +14,8 @@
   "net_config":{
     "criterion_class": "CrossEntropyLoss",
     "criterion_params": [],
-    "imports": ["torch.nn","sparseconvnet","net"],
-    "net_class": "net.SCNet",
+    "imports": ["torch.nn","sparseconvnet","SCNet"],
+    "net_class": "SCNet.SCNet",
     "sequence_class": "sparseconvnet.Sequential",
     "net_type": "2DConvolution",
     "algorithm": [
