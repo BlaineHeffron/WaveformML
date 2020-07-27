@@ -1,8 +1,9 @@
 import json
 import logging
 import util
-from net import *
 import argparse
+import os
+from util import ModuleUtility
 
 LOG_DIR = "./logs"
 MODEL_DIR = "./model"
