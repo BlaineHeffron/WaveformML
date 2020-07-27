@@ -1,0 +1,88 @@
+{
+  "run_config": {
+    "exp_name": "sparseconvnet",
+    "imports": ["PSDRun"],
+    "run_class": "PSDRun"
+  },
+  "system_config":{
+    "model_name": "Positron_OrthoPositronium",
+    "num_type":2,
+    "type_names": ["Positron","OrthoPositronium"],
+    "n_samples": 150,
+    "gpu_enabled": true
+  },
+  "net_config":{
+    "criterion_class": "CrossEntropyLoss",
+    "criterion_params": [],
+    "imports": ["torch.nn","sparseconvnet","net"],
+    "net_class": "net.SCNet",
+    "sequence_class": "sparseconvnet.Sequential",
+    "net_type": "2DConvolution",
+    "algorithm": [
+      "sparseconvnet.Convolution", [
+        2,
+        300,
+        37,
+        1,
+        1,
+        false
+      ],
+      "sparseconvnet.Convolution", [
+        2,
+        37,
+        37,
+        3,
+        1,
+        false
+      ],
+      "sparseconvnet.Convolution", [
+        2,
+        37,
+        18,
+        3,
+        2,
+        false
+      ],
+      "sparseconvnet.sparseToDense", [2,18],
+      "nn.Linear", [
+        270,
+        135
+      ],
+      "nn.Linear", [
+        135,
+        32
+      ],
+      "nn.Linear", [
+        32,
+        2
+      ],
+      "nn.Softmax", null
+    ]
+  },
+  "optimize_config":{
+    "total_epoch":30,
+    "freq_display":1,
+    "lr_begin":5e-4,
+    "lr_end":1e-7,
+    "batch_size": 1024,
+    "optimizer_class": "torch.optim.SGD",
+    "optimizer_params": {
+      "momentum": 0,
+      "weight_decay": 0, "dampening": 0, "nesterov": false } },
+  "dataset_config": {
+    "_comment": "mode can be path or config. if mode is set, set base_path and paths. If config, set config_path",
+    "_comment2": "n_train and n_test correspond to the number trained per type",
+    "_comment3": "dataset_class is set to the classname of the Dataset class being used",
+    "_comment4": "cache_size is number of files to hold in memory",
+    "mode": "path",
+    "base_path": "/home/blaine/projects/orthopositronium",
+    "paths": ["Positron","OrthoPositronium"],
+    "imports": ["PulseDataset"],
+    "dataset_class": "PulseDataset2D",
+    "dataset_params": {
+      "data_cache_size": 1,
+    },
+    "n_train": 1000000,
+    "n_test": 1000000,
+  }
+}
