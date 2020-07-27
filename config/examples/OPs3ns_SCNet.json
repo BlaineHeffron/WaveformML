@@ -80,9 +80,9 @@
     "imports": ["PulseDataset"],
     "dataset_class": "PulseDataset2D",
     "dataset_params": {
-      "data_cache_size": 1,
+      "data_cache_size": 1
     },
     "n_train": 1000000,
-    "n_test": 1000000,
+    "n_test": 1000000
   }
 }
