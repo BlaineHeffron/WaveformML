@@ -13,7 +13,7 @@ CONFIG_DIR = "./config"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", help="relative path of config file to use (in configs folder)")
+    parser.add_argument("config", help="relative path of config file to use (in config folder)")
     args = parser.parse_args()
     if not os.path.exists(LOG_DIR):
         path_create(LOG_DIR)
@@ -27,7 +27,7 @@ def main():
         if not os.path.exists(config_file):
             config_file = os.path.join(os.getcwd(), config_file)
             if not os.path.exists(config_file):
-                raise IOError("Could not find config file {0}", args.config)
+                raise IOError("Could not find config file {0}.".format(args.config))
     # read config
     with open(config_file) as json_data_file:
         config = json.load(json_data_file)

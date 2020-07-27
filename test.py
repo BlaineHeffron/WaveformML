@@ -8,7 +8,7 @@ import argparse
 import sparseconvnet as scn
 
 basedir = "/home/blaine/projects/orthopositronium/sim"
-config_file="./configs/OPs3ns_SCNet.json"
+config_file= "config/OPs3ns_SCNet.json"
 
 pos = HDF5Dataset(join(basedir,"Positron"),False,True,1)
 ops =  HDF5Dataset(join(basedir,"OrthoPositronium"),False,True,1)
