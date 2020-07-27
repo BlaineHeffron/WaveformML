@@ -47,7 +47,7 @@ class PSDRun:
         if not exists(self.model_folder):
             mkdir(self.model_folder)
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports)
-        self.model_class = self.modules.retrieve_class(config.network_config.net_class)
+        self.model_class = self.modules.retrieve_class(config.net_config.net_class)
         self.model = self.model_class(config)
         self.dataset_class = self.modules.retrieve_class(config.dataset_config.dataset_class)
         self.train_set = self.dataset_class(config.dataset_config,
