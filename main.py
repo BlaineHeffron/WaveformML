@@ -3,7 +3,7 @@ import logging
 import util
 import argparse
 import os
-from util import ModuleUtility
+from util import ModuleUtility, path_create
 
 LOG_DIR = "./logs"
 MODEL_DIR = "./model"
@@ -15,9 +15,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="relative path of config file to use (in configs folder)")
     args = parser.parse_args()
-    config_file = args.config
     if not os.path.exists(LOG_DIR):
-        os.mkdir(LOG_DIR)
+        path_create(LOG_DIR)
+    if not os.path.exists(MODEL_DIR):
+        path_create(MODEL_DIR)
+    config_file = args.config
+    if not config_file.endswith(".json"):
+        config_file = "{}.json".format(config_file)
+    if not os.path.isabs(config_file):
+        config_file = os.path.join(CONFIG_DIR, config_file)
+        if not os.path.exists(config_file):
+            config_file = os.path.join(os.getcwd(), config_file)
+            if not os.path.exists(config_file):
+                raise IOError("Could not find config file {0}", args.config)
     # read config
     with open(config_file) as json_data_file:
         config = json.load(json_data_file)
@@ -26,7 +36,7 @@ def main():
     exp_name = config.run_config.exp_name
     path_prefix = os.path.join(LOG_DIR, exp_name)
     if not os.path.exists('./model/' + exp_name):
-        os.mkdir('./model/' + exp_name)
+        path_create('./model/' + exp_name)
     # save config for record
     with open('{}_config.json'.format(path_prefix), 'w') as outfile:
         json.dump(util.DictionaryUtility.to_dict(config), outfile, indent=2)

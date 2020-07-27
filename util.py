@@ -116,6 +116,9 @@ class ModuleUtility:
 def path_split(a_path):
     return os.path.normpath(a_path).split(os.path.sep)
 
+def path_create(a_path):
+    if not os.path.exists(a_path):
+        os.mkdir(os.path.expanduser(os.path.normpath(a_path)))
 
 def unique_path_combine(pathlist):
     common = []
