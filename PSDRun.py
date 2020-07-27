@@ -46,7 +46,6 @@ class PSDRun:
         self.model_folder = join(abspath("./model"), self.model_name)
         if not exists(self.model_folder):
             mkdir(self.model_folder)
-        self.file_cache_size = config.dataset_config.cache_size
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports)
         self.model_class = self.modules.retrieve_class(config.network_config.net_class)
         self.model = self.model_class(config)
