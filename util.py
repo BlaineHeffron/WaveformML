@@ -78,6 +78,10 @@ class ModuleUtility:
             self.classes[class_string] = getattr(self.retrieve_module(info[0]), info[1])
             return self.classes[class_string]
         else:
+            for name in self.modules:
+                if hasattr(self.modules[name], class_string):
+                    self.classes[class_string] = getattr(self.modules[name], class_string)
+                    return self.classes[class_string]
             raise IOError("{0} is not a valid class path.\n"
                           " Must be formatted <module name>.<class name>".format(class_string))
 
