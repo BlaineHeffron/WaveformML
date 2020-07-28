@@ -35,6 +35,8 @@ class PSDRun:
             mkdir(self.model_folder)
         # save config for record
         self.log_folder = join(self.model_folder, "runs")
+        if not exists(self.log_folder):
+            mkdir(self.log_folder)
         with open('{}_config.json'.format(join(self.log_folder, self.exp_name)), 'w') as outfile:
             json.dump(util.DictionaryUtility.to_dict(config), outfile, indent=2)
         #tensorboard writer for logging
