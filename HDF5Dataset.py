@@ -83,8 +83,9 @@ class HDF5Dataset(data.Dataset):
             return
         with h5py.File(file_path) as h5_file:
             n_events = h5_file.attrs['nevents']  # the number of events to retrieve
-            if self.events_per_dir - self.n_events < n_events:
-                n_events = self.events_per_dir - self.n_events
+            if self.events_per_dir - self.n_events[dir_index] < n_events:
+                n_events = self.events_per_dir - self.n_events[dir_index]
+            self.n_events[dir_index] += n_events
 
             # Walk through all groups, extracting datasets
             for gname, group in h5_file.items():
