@@ -12,11 +12,10 @@ CONFIG_DIR = "./config"
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="relative path of config file to use (in config folder)")
-    parser.add_argument("--load_checkpoint", "-l", help="load checkpoint based on experiment name and model name")
+    parser.add_argument("--load_checkpoint", "-l",
+                        help="load checkpoint based on experiment name and model name",
+                        action="store_true")
     args = parser.parse_args()
-    load_checkpoint = False
-    if args.load_checkpoint:
-        load_checkpoint = args.load_checkpoint
     if not os.path.exists(MODEL_DIR):
         path_create(MODEL_DIR)
     config_file = args.config
@@ -41,7 +40,7 @@ def main():
     logging.info('=======================================================')
 
     modules = ModuleUtility(config.run_config.imports)
-    runner = modules.retrieve_class(config.run_config.run_class)(config,load_checkpoint)
+    runner = modules.retrieve_class(config.run_config.run_class)(config, args.load_checkpoint)
     runner.run()
 
 
