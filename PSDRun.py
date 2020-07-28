@@ -52,11 +52,11 @@ class PSDRun:
         self.dataset_class = self.modules.retrieve_class(config.dataset_config.dataset_class)
         self.train_set = self.dataset_class(config.dataset_config,
                                             config.dataset_config.n_train,
-                                            **config.dataset_config.dataset_params)
+                                            **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
         self.test_set = self.dataset_class(config.dataset_config,
                                            config.dataset_config.n_test,
                                            self.train_set.get_file_list(),
-                                           **config.dataset_config.dataset_params)
+                                           **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
         self.total_train = config.dataset_config.n_train * len(config.dataset_config.paths)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
@@ -77,7 +77,7 @@ class PSDRun:
                             opt_class)
         self.optimizer = optimizer(self.model.parameters(),
                                    lr=config.optimize_config.lr_begin,
-                                   **config.optimize_config.optimizer_params)
+                                   **DictionaryUtility.to_dict(config.optimize_config.optimizer_params))
         if self._use_cp and isfile(self.save_path(False)):
             self._epoch = torch.load(self.save_path(False)) + 1
             print('Restarting at epoch ' +
