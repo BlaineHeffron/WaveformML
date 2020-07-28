@@ -70,21 +70,12 @@ class HDF5Dataset(data.Dataset):
 
     def __getitem__(self, index):
         # get data
-        x = self.get_data(self.data_name, index)
-        coords = []
-        vals = []
-        for data in x:
-            coords.append(data[0])
-            vals.append(data[2])
-        if self.use_pinned:
-            coords = torch.LongTensor(coords).pin_memory()
-            vals = torch.FloatTensor(vals).pin_memory()
-        else:
-            coords = torch.LongTensor(coords)
-            vals = torch.FloatTensor(vals)
+        coords, vals = self.get_data(self.data_name, index)
+        coords = torch.LongTensor(coords, pin_memory=self.use_pinned)
+        vals = torch.FloatTensor(vals, pin_memory=self.use_pinned)
         # get label
         if self.label_name is None:
-            y = full(x.shape[0], self.get_data_infos(self.label_name)[index]['dir_index'], dtype=uint8)
+            y = full(coords.shape[0], self.get_data_infos(self.label_name)[index]['dir_index'], dtype=uint8)
         else:
             y = self.get_data(self.label_name, index)
         if self.use_pinned:
@@ -102,7 +93,7 @@ class HDF5Dataset(data.Dataset):
         idx = -1
         if load_data:
             # add data to the data cache
-            idx = self._add_to_cache(dataset[()], file_path)
+            idx = self._add_to_cache(dataset, file_path)
 
         # type is derived from the name of the dataset; we expect the dataset
         # name to have a name such as 'data' or 'label' to identify its type
@@ -146,7 +137,7 @@ class HDF5Dataset(data.Dataset):
                     for dname, ds in group.items():
                         # add data to the data cache and retrieve
                         # the cache index
-                        idx = self._add_to_cache(ds.value, file_path)
+                        idx = self._add_to_cache(ds, file_path)
 
                         # find the beginning index of the hdf5 file we are looking for
                         file_idx = next(i for i, v in enumerate(self.data_info)
@@ -155,7 +146,7 @@ class HDF5Dataset(data.Dataset):
                         # the data info should have the same index since we loaded it in the same way
                         self.data_info[file_idx + idx]['cache_idx'] = idx
                 else:
-                    idx = self._add_to_cache(group[()], file_path)
+                    idx = self._add_to_cache(group, file_path)
                     # find the beginning index of the hdf5 file we are looking for
                     file_idx = next(i for i, v in enumerate(self.data_info)
                                     if v['file_path'] == file_path)
@@ -179,9 +170,9 @@ class HDF5Dataset(data.Dataset):
         list for every file_path, containing all datasets in that file.
         """
         if file_path not in self.data_cache:
-            self.data_cache[file_path] = [data]
+            self.data_cache[file_path] = [(data['coord'], data['waveform'])]
         else:
-            self.data_cache[file_path].append(data)
+            self.data_cache[file_path].append((data['coord'], data['waveform']))
         return len(self.data_cache[file_path]) - 1
 
     def get_data_infos(self, data_type):

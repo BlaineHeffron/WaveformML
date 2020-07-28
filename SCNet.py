@@ -20,6 +20,6 @@ class SCNet(nn.Module):
     def forward(self, x):
         x = self.inputLayer(x)
         x = self.sparseModel(x)
-        # x = x.view(-1, 64)
+        # x = x.view(-1, self.spatial_size)
         # x = self.linear(x)
         return x

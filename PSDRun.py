@@ -7,7 +7,6 @@ import importlib
 from torch.utils.tensorboard import SummaryWriter
 from math import exp
 import time
-import sparseconvnet as scn
 import json
 import util
 
@@ -104,8 +103,6 @@ class PSDRun:
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.config.optimize_config.lr_begin * \
                                 exp((1 - epoch) * self._lr_decay)
-        scn.forward_pass_multiplyAdd_count = 0
-        scn.forward_pass_hidden_states = 0
         start = time.time()
         losses = []
         for batch in self.train_set:
