@@ -39,7 +39,7 @@ class HDF5Dataset(data.Dataset):
                  label_name=None,
                  data_cache_size=3,
                  use_pinned=False):
-        super().__init__(pin_memory=use_pinned)
+        super().__init__(self, pin_memory=use_pinned)
         self.file_paths = file_paths
         self.file_excludes = file_excludes
         self.num_dirs = len(file_paths)
