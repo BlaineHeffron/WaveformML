@@ -108,7 +108,7 @@ class PSDRun:
         self.model.train()
         # stats = {}
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = self.config.optimize_self.config.lr_begin * \
+            param_group['lr'] = self.config.optimize_config.lr_begin * \
                                 exp((1 - epoch) * self._lr_decay)
         scn.forward_pass_multiplyAdd_count = 0
         scn.forward_pass_hidden_states = 0
