@@ -1,8 +1,18 @@
+from re import findall
+
 import h5py
 from numpy import full, uint8
 from pathlib import Path
 import torch
 from torch.utils import data
+
+
+def _sort_pattern(name):
+    nums = findall(r'\d+', name)
+    if nums:
+        return int(nums[0])
+    else:
+        return name
 
 
 class HDF5Dataset(data.Dataset):
@@ -39,7 +49,7 @@ class HDF5Dataset(data.Dataset):
         self.transform = transform
         self.data_name = data_name
         self.label_name = label_name
-        self.n_events = [0]*self.num_dirs  # each element indexed to the file_paths list
+        self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
         self.events_per_dir = events_per_dir
 
         # Search for all h5 files
@@ -47,9 +57,9 @@ class HDF5Dataset(data.Dataset):
             p = Path(file_path)
             assert (p.is_dir())
             if recursive:
-                files = sorted(p.glob('**/{0}'.format(file_pattern)))
+                files = sorted(p.glob('**/{0}'.format(file_pattern)), key=lambda e: _sort_pattern(file_pattern))
             else:
-                files = sorted(p.glob(file_pattern))
+                files = sorted(p.glob(file_pattern), key=lambda e: _sort_pattern(file_pattern))
             if len(files) < 1:
                 raise RuntimeError('No hdf5 datasets found')
 
@@ -95,12 +105,11 @@ class HDF5Dataset(data.Dataset):
                                'event_range': [0, n_events - 1],
                                'dir_index': dir_index})
 
-
     def _add_data_infos(self, file_path, dir_index, load_data):
         if self.file_excludes:
             if file_path in self.file_excludes:
                 return
-        with h5py.File(file_path) as h5_file:
+        with h5py.File(file_path, 'r') as h5_file:
             n_events = h5_file[self.data_name].attrs['nevents']  # the number of events to retrieve
             if self.events_per_dir - self.n_events[dir_index] < n_events:
                 n_events = self.events_per_dir - self.n_events[dir_index]
@@ -108,12 +117,11 @@ class HDF5Dataset(data.Dataset):
 
             # Walk through all groups, extracting datasets
             for gname, group in h5_file.items():
-                if hasattr(group,"items"):
+                if hasattr(group, "items"):
                     for dname, ds in group.items():
-                        self._add_data_block(ds, dname, file_path, load_data, n_events, dir_index) 
+                        self._add_data_block(ds, dname, file_path, load_data, n_events, dir_index)
                 else:
-                    self._add_data_block(group, gname, file_path, load_data, n_events, dir_index) 
-
+                    self._add_data_block(group, gname, file_path, load_data, n_events, dir_index)
 
     def _get_dir_index(self, file_path):
         return self.file_paths.index(file_path)
@@ -123,7 +131,7 @@ class HDF5Dataset(data.Dataset):
         path and update the cache index in the
         data_info structure.
         """
-        with h5py.File(file_path) as h5_file:
+        with h5py.File(file_path, 'r') as h5_file:
             for gname, group in h5_file.items():
                 if hasattr(group, "items"):
                     for dname, ds in group.items():
