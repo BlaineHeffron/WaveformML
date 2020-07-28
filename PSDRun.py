@@ -8,7 +8,6 @@ from math import exp
 import time
 import sparseconvnet as scn
 
-
 """
 def store(stats, batch, predictions, loss):
     ctr = 0
@@ -23,6 +22,7 @@ def store(stats, batch, predictions, loss):
         stats[categ][f]['y'] = batch['y'].detach()[ctr:ctr + nP].cpu().numpy() - classOffset
         ctr += nP
 """
+
 
 class PSDRun:
     def __init__(self, config, load_cp=False):
@@ -88,7 +88,6 @@ class PSDRun:
             self._epoch = 1
         print('#parameters', sum([x.nelement() for x in self.model.parameters()]))
 
-
     def save_path(self, ismodel=True):
         if hasattr(self, "exp_name"):
             if hasattr(self, "model_name"):
@@ -107,7 +106,7 @@ class PSDRun:
 
     def run_step(self, epoch):
         self.model.train()
-        #stats = {}
+        # stats = {}
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.config.optimize_self.config.lr_begin * \
                                 exp((1 - epoch) * self._lr_decay)
@@ -121,7 +120,7 @@ class PSDRun:
                 batch[1] = batch[1].type(self.dtypei)
             predictions = self.model(batch[0])
             loss = self.criterion.forward(predictions, batch['y'])
-            #store(stats, batch, predictions, loss)
+            # store(stats, batch, predictions, loss)
             loss.backward()
             self.optimizer.step()
         print('train epoch', epoch, 1, 'MegaMulAdd=', scn.forward_pass_multiplyAdd_count / self.total_train / 1e6,
@@ -134,7 +133,7 @@ class PSDRun:
 
         if epoch % int(self.config.optimize_self.config.freq_display) == 0:
             self.model.eval()
-            #stats = {}
+            # stats = {}
             scn.forward_pass_multiplyAdd_count = 0
             scn.forward_pass_hidden_states = 0
             start = time.time()
@@ -145,7 +144,7 @@ class PSDRun:
                         batch[1] = batch[1].type(self.dtypei)
                     predictions = self.model(batch['x'])
                     loss = self.criterion.forward(predictions, batch[1])
-                    #store(stats, batch, predictions, loss)
+                    # store(stats, batch, predictions, loss)
                 print('valid epoch', epoch, rep, 'MegaMulAdd=',
                       scn.forward_pass_multiplyAdd_count / self.total_train / 1e6, 'MegaHidden',
                       scn.forward_pass_hidden_states / self.total_train / 1e6, 'time=', time.time() - start, 's')

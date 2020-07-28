@@ -64,11 +64,11 @@
     "freq_display":1,
     "lr_begin":5e-4,
     "lr_end":1e-7,
-    "batch_size": 1024,
     "optimizer_class": "torch.optim.SGD",
     "optimizer_params": {
       "momentum": 0,
-      "weight_decay": 0, "dampening": 0, "nesterov": false } },
+      "weight_decay": 0, "dampening": 0, "nesterov": false }
+  },
   "dataset_config": {
     "_comment": "mode can be path or config. if mode is set, set base_path and paths. If config, set config_path",
     "_comment2": "n_train and n_test correspond to the number trained per type",
