@@ -39,7 +39,7 @@ class HDF5Dataset(data.Dataset):
         self.transform = transform
         self.data_name = data_name
         self.label_name = label_name
-        self.n_events = []  # each element indexed to the file_paths list
+        self.n_events = [0]*self.num_dirs  # each element indexed to the file_paths list
         self.events_per_dir = events_per_dir
 
         # Search for all h5 files
