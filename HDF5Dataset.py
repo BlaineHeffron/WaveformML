@@ -71,10 +71,13 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         x = self.get_data(self.data_name, index)
-        if self.transform:
-            x = self.transform(x)
-        else:
-            x = torch.from_numpy(x)
+        coords = []
+        vals = []
+        for data in x:
+            coords.append(data[0])
+            vals.append(data[2])
+        coords = torch.LongTensor(coords)
+        vals = torch.FloatTensor(vals)
 
         # get label
         if self.label_name is None:
@@ -83,7 +86,7 @@ class HDF5Dataset(data.Dataset):
             y = self.get_data(self.label_name, index)
         y = torch.from_numpy(y)
 
-        return x, y
+        return [coords, vals], y
 
     def __len__(self):
         return len(self.get_data_infos(self.data_name))
@@ -93,14 +96,14 @@ class HDF5Dataset(data.Dataset):
         idx = -1
         if load_data:
             # add data to the data cache
-            idx = self._add_to_cache(dataset.value, file_path)
+            idx = self._add_to_cache(dataset[()], file_path)
 
         # type is derived from the name of the dataset; we expect the dataset
         # name to have a name such as 'data' or 'label' to identify its type
         # we also store the shape of the data in case we need it
         self.data_info.append({'file_path': file_path,
                                'type': dataset_name,
-                               'shape': dataset.value.shape,
+                               'shape': dataset[()].shape,
                                'cache_idx': idx,
                                'event_range': [0, n_events - 1],
                                'dir_index': dir_index})
