@@ -39,7 +39,7 @@ class HDF5Dataset(data.Dataset):
                  label_name=None,
                  data_cache_size=3,
                  use_pinned=False):
-        super().__init__(self, pin_memory=use_pinned)
+        super().__init__()
         self.file_paths = file_paths
         self.file_excludes = file_excludes
         self.num_dirs = len(file_paths)
@@ -50,6 +50,7 @@ class HDF5Dataset(data.Dataset):
         self.label_name = label_name
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
         self.events_per_dir = events_per_dir
+        self.use_pinned = use_pinned
 
         # Search for all h5 files
         for i, file_path in enumerate(file_paths):
@@ -75,15 +76,21 @@ class HDF5Dataset(data.Dataset):
         for data in x:
             coords.append(data[0])
             vals.append(data[2])
-        coords = torch.LongTensor(coords)
-        vals = torch.FloatTensor(vals)
-
+        if self.use_pinned:
+            coords = torch.LongTensor(coords).pin_memory()
+            vals = torch.FloatTensor(vals).pin_memory()
+        else:
+            coords = torch.LongTensor(coords)
+            vals = torch.FloatTensor(vals)
         # get label
         if self.label_name is None:
             y = full(x.shape[0], self.get_data_infos(self.label_name)[index]['dir_index'], dtype=uint8)
         else:
             y = self.get_data(self.label_name, index)
-        y = torch.from_numpy(y)
+        if self.use_pinned:
+            y = torch.from_numpy(y).pin_memory()
+        else:
+            y = torch.from_numpy(y)
 
         return [coords, vals], y
 
