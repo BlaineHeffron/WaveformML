@@ -14,7 +14,7 @@ class SCNet(nn.Module):
         self.modules = ModuleUtility(self.net_config.imports)
         self.sequence_class = self.modules.retrieve_class(self.net_config.sequence_class)
         self.sparseModel = self.sequence_class(*self.modules.create_class_instances(self.net_config.algorithm))
-        self.spatial_size = self.sparseModel.input_spatial_size(LongTensor([11, 14]))
+        self.spatial_size = LongTensor([11, 14])
         self.inputLayer = scn.InputLayer(2, self.spatial_size, 0)
 
     def forward(self, x):
