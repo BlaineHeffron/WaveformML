@@ -1,7 +1,7 @@
 from os.path import join, abspath, exists, isfile
 from os import mkdir
 from util import *
-from numpy import log
+from numpy import log, average, array
 import torch
 import importlib
 from torch.utils.tensorboard import SummaryWriter
@@ -107,6 +107,7 @@ class PSDRun:
         scn.forward_pass_multiplyAdd_count = 0
         scn.forward_pass_hidden_states = 0
         start = time.time()
+        losses = []
         for batch in self.train_set:
             self.optimizer.zero_grad()
             if self._use_cuda:
@@ -115,9 +116,10 @@ class PSDRun:
             predictions = self.model(batch[0])
             loss = self.criterion.forward(predictions, batch[1])
             self.writer.add_scalar("Loss/train", loss, epoch)
+            losses.append(loss)
             loss.backward()
             self.optimizer.step()
-        print('train epoch', epoch, 'time=', time.time() - start, 's')
+        print('train epoch', epoch, 'time=', time.time() - start, 's, loss = ', average(losses))
 
         torch.save(epoch, self.save_path(False))
         torch.save(self.model.state_dict(), self.save_path())
@@ -126,13 +128,14 @@ class PSDRun:
             self.model.eval()
             # stats = {}
             start = time.time()
-            losses = []
             for rep in range(1, 1 + 3):
+                losses = []
                 for batch in self.test_set:
                     if self._use_cuda:
                         batch[0][1] = batch[0][1].type(self.dtype)
                         batch[1] = batch[1].type(self.dtypei)
                     predictions = self.model(batch['x'])
                     loss = self.criterion.forward(predictions, batch[1])
+                    losses.append(loss)
                     self.writer.add_scalar("Loss/valid", loss, epoch)
-                print('valid epoch', epoch, rep, 'time=', time.time() - start, 's')
+                print('valid epoch', epoch, rep, 'time=', time.time() - start, 's, loss = ', average(losses))
