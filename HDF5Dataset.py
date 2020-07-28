@@ -78,33 +78,42 @@ class HDF5Dataset(data.Dataset):
     def __len__(self):
         return len(self.get_data_infos(self.data_name))
 
+    def _add_data_block(self, dataset, dataset_name, file_path, load_data, n_events, dir_index):
+        # if data is not loaded its cache index is -1
+        idx = -1
+        if load_data:
+            # add data to the data cache
+            idx = self._add_to_cache(dataset.value, file_path)
+
+        # type is derived from the name of the dataset; we expect the dataset
+        # name to have a name such as 'data' or 'label' to identify its type
+        # we also store the shape of the data in case we need it
+        self.data_info.append({'file_path': file_path,
+                               'type': dataset_name,
+                               'shape': dataset.value.shape,
+                               'cache_idx': idx,
+                               'event_range': [0, n_events - 1],
+                               'dir_index': dir_index})
+
+
     def _add_data_infos(self, file_path, dir_index, load_data):
-        if file_path in self.file_excludes:
-            return
+        if self.file_excludes:
+            if file_path in self.file_excludes:
+                return
         with h5py.File(file_path) as h5_file:
-            n_events = h5_file.attrs['nevents']  # the number of events to retrieve
+            n_events = h5_file[self.data_name].attrs['nevents']  # the number of events to retrieve
             if self.events_per_dir - self.n_events[dir_index] < n_events:
                 n_events = self.events_per_dir - self.n_events[dir_index]
             self.n_events[dir_index] += n_events
 
             # Walk through all groups, extracting datasets
             for gname, group in h5_file.items():
-                for dname, ds in group.items():
-                    # if data is not loaded its cache index is -1
-                    idx = -1
-                    if load_data:
-                        # add data to the data cache
-                        idx = self._add_to_cache(ds.value, file_path)
+                if hasattr(group,"items"):
+                    for dname, ds in group.items():
+                        self._add_data_block(ds, dname, file_path, load_data, n_events, dir_index) 
+                else:
+                    self._add_data_block(group, gname, file_path, load_data, n_events, dir_index) 
 
-                    # type is derived from the name of the dataset; we expect the dataset
-                    # name to have a name such as 'data' or 'label' to identify its type
-                    # we also store the shape of the data in case we need it
-                    self.data_info.append({'file_path': file_path,
-                                           'type': dname,
-                                           'shape': ds.value.shape,
-                                           'cache_idx': idx,
-                                           'event_range': [0, n_events - 1],
-                                           'dir_index': dir_index})
 
     def _get_dir_index(self, file_path):
         return self.file_paths.index(file_path)
