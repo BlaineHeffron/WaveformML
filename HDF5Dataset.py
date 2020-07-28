@@ -125,15 +125,23 @@ class HDF5Dataset(data.Dataset):
         """
         with h5py.File(file_path) as h5_file:
             for gname, group in h5_file.items():
-                for dname, ds in group.items():
-                    # add data to the data cache and retrieve
-                    # the cache index
-                    idx = self._add_to_cache(ds.value, file_path)
+                if hasattr(group, "items"):
+                    for dname, ds in group.items():
+                        # add data to the data cache and retrieve
+                        # the cache index
+                        idx = self._add_to_cache(ds.value, file_path)
 
+                        # find the beginning index of the hdf5 file we are looking for
+                        file_idx = next(i for i, v in enumerate(self.data_info)
+                                        if v['file_path'] == file_path)
+
+                        # the data info should have the same index since we loaded it in the same way
+                        self.data_info[file_idx + idx]['cache_idx'] = idx
+                else:
+                    idx = self._add_to_cache(group[()], file_path)
                     # find the beginning index of the hdf5 file we are looking for
                     file_idx = next(i for i, v in enumerate(self.data_info)
                                     if v['file_path'] == file_path)
-
                     # the data info should have the same index since we loaded it in the same way
                     self.data_info[file_idx + idx]['cache_idx'] = idx
 
