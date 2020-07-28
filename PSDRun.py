@@ -4,25 +4,12 @@ from util import *
 from numpy import log
 import torch
 import importlib
+from torch.utils.tensorboard import SummaryWriter
 from math import exp
 import time
 import sparseconvnet as scn
-
-"""
-def store(stats, batch, predictions, loss):
-    ctr = 0
-    for nP, f, classOffset, nClasses in zip(batch['nPoints'], batch['xf'], batch['classOffset'], batch['nClasses']):
-        categ, f = f.split('/')[-2:]
-        if not categ in stats:
-            stats[categ] = {}
-        if not f in stats[categ]:
-            stats[categ][f] = {'p': 0, 'y': 0}
-        # print(predictions[ctr:ctr+nP,classOffset:classOffset+nClasses].abs().max().item())
-        stats[categ][f]['p'] += predictions.detach()[ctr:ctr + nP, classOffset:classOffset + nClasses].cpu().numpy()
-        stats[categ][f]['y'] = batch['y'].detach()[ctr:ctr + nP].cpu().numpy() - classOffset
-        ctr += nP
-"""
-
+import json
+import util
 
 class PSDRun:
     def __init__(self, config, load_cp=False):
@@ -46,6 +33,12 @@ class PSDRun:
         self.model_folder = join(abspath("./model"), self.model_name)
         if not exists(self.model_folder):
             mkdir(self.model_folder)
+        # save config for record
+        self.log_folder = join(self.model_folder, "runs")
+        with open('{}_config.json'.format(join(self.log_folder, self.exp_name)), 'w') as outfile:
+            json.dump(util.DictionaryUtility.to_dict(config), outfile, indent=2)
+        #tensorboard writer for logging
+        self.writer = SummaryWriter(log_dir=self.log_folder)
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
         self.model = self.model_class(config)
@@ -106,7 +99,6 @@ class PSDRun:
 
     def run_step(self, epoch):
         self.model.train()
-        # stats = {}
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.config.optimize_config.lr_begin * \
                                 exp((1 - epoch) * self._lr_decay)
@@ -119,24 +111,20 @@ class PSDRun:
                 batch[0][1] = batch[0][1].type(self.dtype)
                 batch[1] = batch[1].type(self.dtypei)
             predictions = self.model(batch[0])
-            loss = self.criterion.forward(predictions, batch['y'])
-            # store(stats, batch, predictions, loss)
+            loss = self.criterion.forward(predictions, batch[1])
+            self.writer.add_scalar("Loss/train", loss, epoch)
             loss.backward()
             self.optimizer.step()
-        print('train epoch', epoch, 1, 'MegaMulAdd=', scn.forward_pass_multiplyAdd_count / self.total_train / 1e6,
-              'MegaHidden', scn.forward_pass_hidden_states / self.total_train / 1e6, 'time=', time.time() - start,
-              's')
+        print('train epoch', epoch, 'time=', time.time() - start, 's')
 
-        if self._use_cp:
-            torch.save(epoch, self.save_path(False))
-            torch.save(self.model.state_dict(), self.save_path())
+        torch.save(epoch, self.save_path(False))
+        torch.save(self.model.state_dict(), self.save_path())
 
         if epoch % int(self.config.optimize_config.freq_display) == 0:
             self.model.eval()
             # stats = {}
-            scn.forward_pass_multiplyAdd_count = 0
-            scn.forward_pass_hidden_states = 0
             start = time.time()
+            losses = []
             for rep in range(1, 1 + 3):
                 for batch in self.test_set:
                     if self._use_cuda:
@@ -144,7 +132,5 @@ class PSDRun:
                         batch[1] = batch[1].type(self.dtypei)
                     predictions = self.model(batch['x'])
                     loss = self.criterion.forward(predictions, batch[1])
-                    # store(stats, batch, predictions, loss)
-                print('valid epoch', epoch, rep, 'MegaMulAdd=',
-                      scn.forward_pass_multiplyAdd_count / self.total_train / 1e6, 'MegaHidden',
-                      scn.forward_pass_hidden_states / self.total_train / 1e6, 'time=', time.time() - start, 's')
+                    self.writer.add_scalar("Loss/valid", loss, epoch)
+                print('valid epoch', epoch, rep, 'time=', time.time() - start, 's')

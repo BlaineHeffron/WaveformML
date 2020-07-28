@@ -30,7 +30,7 @@ class HDF5Dataset(data.Dataset):
         file_excludes: list of file to be excluded from dataset
         label_name: string indicating the name of the labels
         data_cache_size: Number of HDF5 files that can be cached in the cache (default=3).
-        transform: PyTorch transform to apply to every data instance (default=None).
+        use_pinned: boolean whether or not to return batches in pinned memory (for use by the GPU)
     """
 
     def __init__(self, file_paths, recursive, load_data,
@@ -38,15 +38,14 @@ class HDF5Dataset(data.Dataset):
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3,
-                 transform=None):
-        super().__init__()
+                 use_pinned=False):
+        super().__init__(pin_memory=use_pinned)
         self.file_paths = file_paths
         self.file_excludes = file_excludes
         self.num_dirs = len(file_paths)
         self.data_info = []
         self.data_cache = {}
         self.data_cache_size = data_cache_size
-        self.transform = transform
         self.data_name = data_name
         self.label_name = label_name
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list

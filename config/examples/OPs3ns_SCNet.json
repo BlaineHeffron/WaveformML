@@ -55,8 +55,7 @@
       "nn.Linear", [
         32,
         2
-      ],
-      "nn.Softmax", null
+      ]
     ]
   },
   "optimize_config":{
@@ -80,7 +79,8 @@
     "imports": ["PulseDataset"],
     "dataset_class": "PulseDataset2D",
     "dataset_params": {
-      "data_cache_size": 1
+      "data_cache_size": 1,
+      "use_pinned": false
     },
     "n_train": 1000000,
     "n_test": 1000000

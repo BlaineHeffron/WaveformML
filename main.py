@@ -5,9 +5,7 @@ import argparse
 import os
 from util import ModuleUtility, path_create
 
-LOG_DIR = "./logs"
 MODEL_DIR = "./model"
-OUT_DIR = "./results"
 CONFIG_DIR = "./config"
 
 
@@ -19,8 +17,6 @@ def main():
     load_checkpoint = False
     if args.load_checkpoint:
         load_checkpoint = args.load_checkpoint
-    if not os.path.exists(LOG_DIR):
-        path_create(LOG_DIR)
     if not os.path.exists(MODEL_DIR):
         path_create(MODEL_DIR)
     config_file = args.config
@@ -37,13 +33,6 @@ def main():
         config = json.load(json_data_file)
     # convert dict to object recursively for easy call
     config = util.DictionaryUtility.to_object(config)
-    exp_name = config.run_config.exp_name
-    path_prefix = os.path.join(LOG_DIR, exp_name)
-    if not os.path.exists('./model/' + exp_name):
-        path_create('./model/' + exp_name)
-    # save config for record
-    with open('{}_config.json'.format(path_prefix), 'w') as outfile:
-        json.dump(util.DictionaryUtility.to_dict(config), outfile, indent=2)
     logging.basicConfig(level=logging.DEBUG,
                         format='%(levelname)-6s %(message)s')
 
