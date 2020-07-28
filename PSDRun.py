@@ -131,7 +131,7 @@ class PSDRun:
             torch.save(epoch, self.save_path(False))
             torch.save(self.model.state_dict(), self.save_path())
 
-        if epoch % int(self.config.optimize_self.config.freq_display) == 0:
+        if epoch % int(self.config.optimize_config.freq_display) == 0:
             self.model.eval()
             # stats = {}
             scn.forward_pass_multiplyAdd_count = 0
