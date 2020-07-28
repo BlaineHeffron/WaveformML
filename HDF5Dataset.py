@@ -71,8 +71,8 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
-        coords = torch.LongTensor(coords, pin_memory=self.use_pinned)
-        vals = torch.FloatTensor(vals, pin_memory=self.use_pinned)
+        coords = torch.LongTensor(torch.from_numpy(coords), pin_memory=self.use_pinned)
+        vals = torch.FloatTensor(torch.from_numpy(vals), pin_memory=self.use_pinned)
         # get label
         if self.label_name is None:
             y = full(coords.shape[0], self.get_data_infos(self.label_name)[index]['dir_index'], dtype=uint8)
@@ -131,7 +131,7 @@ class HDF5Dataset(data.Dataset):
         path and update the cache index in the
         data_info structure.
         """
-        with h5py.File(file_path, 'r') as h5_file:
+        with h5py.File(file_path, 'r', ) as h5_file:
             for gname, group in h5_file.items():
                 if hasattr(group, "items"):
                     for dname, ds in group.items():
