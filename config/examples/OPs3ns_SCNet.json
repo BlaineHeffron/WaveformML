@@ -43,7 +43,7 @@
         2,
         false
       ],
-      "sparseconvnet.sparseToDense", [2,18],
+      "sparseconvnet.SparseToDense", [2,18],
       "nn.Linear", [
         270,
         135

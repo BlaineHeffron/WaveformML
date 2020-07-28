@@ -10,8 +10,8 @@ class SpConvNet(nn.Module):
         self.nsamples = self.system_config.n_samples
         self.ntype = self.system_config.n_type
         self.modules = ModuleUtility(self.net_config.imports)
-        self.net_class = self.modules.retrieve_class(self.net_config.net_class)
-        self.net = self.net_class(*self.modules.create_class_instances(self.net_config.algorithm))
+        self.sequence_class = self.modules.retrieve_class(self.net_config.sequence_class)
+        self.net = self.sequence_class(*self.modules.create_class_instances(self.net_config.algorithm))
 
     def forward(self, features, coors, batch_size):
         coors = coors.int()  # unlike torch, this library only accept int coordinates.
