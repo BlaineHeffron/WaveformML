@@ -82,7 +82,6 @@ class HDF5Dataset(data.Dataset):
             coords = torch.from_numpy(coords)
             vals = torch.from_numpy(vals)
         # get label
-        y = None
         if self.label_name is None:
             y = full(datalen, self.get_data_infos(self.data_name)[index]['dir_index'], dtype=uint8)
         else:

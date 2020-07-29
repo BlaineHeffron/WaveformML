@@ -40,6 +40,10 @@ class PSDRun:
             json.dump(util.DictionaryUtility.to_dict(config), outfile, indent=2)
         #tensorboard writer for logging
         self.writer = SummaryWriter(log_dir=self.log_folder)
+        #validate algorithm if requested
+        if config.net_config.validate_algorithm:
+            import ModelValidation
+            ModelValidation.ModelValidation.validate(config)
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
         self.model = self.model_class(config)

@@ -12,12 +12,14 @@
     "gpu_enabled": true
   },
   "net_config":{
+    "_comment": "convolution args: dimension, nIn, nOut, filter_size, filter_stride, bias, groups=1",
     "criterion_class": "CrossEntropyLoss",
     "criterion_params": [],
     "imports": ["torch.nn","sparseconvnet","SCNet"],
     "net_class": "SCNet.SCNet",
     "sequence_class": "sparseconvnet.Sequential",
     "net_type": "2DConvolution",
+    "validate_algorithm": false,
     "algorithm": [
       "sparseconvnet.Convolution", [
         2,
@@ -44,6 +46,7 @@
         false
       ],
       "sparseconvnet.SparseToDense", [2,18],
+      "nn.Flatten", [],
       "nn.Linear", [
         270,
         135
