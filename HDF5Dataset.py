@@ -71,14 +71,24 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
-        coords = torch.from_numpy(coords, pin_memory=self.use_pinned)
-        vals = torch.from_numpy(vals, pin_memory=self.use_pinned)
+        if self.use_pinned:
+            #coords = torch.cuda.IntTensor(torch.from_numpy(coords))
+            coords = torch.from_numpy(coords).pin_memory()
+            #vals = torch.cuda.FloatTensor(torch.from_numpy(vals), pin_memory=self.use_pinned)
+            vals = torch.from_numpy(vals).pin_memory()
+        else:
+            coords = torch.from_numpy(coords)
+            vals = torch.from_numpy(vals)
         # get label
         if self.label_name is None:
             y = full(coords.shape[0], self.get_data_infos(self.label_name)[index]['dir_index'], dtype=uint8)
         else:
             y = self.get_data(self.label_name, index)
-        y = torch.from_numpy(y, pin_memory=self.use_pinned)
+        if self.use_pinned:
+            y = torch.from_numpy(y).pin_memory()
+        else:
+            y = torch.from_numpy(y)
+            #y = torch.ByteTensor(torch.from_numpy(y), pin_memory=self.use_pinned)
 
         return [coords, vals], y
 
