@@ -1,14 +1,14 @@
 from re import findall
 
 import h5py
-from numpy import full, uint8
+from numpy import full, int64, max, min, unique, where
 from pathlib import Path
 import torch
 from torch.utils import data
 
 
 def _sort_pattern(name):
-    nums = findall(r'\d+', name)
+    nums = findall(r'_(\d+)', str(name))
     if nums:
         return int(nums[0])
     else:
@@ -57,9 +57,9 @@ class HDF5Dataset(data.Dataset):
             p = Path(file_path)
             assert (p.is_dir())
             if recursive:
-                files = sorted(p.glob('**/{0}'.format(file_pattern)), key=lambda e: _sort_pattern(file_pattern))
+                files = sorted(p.glob('**/{0}'.format(file_pattern)), key=lambda e: _sort_pattern(e))
             else:
-                files = sorted(p.glob(file_pattern), key=lambda e: _sort_pattern(file_pattern))
+                files = sorted(p.glob(file_pattern), key=lambda e: _sort_pattern(e))
             if len(files) < 1:
                 raise RuntimeError('No hdf5 datasets found')
 
@@ -71,19 +71,26 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
-        datalen = self.get_data_infos(self.data_name)[index]['event_range']
-        datalen = datalen[1] - datalen[0]
+        evt_offset = min(coords[:,2])
+        coords[:,2] -= evt_offset
+        un = unique(coords[:,2])
+        datalen = len(un)
+        for i, batch_id in enumerate(coords[:,2]):
+            coords[i,2] = where(un == batch_id)[0]
+
         if self.use_pinned:
             #coords = torch.cuda.IntTensor(torch.from_numpy(coords))
             coords = torch.from_numpy(coords).pin_memory()
-            #vals = torch.cuda.FloatTensor(torch.from_numpy(vals), pin_memory=self.use_pinned)
-            vals = torch.from_numpy(vals).pin_memory()
+            vals = torch.FloatTensor(vals).pin_memory()
+            #vals = torch.from_numpy(vals).pin_memory()
         else:
             coords = torch.from_numpy(coords)
-            vals = torch.from_numpy(vals)
+            vals = torch.FloatTensor(vals)
+            #vals = torch.from_numpy(vals)
         # get label
         if self.label_name is None:
-            y = full(datalen, self.get_data_infos(self.data_name)[index]['dir_index'], dtype=uint8)
+            y = full(int(datalen), self.get_data_infos(self.data_name)[index]['dir_index'],
+                    dtype=int64)
         else:
             y = self.get_data(self.label_name, index)
         if self.use_pinned:
@@ -111,6 +118,7 @@ class HDF5Dataset(data.Dataset):
                                'type': dataset_name,
                                'shape': dataset[()].shape,
                                'cache_idx': idx,
+                               'n_events': n_events,
                                'event_range': [0, n_events - 1],
                                'dir_index': dir_index})
 

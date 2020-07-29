@@ -65,7 +65,7 @@ class PSDRun:
             if hasattr(config.system_config, "gpu_enabled"):
                 self._use_cuda = config.system_config.gpu_enabled
         self.dtype = 'torch.cuda.FloatTensor' if self._use_cuda else 'torch.FloatTensor'
-        self.dtypei = 'torch.cuda.ByteTensor' if self._use_cuda else 'torch.ByteTensor'
+        self.dtypei = 'torch.cuda.LongTensor' if self._use_cuda else 'torch.LongTensor'
         if self._use_cuda:
             self.model.cuda()
             self.criterion.cuda()
