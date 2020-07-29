@@ -10,6 +10,7 @@ PAD = "FILTER_PADDING"
 DIL = "FILTER_DILATION"
 alg_map = {
     "sparseconvnet.Convolution": [DIM, NIN, NOUT, FS, STR],
+    "sparseconvnet.SubmanifoldConvolution": [DIM, NIN, NOUT, FS],
     "nn.Linear": [NIN, NOUT]
 }
 type_map = {
@@ -94,6 +95,8 @@ class ModelValidation(object):
             raise IOError("Error between layers {0} and {1}: \n"
                     "Input feature dimension {2} does not match "
                     "previous output feature dimension {3}.".format(pa,ca,arg_list[1],current_dim[2]))
+        if arg_list[4] == 0:
+            arg_list[4] = 1
         h = (current_dim[1] - arg_list[3] + 2 * arg_list[5]) / arg_list[4] + 1
         w = (current_dim[0] - arg_list[3] + 2 * arg_list[5]) / arg_list[4] + 1
         return [int(w), int(h), int(arg_list[2])]

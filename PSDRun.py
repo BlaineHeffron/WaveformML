@@ -129,14 +129,13 @@ class PSDRun:
             self.model.eval()
             # stats = {}
             start = time.time()
-            for rep in range(1, 1 + 3):
-                losses = []
-                for batch in self.test_set:
-                    if self._use_cuda:
-                        batch[0][1] = batch[0][1].type(self.dtype)
-                        batch[1] = batch[1].type(self.dtypei)
-                    predictions = self.model(batch['x'])
-                    loss = self.criterion.forward(predictions, batch[1])
-                    losses.append(loss.item())
-                    self.writer.add_scalar("Loss/valid", loss, epoch)
-                print('valid epoch', epoch, rep, 'time=', time.time() - start, 's, loss = ', average(losses))
+            losses = []
+            for batch in self.test_set:
+                if self._use_cuda:
+                    batch[0][1] = batch[0][1].type(self.dtype)
+                    batch[1] = batch[1].type(self.dtypei)
+                predictions = self.model(batch[0])
+                loss = self.criterion.forward(predictions, batch[1])
+                losses.append(loss.item())
+                self.writer.add_scalar("Loss/valid", loss, epoch)
+            print('valid epoch', epoch, 'time=', time.time() - start, 's, loss = ', average(losses))

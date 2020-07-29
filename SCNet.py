@@ -21,15 +21,18 @@ class SCNet(nn.Module):
                     linear_funcs = self.net_config.algorithm[i:]
                     break
             sparse_funcs.append(f)
+        print(sparse_funcs)
         self.sparseModel = self.sequence_class(*self.modules.create_class_instances(sparse_funcs))
         self.spatial_size = LongTensor([14, 11])
         self.inputLayer = scn.InputLayer(2, self.spatial_size, mode=0)
+        #self.flatten = nn.Flatten()
         self.linear = nn.Sequential(*self.modules.create_class_instances(linear_funcs))
         self.n_linear = linear_funcs[1][0]
 
     def forward(self, x):
         x = self.inputLayer(x)
         x = self.sparseModel(x)
+        #x = self.flatten(x)
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
         return x
