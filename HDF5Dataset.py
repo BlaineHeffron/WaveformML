@@ -7,9 +7,6 @@ import torch
 from torch.utils import data
 
 
-# from time import time
-
-
 def _sort_pattern(name):
     nums = findall(r'_(\d+)', str(name))
     if nums:
