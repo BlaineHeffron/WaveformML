@@ -1,0 +1,45 @@
+{
+  "_comment" : "This file specifies required parameters in the config file. If a value is given, it is used as a default when the parameter is absent.",
+  "run_config": {
+    "exp_name": "unnamed_experiment",
+    "imports": ["PSDRun"],
+    "run_class": "PSDRun"
+  },
+  "system_config":{
+    "model_name": "unnamed_model",
+    "type_names": [""],
+    "n_samples": 0
+  },
+  "net_config":{
+    "criterion_class": "CrossEntropyLoss",
+    "criterion_params": [],
+    "imports": ["torch.nn","sparseconvnet","SCNet"],
+    "net_class": "SCNet.SCNet",
+    "sequence_class": "sparseconvnet.Sequential",
+    "net_type": "2DConvolution",
+    "algorithm": []
+  },
+  "optimize_config": {
+    "total_epoch": 30,
+    "freq_display": 1,
+    "lr_begin": 5e-4,
+    "lr_end": 1e-7,
+    "optimizer_class": "torch.optim.SGD",
+    "optimizer_params": {},
+    "dataset_config": {
+      "mode": "path",
+      "base_path": "",
+      "paths": [
+        "Positron",
+        "OrthoPositronium"
+      ],
+      "imports": [
+        "PulseDataset"
+      ],
+      "dataset_class": "PulseDataset2D",
+      "dataset_params": {},
+      "n_train": 0,
+      "n_test": 0
+    }
+  }
+}

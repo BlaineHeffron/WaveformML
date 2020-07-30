@@ -1,5 +1,6 @@
 import importlib
 import os
+import json
 
 
 class DictionaryUtility:
@@ -120,9 +121,11 @@ class ModuleUtility:
 def path_split(a_path):
     return os.path.normpath(a_path).split(os.path.sep)
 
+
 def path_create(a_path):
     if not os.path.exists(a_path):
         os.mkdir(os.path.expanduser(os.path.normpath(a_path)))
+
 
 def unique_path_combine(pathlist):
     common = []
@@ -154,3 +157,62 @@ def unique_path_combine(pathlist):
             else:
                 output_string = '_'.join(path_array)
     return output_string
+
+
+class ValidateUtility:
+
+    @staticmethod
+    def _check_path(c, p, o, t, default=""):
+        if p not in c[o]:
+            if default:
+                c[o][p] = default
+            else:
+                raise IOError("Config file does not have the property {0} specified "
+                              "in the {1}. Format as a {2}.".format(p, o, t))
+
+    @staticmethod
+    def validate_config(config, validate_file):
+        with open(validate_file) as json_data_file:
+            validate = json.load(json_data_file)
+        for config_path in validate:
+            if config_path.startswith("_"):
+                continue
+
+            if config_path not in config:
+                raise IOError("Config file does not have a {}.".format(config_path))
+            for property_path in validate[config_path]:
+                if property_path.startswith("_"):
+                    continue
+                if isinstance(validate[config_path][property_path], str):
+                    if validate[config_path][property_path] == "":
+                        ValidateUtility._check_path(config, property_path, config_path, "string")
+                    else:
+                        ValidateUtility._check_path(config, property_path, config_path, "string",
+                                                    default=validate[config_path][property_path])
+
+                elif isinstance(validate[config_path][property_path], int) or isinstance(
+                        validate[config_path][property_path], float):
+                    if validate[config_path][property_path] == 0:
+                        ValidateUtility._check_path(config, property_path, config_path, "number")
+                    else:
+                        ValidateUtility._check_path(config, property_path, config_path, "number",
+                                                    default=validate[config_path][property_path])
+
+                elif isinstance(validate[config_path][property_path], list):
+                    if not validate[config_path][property_path]:
+                        ValidateUtility._check_path(config, property_path, config_path, "list")
+                    elif validate[config_path][property_path] == [""]:
+                        ValidateUtility._check_path(config, property_path, config_path, "list of strings")
+                    elif validate[config_path][property_path] == [{}]:
+                        ValidateUtility._check_path(config, property_path, config_path, "list of objects")
+                    else:
+                        ValidateUtility._check_path(config, property_path, config_path, "list",
+                                                    default=validate[config_path][property_path])
+                elif isinstance(validate[config_path][property_path], dict):
+                    if validate[config_path][property_path] == {}:
+                        ValidateUtility._check_path(config, property_path, config_path, "object")
+                    else:
+                        ValidateUtility._check_path(config, property_path, config_path, "object",
+                                                    default=validate[config_path][property_path])
+                else:
+                    ValidateUtility._check_path(config, property_path, config_path, "object")
