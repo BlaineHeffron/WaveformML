@@ -71,6 +71,7 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
+        n = coords[-1,2] + 1 #number of events #TODO only return the data range given in get_data
         if self.use_pinned:
             # coords = torch.cuda.IntTensor(torch.from_numpy(coords))
             coords = torch.from_numpy(coords).pin_memory()
@@ -83,8 +84,11 @@ class HDF5Dataset(data.Dataset):
         # get label
         if self.label_name is None:
             di = self.get_data_infos(self.data_name)[index]
-            y = full(di['n_events'], di['dir_index'],
+            #y = full(di['n_events'], di['dir_index'],
+            #         dtype=int64)
+            y = full(n, di['dir_index'],
                      dtype=int64)
+            #print(di)
         else:
             y = self.get_data(self.label_name, index)
         if self.use_pinned:
@@ -92,13 +96,15 @@ class HDF5Dataset(data.Dataset):
         else:
             y = torch.from_numpy(y)
             # y = torch.ByteTensor(torch.from_numpy(y), pin_memory=self.use_pinned)
+        #print("loaded y shape: {}".format(y.shape))
+        #print("loaded coord shape: {}".format(coords.shape))
 
         return [[coords, vals], y]
 
     def __len__(self):
         return len(self.get_data_infos(self.data_name))
 
-    def _add_data_block(self, dataset, dataset_name, file_path, load_data, n_events, dir_index):
+    def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index):
         # if data is not loaded its cache index is -1
         idx = -1
         if load_data:
@@ -112,8 +118,8 @@ class HDF5Dataset(data.Dataset):
                                'type': dataset_name,
                                'shape': dataset[()].shape,
                                'cache_idx': idx,
-                               'n_events': n_events,
-                               'event_range': [0, n_events - 1], #TODO: this range should be used to get the subset if needed
+                               'n_events': num_events,
+                               'event_range': [0, num_events - 1], 
                                'dir_index': dir_index})
 
     def _add_data_infos(self, file_path, dir_index, load_data):
@@ -121,18 +127,21 @@ class HDF5Dataset(data.Dataset):
             if file_path in self.file_excludes:
                 return
         with h5py.File(file_path, 'r') as h5_file:
-            n_events = h5_file[self.data_name]['coord'][-1][2]+1  # the number of events to retrieve
-            if self.events_per_dir - self.n_events[dir_index] < n_events:
-                n_events = self.events_per_dir - self.n_events[dir_index]
-            self.n_events[dir_index] += n_events
+            n = h5_file[self.data_name]['coord'][-1][2]+1  # the number of events in the file
+            #a = len(unique(h5_file[self.data_name]['coord'][:,2]))
+            #print("nevents is {0}, length of dataset is {1} for file "
+            #      " {2}".format(n,a,file_path))
+            if self.events_per_dir - self.n_events[dir_index] < n:
+                n = self.events_per_dir - self.n_events[dir_index]
+            self.n_events[dir_index] += n
 
             # Walk through all groups, extracting datasets
             for gname, group in h5_file.items():
                 if hasattr(group, "items"):
                     for dname, ds in group.items():
-                        self._add_data_block(ds, dname, file_path, load_data, n_events, dir_index)
+                        self._add_data_block(ds, dname, file_path, load_data, n, dir_index)
                 else:
-                    self._add_data_block(group, gname, file_path, load_data, n_events, dir_index)
+                    self._add_data_block(group, gname, file_path, load_data, n, dir_index)
 
     def _get_dir_index(self, file_path):
         return self.file_paths.index(file_path)

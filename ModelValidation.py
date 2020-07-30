@@ -10,6 +10,7 @@ PAD = "FILTER_PADDING"
 DIL = "FILTER_DILATION"
 alg_map = {
     "sparseconvnet.Convolution": [DIM, NIN, NOUT, FS, STR],
+    "sparseconvnet.FullConvolution": [DIM, NIN, NOUT, FS, STR],
     "sparseconvnet.SubmanifoldConvolution": [DIM, NIN, NOUT, FS],
     "nn.Linear": [NIN, NOUT]
 }

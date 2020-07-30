@@ -80,7 +80,7 @@ class PSDRun:
             self._epoch = torch.load(self.save_path(False)) + 1
             print('Restarting at epoch ' +
                   str(self._epoch) +
-                  ' from model.pth ..')
+                  ' from {} ..'.format(self.save_path()))
             self.model.load_state_dict(torch.load(self.save_path()))
         else:
             self._epoch = 1
@@ -114,6 +114,7 @@ class PSDRun:
             if self._use_cuda:
                 batch[0][1] = batch[0][1].type(self.dtype)
                 batch[1] = batch[1].type(self.dtypei)
+
             predictions = self.model(batch[0])
             loss = self.criterion.forward(predictions, batch[1])
             self.writer.add_scalar("Loss/train", loss, epoch)

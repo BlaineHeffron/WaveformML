@@ -37,7 +37,7 @@ def main():
             config_file = os.path.join(os.getcwd(), config_file)
             if not os.path.exists(config_file):
                 raise IOError("Could not find config file {0}.".format(args.config))
-    if hasattr(args,"validation"):
+    if args.validation:
         valid_file = args.validation
     else:
         valid_file = CONFIG_VALIDATION
@@ -51,7 +51,7 @@ def main():
         ValidateUtility.validate_config(config, valid_file)
     # convert dict to object recursively for easy call
     config = util.DictionaryUtility.to_object(config)
-    if hasattr(args, "name"):
+    if args.name:
         config.run_config.exp_name = args.name
     logging.basicConfig(level=logging.DEBUG,
                         format='%(levelname)-6s %(message)s')
