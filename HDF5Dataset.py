@@ -5,7 +5,9 @@ from numpy import full, int64, max, min, unique, where
 from pathlib import Path
 import torch
 from torch.utils import data
-#from time import time
+
+
+# from time import time
 
 
 def _sort_pattern(name):
@@ -72,36 +74,27 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
-        #first = time()
-        evt_offset = min(coords[:,2])
-        coords[:,2] -= evt_offset
-        datalen  = max(coords[:,2]+1)
-        #un = unique(coords[:,2])
-        #datalen = len(un)
-        #for i, batch_id in enumerate(coords[:,2]):
-        #    coords[i,2] = where(un == batch_id)[0]
-        #print("processing coords took {0} seconds".format(time() - first))
-
         if self.use_pinned:
-            #coords = torch.cuda.IntTensor(torch.from_numpy(coords))
+            # coords = torch.cuda.IntTensor(torch.from_numpy(coords))
             coords = torch.from_numpy(coords).pin_memory()
             vals = torch.FloatTensor(vals).pin_memory()
-            #vals = torch.from_numpy(vals).pin_memory()
+            # vals = torch.from_numpy(vals).pin_memory()
         else:
             coords = torch.from_numpy(coords)
             vals = torch.FloatTensor(vals)
-            #vals = torch.from_numpy(vals)
+            # vals = torch.from_numpy(vals)
         # get label
         if self.label_name is None:
-            y = full(int(datalen), self.get_data_infos(self.data_name)[index]['dir_index'],
-                    dtype=int64)
+            di = self.get_data_infos(self.data_name)[index]
+            y = full(di['n_events'], di['dir_index'],
+                     dtype=int64)
         else:
             y = self.get_data(self.label_name, index)
         if self.use_pinned:
             y = torch.from_numpy(y).pin_memory()
         else:
             y = torch.from_numpy(y)
-            #y = torch.ByteTensor(torch.from_numpy(y), pin_memory=self.use_pinned)
+            # y = torch.ByteTensor(torch.from_numpy(y), pin_memory=self.use_pinned)
 
         return [[coords, vals], y]
 
@@ -123,7 +116,7 @@ class HDF5Dataset(data.Dataset):
                                'shape': dataset[()].shape,
                                'cache_idx': idx,
                                'n_events': n_events,
-                               'event_range': [0, n_events - 1],
+                               'event_range': [0, n_events - 1], #TODO: this range should be used to get the subset if needed
                                'dir_index': dir_index})
 
     def _add_data_infos(self, file_path, dir_index, load_data):
@@ -131,7 +124,7 @@ class HDF5Dataset(data.Dataset):
             if file_path in self.file_excludes:
                 return
         with h5py.File(file_path, 'r') as h5_file:
-            n_events = h5_file[self.data_name].attrs['nevents']  # the number of events to retrieve
+            n_events = h5_file[self.data_name]['coord'][-1][2]+1  # the number of events to retrieve
             if self.events_per_dir - self.n_events[dir_index] < n_events:
                 n_events = self.events_per_dir - self.n_events[dir_index]
             self.n_events[dir_index] += n_events
@@ -183,7 +176,10 @@ class HDF5Dataset(data.Dataset):
             # remove invalid cache_idx
             self.data_info = \
                 [{'file_path': di['file_path'], 'type': di['type'], 'shape': di['shape'],
-                    'dir_index': di['dir_index'], 'cache_idx': -1}
+                  'dir_index': di['dir_index'],
+                  'n_events': di['n_events'],
+                  'event_range': di['event_range'],
+                  'cache_idx': -1}
                  if di['file_path'] == removal_keys[0]
                  else di for di in self.data_info]
 
