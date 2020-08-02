@@ -7,7 +7,7 @@ from util import ModuleUtility, path_create, ValidateUtility
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
-CONFIG_VALIDATION = "./config_requirements.txt"
+CONFIG_VALIDATION = "./config_requirements.json"
 
 
 def main():
