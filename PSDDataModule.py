@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 from util import DictionaryUtility
 
-class PSDDataModule(pl.DataModule):
+class PSDDataModule(pl.LightningDataModule):
 
     def __init__(self, config):
         super().__init__()

@@ -26,6 +26,9 @@ def main():
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int)
+    parser.add_argument("--nodes", "-no",
+                        help="Set the number of nodes used for this run.", default=1,
+                        type=int)
     parser.add_argument("--validation", "-cv", type=str,
                         help="Set the path to the config validation file.",)
     args = parser.parse_args()
@@ -33,8 +36,7 @@ def main():
         path_create(MODEL_DIR)
     config_file = args.config
     if not config_file.endswith(".json"):
-        config_file = "{}.json".format(config_file)
-    if not os.path.isabs(config_file):
+        config_file = "{}.json".format(config_file) if not os.path.isabs(config_file):
         config_file = os.path.join(CONFIG_DIR, config_file)
         if not os.path.exists(config_file):
             config_file = os.path.join(os.getcwd(), config_file)
@@ -65,7 +67,11 @@ def main():
 
     model = LitPSD(config)
     data_module = PSDDataModule(config.dataset_config)
-    trainer = Trainer(tpu_cores=8)
+    if hasattr(config.system_config,"gpu_enabled"):
+        if config.system_config.gpu_enabled:
+            trainer = Trainer(gpus=1, num_nodes=args.nodes, distributed_backend='ddp')
+    else:
+        trainer = Trainer(num_nodes=args.nodes)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
 if __name__ == '__main__':
