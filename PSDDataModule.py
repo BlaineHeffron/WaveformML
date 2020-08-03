@@ -3,7 +3,6 @@ from util import DictionaryUtility, ModuleUtility
 
 
 class PSDDataModule(pl.LightningDataModule):
-
     def __init__(self, config):
         super().__init__()
         self.config = config

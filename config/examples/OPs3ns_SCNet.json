@@ -65,10 +65,9 @@
     "imports": ["torch.optim","torch.optim.lr_scheduler"],
     "total_epoch":30,
     "freq_display":1,
-    "lr_begin":5e-4,
-    "lr_end":1e-7,
     "optimizer_class": "optim.SGD",
     "optimizer_params": {
+      "lr": 1e-3,
       "momentum": 0,
       "weight_decay": 0, "dampening": 0, "nesterov": false },
     "scheduler_class": "lr_scheduler.ExponentialLR",
