@@ -1,5 +1,5 @@
 import pytorch_lightning as pl
-from util import *
+from PSDEvaluator import *
 from PSDDataModule import *
 
 
@@ -7,7 +7,8 @@ class LitPSD(pl.LightningModule):
 
     def __init__(self, config):
         super(LitPSD, self).__init__()
-        self.config = config
+        self.config = config.system_config.n_type
+        self.n_type = config.system_config.n_type
         opt_class = config.optimize_config.optimizer_class.split('.')[-1]
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                 config.optimize_config.imports)
@@ -27,6 +28,7 @@ class LitPSD(pl.LightningModule):
         return self.data_module.train_dataloader()
 
     def val_dataloader(self):
+        self.evaluator = PSDEvaluator(self.config)
         return self.data_module.val_dataloader()
 
     def configure_optimizers(self):
@@ -51,22 +53,18 @@ class LitPSD(pl.LightningModule):
         result.log('train_loss', loss)
         return result
 
-
-"""
-define these if need more fine grained control
     def validation_step(self, batch, batch_idx):
         predictions = self.model(batch[0])
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
+        self.evaluator.update(predictions)
         return result
 
     def validation_epoch_end(self, outputs):
-        self.coco_evaluator.accumulate()
-        self.coco_evaluator.summarize()
-        # coco main metric
-        metric = self.coco_evaluator.coco_eval['bbox'].stats[0]
+        self.evaluator.accumulate()
+        metric = self.evaluator.stats[0]
         tensorboard_logs = {'main_score': metric}
         return {'val_loss': metric, 'log': tensorboard_logs, 'progress_bar': tensorboard_logs}
 
-"""
+
