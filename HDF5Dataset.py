@@ -40,6 +40,7 @@ class HDF5Dataset(data.Dataset):
                  data_cache_size=3,
                  use_pinned=False):
         super().__init__()
+        #TODO: pass shuffle = true for training sets (see data.Dataset class)
         self.file_paths = file_paths
         self.file_excludes = file_excludes
         self.num_dirs = len(file_paths)

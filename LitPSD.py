@@ -1,6 +1,8 @@
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import TensorBoardLogger
 from PSDEvaluator import *
 from PSDDataModule import *
+import torch
 
 
 class LitPSD(pl.LightningModule):
@@ -28,8 +30,6 @@ class LitPSD(pl.LightningModule):
         return self.data_module.train_dataloader()
 
     def val_dataloader(self):
-        if not hasattr(self,"evaluator"):
-            self.evaluator = PSDEvaluator(self.config)
         return self.data_module.val_dataloader()
 
     def configure_optimizers(self):
@@ -59,15 +59,13 @@ class LitPSD(pl.LightningModule):
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
-        if not hasattr(self,"evaluator"):
-            self.evaluator = PSDEvaluator(self.config)
-        self.evaluator.update(predictions)
         return result
 
     def validation_epoch_end(self, outputs):
-        self.evaluator.accumulate()
-        metric = self.evaluator.stats[0]
-        tensorboard_logs = {'main_score': metric}
-        return {'val_loss': metric, 'log': tensorboard_logs, 'progress_bar': tensorboard_logs}
+        mean_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        return {
+            'log': {'mean_loss': mean_loss},
+            'progress_bar': {'mean_loss': mean_loss}
+        }
 
 
