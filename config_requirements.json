@@ -22,8 +22,6 @@
   "optimize_config": {
     "total_epoch": 30,
     "freq_display": 1,
-    "lr_begin": 5e-4,
-    "lr_end": 1e-7,
     "optimizer_class": "torch.optim.SGD",
     "optimizer_params": {},
     "dataset_config": {
