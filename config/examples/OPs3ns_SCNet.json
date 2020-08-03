@@ -62,14 +62,19 @@
     ]
   },
   "optimize_config":{
+    "imports": ["torch.optim","torch.optim.lr_scheduler"],
     "total_epoch":30,
     "freq_display":1,
     "lr_begin":5e-4,
     "lr_end":1e-7,
-    "optimizer_class": "torch.optim.SGD",
+    "optimizer_class": "optim.SGD",
     "optimizer_params": {
       "momentum": 0,
-      "weight_decay": 0, "dampening": 0, "nesterov": false }
+      "weight_decay": 0, "dampening": 0, "nesterov": false },
+    "scheduler_class": "lr_scheduler.ExponentialLR",
+    "scheduler_params": {
+      "alpha": 0.9
+    }
   },
   "dataset_config": {
     "_comment": "mode can be path or config. if mode is set, set base_path and paths. If config, set config_path",

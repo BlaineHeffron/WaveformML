@@ -1,6 +1,8 @@
 import importlib
 import os
 import json
+from collections.abc import Mapping, Sequence
+from collections import OrderedDict
 
 
 class DictionaryUtility:
@@ -216,3 +218,13 @@ class ValidateUtility:
                                                     default=validate[config_path][property_path])
                 else:
                     ValidateUtility._check_path(config, property_path, config_path, "object")
+
+
+class OrderlyJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Mapping):
+            return OrderedDict(o)
+        elif isinstance(o, Sequence):
+            return list(o)
+        return json.JSONEncoder.default(self, o)
+

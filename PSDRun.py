@@ -10,6 +10,7 @@ import time
 import json
 import util
 
+
 class PSDRun:
     def __init__(self, config, load_cp=False):
         self.config = config
@@ -38,9 +39,9 @@ class PSDRun:
             mkdir(self.log_folder)
         with open('{}_config.json'.format(join(self.log_folder, self.exp_name)), 'w') as outfile:
             json.dump(util.DictionaryUtility.to_dict(config), outfile, indent=2)
-        #tensorboard writer for logging
+        # tensorboard writer for logging
         self.writer = SummaryWriter(log_dir=self.log_folder)
-        #validate algorithm if requested
+        # validate algorithm if requested
         if config.net_config.validate_algorithm:
             import ModelValidation
             ModelValidation.ModelValidation.validate(config)
@@ -94,9 +95,9 @@ class PSDRun:
                 else:
                     return join(self.model_folder, self.model_name + "_" + self.exp_name + ".epoch")
             else:
-                raise Exception("No model name")
+                raise IOError("No model name given. Set model_name property in net_config.")
         else:
-            raise Exception("No experiment name")
+            raise IOError("No experiment name given. Set exp_name property in run_config.")
 
     def run(self):
         for epoch in range(self._epoch, self.config.optimize_config.total_epoch + 1):
