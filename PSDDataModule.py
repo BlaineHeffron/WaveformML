@@ -1,6 +1,7 @@
 import pytorch_lightning as pl
 from util import DictionaryUtility
 
+
 class PSDDataModule(pl.LightningDataModule):
 
     def __init__(self, config):
@@ -12,18 +13,18 @@ class PSDDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # called only on 1 GPU
-        if not hasattr(self,"train_dataset"):
+        if not hasattr(self, "train_dataset"):
             self.train_dataset = self.dataset_class(self.config,
                                                     self.config.n_train,
                                                     **DictionaryUtility.to_dict(self.config.dataset_params))
-        elif not hasattr(self,"test_dataset"):
+        elif not hasattr(self, "test_dataset"):
             self.test_dataset = self.dataset_class(self.config,
                                                    self.config.n_test,
                                                    self.train_set.get_file_list(),
                                                    **DictionaryUtility.to_dict(self.config.dataset_params))
 
-        elif not hasattr(self,"val_dataset"):
-            if hasattr(self.config,"n_validate"):
+        elif not hasattr(self, "val_dataset"):
+            if hasattr(self.config, "n_validate"):
                 self.n_validate = self.config.n_validate
             else:
                 self.n_validate = self.config.n_test

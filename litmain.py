@@ -36,8 +36,9 @@ def main():
         path_create(MODEL_DIR)
     config_file = args.config
     if not config_file.endswith(".json"):
-        config_file = "{}.json".format(config_file) if not os.path.isabs(config_file):
-        config_file = os.path.join(CONFIG_DIR, config_file)
+        config_file = "{}.json".format(config_file)
+        if not os.path.isabs(config_file):
+            config_file = os.path.join(CONFIG_DIR, config_file)
         if not os.path.exists(config_file):
             config_file = os.path.join(os.getcwd(), config_file)
             if not os.path.exists(config_file):
