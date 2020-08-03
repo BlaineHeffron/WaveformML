@@ -39,10 +39,10 @@ def main():
         config_file = "{}.json".format(config_file)
         if not os.path.isabs(config_file):
             config_file = os.path.join(CONFIG_DIR, config_file)
-        if not os.path.exists(config_file):
-            config_file = os.path.join(os.getcwd(), config_file)
             if not os.path.exists(config_file):
-                raise IOError("Could not find config file {0}.".format(args.config))
+                config_file = os.path.join(os.getcwd(), config_file)
+                if not os.path.exists(config_file):
+                    raise IOError("Could not find config file {0}.".format(args.config))
     if args.validation:
         valid_file = args.validation
     else:
