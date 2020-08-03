@@ -7,7 +7,7 @@ class LitPSD(pl.LightningModule):
 
     def __init__(self, config):
         super(LitPSD, self).__init__()
-        self.config = config.system_config.n_type
+        self.config = config
         self.n_type = config.system_config.n_type
         opt_class = config.optimize_config.optimizer_class.split('.')[-1]
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
@@ -28,7 +28,8 @@ class LitPSD(pl.LightningModule):
         return self.data_module.train_dataloader()
 
     def val_dataloader(self):
-        self.evaluator = PSDEvaluator(self.config)
+        if not hasattr(self,"evaluator"):
+            self.evaluator = PSDEvaluator(self.config)
         return self.data_module.val_dataloader()
 
     def configure_optimizers(self):
@@ -58,6 +59,8 @@ class LitPSD(pl.LightningModule):
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
+        if not hasattr(self,"evaluator"):
+            self.evaluator = PSDEvaluator(self.config)
         self.evaluator.update(predictions)
         return result
 
