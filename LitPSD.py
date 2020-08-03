@@ -62,7 +62,7 @@ class LitPSD(pl.LightningModule):
         return result
 
     def validation_epoch_end(self, outputs):
-        mean_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        mean_loss = outputs['val_loss'].mean()
         return {
             'log': {'mean_loss': mean_loss},
             'progress_bar': {'mean_loss': mean_loss}
