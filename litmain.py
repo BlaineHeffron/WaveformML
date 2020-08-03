@@ -71,7 +71,10 @@ def main():
     data_module = PSDDataModule(config.dataset_config)
     if hasattr(config.system_config,"gpu_enabled"):
         if config.system_config.gpu_enabled:
-            trainer = Trainer(gpus=1, num_nodes=args.nodes, distributed_backend='ddp')
+            if args.nodes > 1:
+                trainer = Trainer(gpus=1, num_nodes=args.nodes, distributed_backend='ddp')
+            else:
+                trainer = Trainer(gpus=1, num_nodes=args.nodes)
     else:
         trainer = Trainer(num_nodes=args.nodes)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())

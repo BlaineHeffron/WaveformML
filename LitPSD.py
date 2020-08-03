@@ -14,6 +14,8 @@ class LitPSD(pl.LightningModule):
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
         self.model = self.model_class(config)
         self.data_module = PSDDataModule(config.dataset_config)
+        self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
+        self.criterion = self.criterion_class(*config.net_config.criterion_params)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -32,23 +34,21 @@ class LitPSD(pl.LightningModule):
             self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
                                                                                      **DictionaryUtility.to_dict(
                                                                                          self.config.optimize_config.optimizer_params))
-        if self.config.optimizer.lr_scheduler_class:
-            if not hasattr(self.config.optimize_config, "lr_scheduler_parameters"):
-                raise IOError(
-                    "Optimizer config has a learning scheduler class specified. You must also set lr_schedule_parameters (dictionary of key value pairs).")
-            scheduler = self.modules.retrieve_class(self.config.optimizer.lr_scheduler_class)(
-                **DictionaryUtility.to_dict(self.config.optimize_config.lr_scheduler_parameters))
-            return [optimizer], [scheduler]
+        if hasattr(self.config.optimize_config, "lr_scheduler_class"):
+            if self.config.optimize_config.lr_scheduler_class:
+                if not hasattr(self.config.optimize_config, "lr_scheduler_parameters"):
+                    raise IOError(
+                        "Optimizer config has a learning scheduler class specified. You must also set lr_schedule_parameters (dictionary of key value pairs).")
+                scheduler = self.modules.retrieve_class(self.config.optimize_config.lr_scheduler_class)(
+                    **DictionaryUtility.to_dict(self.config.optimize_config.lr_scheduler_parameters))
+                return [optimizer], [scheduler]
         return optimizer
 
     def training_step(self, batch, batch_idx):
-        self.optimizer.zero_grad()
         predictions = self.model(batch[0])
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.TrainResult(loss)
         result.log('train_loss', loss)
-        loss.backward()
-        self.optimizer.step()
         return result
 
 
