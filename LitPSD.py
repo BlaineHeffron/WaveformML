@@ -6,7 +6,7 @@ from PSDDataModule import *
 class LitPSD(pl.LightningModule):
 
     def __init__(self, config):
-        super(LitPSD, self).__init__(config)
+        super(LitPSD, self).__init__()
         self.config = config
         opt_class = config.optimize_config.optimizer_class.split('.')[-1]
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports + [opt_class])
