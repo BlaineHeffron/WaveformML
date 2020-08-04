@@ -113,7 +113,7 @@ def main():
                 args["gpus"] = 1
             if args["num_nodes"] > 1:
                 trainer_args["distributed_backend"] = 'ddp'
-    trainer = Trainer(**trainer_args)
+    trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
 
