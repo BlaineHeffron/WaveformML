@@ -108,8 +108,7 @@ class ModelOptimization:
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = self.study_dir
         set_default_trainer_args(trainer_args, self.config)
-        trainer_args.early_stop_callback = PyTorchLightningPruningCallback(trial, monitor="val_acc")
-        trainer_args = vars(trainer_args)
+        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_acc")
         save_config(self.config, log_folder, "trial_{}".format(trial.number), "config")
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        "trial_{}".format(trial.number), "train_args")
