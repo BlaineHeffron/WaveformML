@@ -8,10 +8,11 @@ from os.path import join
 class PSDCallbacks:
 
     def __init__(self, config):
-        self.callbacks = {"callbacks": []}
-        self.set_callbacks()
+        self.config = config
 
-    def set_callbacks(self):
-        self.callbacks["early_stop_callback"] = EarlyStopping('val_loss')
-        self.callbacks["accumulate_grad_batches"] = {5: 2, 20: 3}
-        self.callbacks["callbacks"].append(LearningRateLogger)
+    def set_args(self, args):
+        args["early_stop_callback"] = EarlyStopping('val_loss')
+        args["accumulate_grad_batches"] = {5: 2, 20: 3}
+        args["callbacks"].append(LearningRateLogger)
+        return args
+

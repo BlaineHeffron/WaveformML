@@ -1,7 +1,7 @@
 from re import findall
 
 import h5py
-from numpy import full, int64, max, min, unique, where
+from numpy import full, int8
 from pathlib import Path
 import torch
 from torch.utils import data
@@ -38,8 +38,9 @@ class HDF5Dataset(data.Dataset):
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3,
-                 use_pinned=False):
-        super().__init__()
+                 use_pinned=False,
+                 num_workers=4):
+        super().__init__(self, pin_memory=use_pinned, num_workers=num_workers)
         #TODO: pass shuffle = true for training sets (see data.Dataset class)
         self.file_paths = file_paths
         self.file_excludes = file_excludes
@@ -76,11 +77,11 @@ class HDF5Dataset(data.Dataset):
         if self.use_pinned:
             # coords = torch.cuda.IntTensor(torch.from_numpy(coords))
             coords = torch.from_numpy(coords).pin_memory()
-            vals = torch.FloatTensor(vals).pin_memory()
+            vals = torch.ShortTensor(vals).pin_memory()
             # vals = torch.from_numpy(vals).pin_memory()
         else:
             coords = torch.from_numpy(coords)
-            vals = torch.FloatTensor(vals)
+            vals = torch.ShortTensor(vals)
             # vals = torch.from_numpy(vals)
         # get label
         if self.label_name is None:
@@ -88,7 +89,7 @@ class HDF5Dataset(data.Dataset):
             #y = full(di['n_events'], di['dir_index'],
             #         dtype=int64)
             y = full(n, di['dir_index'],
-                     dtype=int64)
+                     dtype=int8)
             #print(di)
         else:
             y = self.get_data(self.label_name, index)

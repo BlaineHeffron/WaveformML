@@ -19,8 +19,7 @@ CONFIG_VALIDATION = "./config_requirements.json"
 
 def save_path(model_folder, model_name, exp_name):
     if exp_name:
-        if model_name:
-            return join(model_folder,model_name+"_"+exp_name+"_{epoch:02d}-{val_loss:.2f}")
+        if model_name: return join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_loss:.2f}")
         else:
             raise IOError("No model name given. Set model_name property in net_config.")
     else:
@@ -40,11 +39,10 @@ def main():
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int)
-    parser.add_argument("--nodes", "-no",
-                        help="Set the number of nodes used for this run.", default=1,
-                        type=int)
     parser.add_argument("--validation", "-cv", type=str,
                         help="Set the path to the config validation file.", )
+    parser = Trainer.add_argparse_args(parser)
+    parser.add_argument()
     args = parser.parse_args()
     if not os.path.exists(MODEL_DIR):
         path_create(MODEL_DIR)
@@ -81,9 +79,7 @@ def main():
         model_name = util.unique_path_combine(config.dataset_config.paths)
     model_folder = join(abspath("./model"), model_name)
     if hasattr(config, "run_config"):
-        if hasattr(config.run_config, "exp_name"):
-            exp_name = config.run_config.exp_name
-        else:
+        if not hasattr(config.run_config, "exp_name"):
             counter = 1
             exp_name = "experiment_{0}".format(counter)
             while exists(save_path(model_folder, model_name, exp_name)):
@@ -104,19 +100,20 @@ def main():
     data_module = PSDDataModule(config.dataset_config)
     logger = TensorBoardLogger(log_folder, name=model_name)
     psd_callbacks = PSDCallbacks(config)
-
-    psd_callbacks.callbacks["checkpoint_callback"] = \
+    trainer_args = psd_callbacks.set_args(args)
+    trainer_args["checkpoint_callback"] = \
         ModelCheckpoint(
             filepath=save_path(model_folder, model_name, config.run_config.exp_name))
-    filepath = 'my/path/sample-mnist_{epoch:02d}-{val_loss:.2f}'
+    trainer_args["logger"] = logger
+    trainer_args["default_root_dir"] = model_folder
+    trainer_args["precision"] = 16
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
-            if args.nodes > 1:
-                trainer = Trainer(logger=logger, gpus=1, num_nodes=args.nodes, distributed_backend='ddp',**psd_callbacks.callbacks)
-            else:
-                trainer = Trainer(logger=logger, gpus=1, num_nodes=args.nodes, **psd_callbacks.callbacks)
-    else:
-        trainer = Trainer(logger=logger, num_nodes=args.nodes, **psd_callbacks.callbacks)
+            if not args["gpus"]:
+                args["gpus"] = 1
+            if args["num_nodes"] > 1:
+                trainer_args["distributed_backend"] = 'ddp'
+    trainer = Trainer(**trainer_args)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
 

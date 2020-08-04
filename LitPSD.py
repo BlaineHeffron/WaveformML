@@ -9,7 +9,6 @@ class LitPSD(pl.LightningModule):
         super(LitPSD, self).__init__()
         self.config = config
         self.n_type = config.system_config.n_type
-        opt_class = config.optimize_config.optimizer_class.split('.')[-1]
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                 config.optimize_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
