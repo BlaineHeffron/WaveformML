@@ -42,7 +42,6 @@ def main():
     parser.add_argument("--validation", "-cv", type=str,
                         help="Set the path to the config validation file.", )
     parser = Trainer.add_argparse_args(parser)
-    parser.add_argument()
     args = parser.parse_args()
     if not os.path.exists(MODEL_DIR):
         path_create(MODEL_DIR)
@@ -101,18 +100,18 @@ def main():
     logger = TensorBoardLogger(log_folder, name=model_name)
     psd_callbacks = PSDCallbacks(config)
     trainer_args = psd_callbacks.set_args(args)
-    trainer_args["checkpoint_callback"] = \
+    trainer_args.checkpoint_callback = \
         ModelCheckpoint(
             filepath=save_path(model_folder, model_name, config.run_config.exp_name))
-    trainer_args["logger"] = logger
-    trainer_args["default_root_dir"] = model_folder
-    trainer_args["precision"] = 16
+    trainer_args.logger = logger
+    trainer_args.default_root_dir = model_folder
+    trainer_args.precision = 16
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
-            if not args["gpus"]:
-                args["gpus"] = 1
-            if args["num_nodes"] > 1:
-                trainer_args["distributed_backend"] = 'ddp'
+            if not train_args.gpus:
+                trainer_args.gpus = 1
+            if args.num_nodes > 1:
+                trainer_args.distributed_backend = 'ddp'
     trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
