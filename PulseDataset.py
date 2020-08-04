@@ -20,8 +20,7 @@ class PulseDataset2D(HDF5Dataset):
     def __init__(self, config, n_per_dir,
                  file_excludes=None,
                  label_name=None,
-                 data_cache_size=3,
-                 use_pinned=False):
+                 data_cache_size=3):
         """
         Args:
             config: configuration file object
@@ -35,7 +34,7 @@ class PulseDataset2D(HDF5Dataset):
         super().__init__(paths, False, False,
                          "*WaveformPairSim.h5", "WaveformPairs",
                          n_per_dir, file_excludes, label_name,
-                         data_cache_size, use_pinned)
+                         data_cache_size)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
