@@ -150,14 +150,14 @@ def save_config(config, log_folder, exp_name, postfix, is_dict=False):
 
 
 def set_default_trainer_args(trainer_args, config):
-    trainer_args.precision = 16
+    trainer_args["precision"] = 16
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
-            if not trainer_args.gpus:
-                trainer_args.gpus = 1
-            if trainer_args.num_nodes > 1:
-                trainer_args.distributed_backend = 'ddp'
-    trainer_args.max_epochs = config.optimize_config.total_epoch
+            if "gpus" not in trainer_args.keys():
+                trainer_args["gpus"] = 1
+            if trainer_args["num_nodes"] > 1:
+                trainer_args["distributed_backend"] = 'ddp'
+    trainer_args["max_epochs"] = config.optimize_config.total_epoch
 
 
 def unique_path_combine(pathlist):

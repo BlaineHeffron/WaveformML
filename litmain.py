@@ -116,23 +116,21 @@ def main():
         log_folder = join(model_folder, "runs")
         logger = TensorBoardLogger(log_folder, name=model_name)
         psd_callbacks = PSDCallbacks(config)
+        trainer_args = vars(args)
+        for non_trainer_arg in non_trainer_args:
+            del trainer_args[non_trainer_arg]
         trainer_args = psd_callbacks.set_args(args)
         trainer_args.checkpoint_callback = \
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name))
-        trainer_args.logger = logger
-        trainer_args.default_root_dir = model_folder
+        trainer_args["logger"] = logger
+        trainer_args["default_root_dir"] = model_folder
         set_default_trainer_args(trainer_args, config)
-        trainer_args = vars(trainer_args)
-        for non_trainer_arg in non_trainer_args:
-            del trainer_args[non_trainer_arg]
         save_config(config, log_folder, config.run_config.exp_name, "config")
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        config.run_config.exp_name, "train_args")
         model = LitPSD(config)
         data_module = PSDDataModule(config.dataset_config)
-        print(trainer_args)
-        print(psd_callbacks.callbacks)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 

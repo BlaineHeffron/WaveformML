@@ -13,7 +13,10 @@ class PSDCallbacks:
         self.callbacks.append(LearningRateLogger())
 
     def set_args(self, args):
-        args.early_stop_callback = EarlyStopping('val_loss')
+        if isinstance(args,dict):
+            args["early_stop_callback"] = EarlyStopping('val_loss')
+        else:
+            args.early_stop_callback = EarlyStopping('val_loss')
         #args.accumulate_grad_batches = {5: 2, 20: 3}
         return args
 
