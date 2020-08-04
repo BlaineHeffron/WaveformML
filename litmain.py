@@ -29,9 +29,6 @@ def save_path(model_folder, model_name, exp_name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="relative path of config file to use (in config folder)")
-    parser.add_argument("--load_checkpoint", "-l",
-                        help="Load checkpoint based on experiment name and model name",
-                        action="store_true")
     parser.add_argument("--name", "-n",
                         help="Set the experiment name for this run. Overrides exp_name specified in the run_config.",
                         type=str)
@@ -41,6 +38,7 @@ def main():
                         type=int)
     parser.add_argument("--validation", "-cv", type=str,
                         help="Set the path to the config validation file.", )
+    non_trainer_args = ["config","name","verbosity","validation"]
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     if not os.path.exists(MODEL_DIR):
@@ -112,7 +110,10 @@ def main():
                 trainer_args.gpus = 1
             if args.num_nodes > 1:
                 trainer_args.distributed_backend = 'ddp'
-    trainer = Trainer(**vars(trainer_args), callbacks=psd_callbacks.callbacks)
+    trainer_args = vars(trainer_args)
+    for non_trainer_arg in non_trainer_args:
+        del trainer_args[non_trainer_arg]
+    trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
 
