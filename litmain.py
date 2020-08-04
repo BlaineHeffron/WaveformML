@@ -4,26 +4,31 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from LitCallbacks import *
 from os.path import join, abspath, exists
 from LitPSD import *
+from ModelOptimization import *
 
 import json
 import logging
 import util
 import argparse
 import os
-from util import path_create, ValidateUtility
+from util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
 CONFIG_VALIDATION = "./config_requirements.json"
 
 
-def save_path(model_folder, model_name, exp_name):
-    if exp_name:
-        if model_name: return join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_loss:.2f}")
-        else:
-            raise IOError("No model name given. Set model_name property in net_config.")
-    else:
-        raise IOError("No experiment name given. Set exp_name property in run_config.")
+def check_config(config_file):
+    orig = config_file
+    if not config_file.endswith(".json"):
+        config_file = "{}.json".format(config_file)
+    if not os.path.isabs(config_file):
+        config_file = os.path.join(CONFIG_DIR, config_file)
+        if not os.path.exists(config_file):
+            config_file = os.path.join(os.getcwd(), config_file)
+            if not os.path.exists(config_file):
+                raise IOError("Could not find config file {0}. search in"
+                              " {1}".format(orig, config_file))
 
 
 def main():
@@ -37,22 +42,23 @@ def main():
                         help="Set the verbosity for this run.",
                         type=int)
     parser.add_argument("--validation", "-cv", type=str,
-                        help="Set the path to the config validation file.", )
-    non_trainer_args = ["config","name","verbosity","validation"]
+                        help="Set the path to the config validation file.")
+    parser.add_argument("--optimize_config", "-oc", type=str,
+                        help="Set the path to the optuna optimization config file.")
+    parser.add_argument(
+        "--pruning",
+        "-p",
+        action="store_true",
+        help="Activate the pruning feature. `MedianPruner` stops unpromising "
+             "trials at the early stages of training.",
+    )
+    non_trainer_args = ["config", "name", "verbosity", "validation", "optimize_config", "pruning"]
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     if not os.path.exists(MODEL_DIR):
         path_create(MODEL_DIR)
     config_file = args.config
-    if not config_file.endswith(".json"):
-        config_file = "{}.json".format(config_file)
-    if not os.path.isabs(config_file):
-        config_file = os.path.join(CONFIG_DIR, config_file)
-        if not os.path.exists(config_file):
-            config_file = os.path.join(os.getcwd(), config_file)
-            if not os.path.exists(config_file):
-                raise IOError("Could not find config file {0}. search in"
-                              " {1}".format(args.config, config_file))
+    check_config(config_file)
     if args.validation:
         valid_file = args.validation
     else:
@@ -92,29 +98,38 @@ def main():
     logging.info('Using system from %s' % config_file)
     logging.info('=======================================================')
 
-    log_folder = join(model_folder, "runs")
-    model = LitPSD(config)
-    data_module = PSDDataModule(config.dataset_config)
-    logger = TensorBoardLogger(log_folder, name=model_name)
-    psd_callbacks = PSDCallbacks(config)
-    trainer_args = psd_callbacks.set_args(args)
-    trainer_args.checkpoint_callback = \
-        ModelCheckpoint(
-            filepath=save_path(model_folder, model_name, config.run_config.exp_name))
-    trainer_args.logger = logger
-    trainer_args.default_root_dir = model_folder
-    trainer_args.precision = 16
-    if hasattr(config.system_config, "gpu_enabled"):
-        if config.system_config.gpu_enabled:
-            if not trainer_args.gpus:
-                trainer_args.gpus = 1
-            if args.num_nodes > 1:
-                trainer_args.distributed_backend = 'ddp'
-    trainer_args = vars(trainer_args)
-    for non_trainer_arg in non_trainer_args:
-        del trainer_args[non_trainer_arg]
-    trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
-    trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
+    if args.optimize_config or hasattr(config, "optuna_config"):
+        set_pruning = args.pruning
+        trainer_args = args
+        for non_trainer_arg in non_trainer_args:
+            del trainer_args[non_trainer_arg]
+        if args.optimize_config:
+            check_config(args.optimize_config)
+            op_config = util.DictionaryUtility.to_object(args.optimize_config)
+            m = ModelOptimization(op_config, config, model_folder, trainer_args)
+        else:
+            m = ModelOptimization(config.optuna_config, config, model_folder, trainer_args)
+        m.run_study(pruning=args.pruning)
+    else:
+        log_folder = join(model_folder, "runs")
+        logger = TensorBoardLogger(log_folder, name=model_name)
+        psd_callbacks = PSDCallbacks(config)
+        trainer_args = psd_callbacks.set_args(args)
+        trainer_args.checkpoint_callback = \
+            ModelCheckpoint(
+                filepath=save_path(model_folder, model_name, config.run_config.exp_name))
+        trainer_args.logger = logger
+        trainer_args.default_root_dir = model_folder
+        set_default_trainer_args(trainer_args, config)
+        trainer_args = vars(trainer_args)
+        for non_trainer_arg in non_trainer_args:
+            del trainer_args[non_trainer_arg]
+        save_config(config, log_folder, config.run_config.exp_name, "config")
+        save_config(trainer_args, log_folder, config.run_config.exp_name, "train_args", True)
+        model = LitPSD(config)
+        data_module = PSDDataModule(config.dataset_config)
+        trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
+        trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
 
 if __name__ == '__main__':

@@ -131,6 +131,35 @@ def path_create(a_path):
         os.mkdir(os.path.expanduser(os.path.normpath(a_path)))
 
 
+def save_path(model_folder, model_name, exp_name):
+    if exp_name:
+        if model_name:
+            return os.path.join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_loss:.2f}")
+        else:
+            raise IOError("No model name given. Set model_name property in net_config.")
+    else:
+        raise IOError("No experiment name given. Set exp_name property in run_config.")
+
+
+def save_config(config, log_folder, exp_name, postfix, is_dict=False):
+    with open('{0}_{1}.json'.format(os.path.join(log_folder, exp_name), postfix), 'w') as outfile:
+        if is_dict:
+            json.dump(config, outfile, indent=2)
+        else:
+            json.dump(DictionaryUtility.to_dict(config), outfile, indent=2)
+
+
+def set_default_trainer_args(trainer_args, config):
+    trainer_args.precision = 16
+    if hasattr(config.system_config, "gpu_enabled"):
+        if config.system_config.gpu_enabled:
+            if not trainer_args.gpus:
+                trainer_args.gpus = 1
+            if trainer_args.num_nodes > 1:
+                trainer_args.distributed_backend = 'ddp'
+    trainer_args.max_epochs = config.optimize_config.total_epoch
+
+
 def unique_path_combine(pathlist):
     common = []
     i = 1
@@ -229,5 +258,3 @@ class OrderlyJSONEncoder(json.JSONEncoder):
         elif isinstance(o, Sequence):
             return list(o)
         return json.JSONEncoder.default(self, o)
-
-

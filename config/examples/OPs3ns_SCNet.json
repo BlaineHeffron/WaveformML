@@ -68,8 +68,8 @@
     "optimizer_class": "optim.SGD",
     "optimizer_params": {
       "lr": 1e-3,
-      "momentum": 0,
-      "weight_decay": 0, "dampening": 0, "nesterov": false },
+      "momentum": 0.9,
+      "weight_decay": 0, "dampening": 0, "nesterov": true },
     "scheduler_class": "lr_scheduler.ExponentialLR",
     "scheduler_params": {
       "alpha": 0.9
@@ -91,5 +91,16 @@
     },
     "n_train": 1000000,
     "n_test": 1000000
+  },
+  "optuna_config": {
+    "_comment": "set the path to the parameters you would like to optimize",
+    "hyperparameters": {
+      "/optimize_config/optimizer_params/lr": [1e-7,1e-1],
+      "/optimize_config/optimizer_params/momentum": [0.0, 1.0]
+    },
+    "optimize_args": {
+      "n_trials": 100,
+      "timeout": 600
+    }
   }
 }
