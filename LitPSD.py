@@ -1,6 +1,4 @@
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
-from PSDEvaluator import *
 from PSDDataModule import *
 import torch
 
@@ -59,6 +57,8 @@ class LitPSD(pl.LightningModule):
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('val_loss', loss)
+        result.log('predictions',predictions)
+        result.log('predictions',predictions)
         return result
 
     def validation_epoch_end(self, outputs):

@@ -1,5 +1,7 @@
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
+from LitCallbacks import *
 from os.path import join, abspath, exists
 from LitPSD import *
 
@@ -15,13 +17,10 @@ CONFIG_DIR = "./config"
 CONFIG_VALIDATION = "./config_requirements.json"
 
 
-def save_path(model_folder, model_name, exp_name, ismodel=True):
+def save_path(model_folder, model_name, exp_name):
     if exp_name:
         if model_name:
-            if ismodel:
-                return join(model_folder, model_name + "_" + exp_name + ".model")
-            else:
-                return join(model_folder, model_name + "_" + exp_name + ".epoch")
+            return join(model_folder,model_name+"_"+exp_name+"_{epoch:02d}-{val_loss:.2f}")
         else:
             raise IOError("No model name given. Set model_name property in net_config.")
     else:
@@ -90,6 +89,7 @@ def main():
             while exists(save_path(model_folder, model_name, exp_name)):
                 counter += 1
                 exp_name = "experiment_{0}".format(counter)
+            config.run_config.exp_name = exp_name
     if args.name:
         config.run_config.exp_name = args.name
     logging.basicConfig(level=logging.DEBUG,
@@ -103,14 +103,20 @@ def main():
     model = LitPSD(config)
     data_module = PSDDataModule(config.dataset_config)
     logger = TensorBoardLogger(log_folder, name=model_name)
+    psd_callbacks = PSDCallbacks(config)
+
+    psd_callbacks.callbacks["checkpoint_callback"] = \
+        ModelCheckpoint(
+            filepath=save_path(model_folder, model_name, config.run_config.exp_name))
+    filepath = 'my/path/sample-mnist_{epoch:02d}-{val_loss:.2f}'
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
             if args.nodes > 1:
-                trainer = Trainer(logger=logger, gpus=1, num_nodes=args.nodes, distributed_backend='ddp')
+                trainer = Trainer(logger=logger, gpus=1, num_nodes=args.nodes, distributed_backend='ddp',**psd_callbacks.callbacks)
             else:
-                trainer = Trainer(logger=logger, gpus=1, num_nodes=args.nodes)
+                trainer = Trainer(logger=logger, gpus=1, num_nodes=args.nodes, **psd_callbacks.callbacks)
     else:
-        trainer = Trainer(logger=logger, num_nodes=args.nodes)
+        trainer = Trainer(logger=logger, num_nodes=args.nodes, **psd_callbacks.callbacks)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
 

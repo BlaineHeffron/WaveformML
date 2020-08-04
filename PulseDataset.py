@@ -37,6 +37,5 @@ class PulseDataset2D(HDF5Dataset):
                          n_per_dir, file_excludes, label_name,
                          data_cache_size, use_pinned)
 
-
     def __getitem__(self, idx):
         return super().__getitem__(idx)
