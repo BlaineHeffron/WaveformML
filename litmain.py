@@ -101,13 +101,14 @@ def main():
 
     if args.optimize_config or hasattr(config, "optuna_config"):
         set_pruning = args.pruning
-        trainer_args = args
+        opt_config = args.optimize_config
+        trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
-        if args.optimize_config:
-            args.optimize_config = check_config(args.optimize_config)
-            op_config = util.DictionaryUtility.to_object(args.optimize_config)
-            m = ModelOptimization(op_config, config, model_folder, trainer_args)
+        if opt_config:
+            opt_config = check_config(opt_config)
+            opt_config = util.DictionaryUtility.to_object(opt_config)
+            m = ModelOptimization(opt_config, config, model_folder, trainer_args)
         else:
             m = ModelOptimization(config.optuna_config, config, model_folder, trainer_args)
         m.run_study(pruning=set_pruning)
@@ -126,10 +127,12 @@ def main():
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
         save_config(config, log_folder, config.run_config.exp_name, "config")
-        save_config(DictionaryUtility.to_object(trainer_args), log_folder,
-                config.run_config.exp_name, "train_args")
+        #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
+        #        config.run_config.exp_name, "train_args")
         model = LitPSD(config)
         data_module = PSDDataModule(config.dataset_config)
+        print(trainer_args)
+        print(psd_callbacks.callbacks)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
