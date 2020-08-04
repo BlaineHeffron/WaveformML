@@ -153,8 +153,7 @@ def set_default_trainer_args(trainer_args, config):
     trainer_args["precision"] = 16
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
-            if "gpus" not in trainer_args.keys():
-                trainer_args["gpus"] = 1
+            trainer_args["gpus"] = 1 #TODO add config option for multiple gpus
             if trainer_args["num_nodes"] > 1:
                 trainer_args["distributed_backend"] = 'ddp'
     trainer_args["max_epochs"] = config.optimize_config.total_epoch
