@@ -126,7 +126,8 @@ def main():
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
         save_config(config, log_folder, config.run_config.exp_name, "config")
-        save_config(trainer_args, log_folder, config.run_config.exp_name, "train_args", True)
+        save_config(DictionaryUtility.to_object(trainer_args), log_folder,
+                config.run_config.exp_name, "train_args")
         model = LitPSD(config)
         data_module = PSDDataModule(config.dataset_config)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)

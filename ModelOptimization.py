@@ -102,7 +102,8 @@ class ModelOptimization:
         trainer_args.early_stop_callback = PyTorchLightningPruningCallback(trial, monitor="val_acc")
         trainer_args = vars(trainer_args)
         save_config(self.config, log_folder, "trial_{}".format(trial.number), "config")
-        save_config(trainer_args, log_folder, "trial_{}".format(trial.number), "train_args", True)
+        save_config(DictionaryUtility.to_object(trainer_args), log_folder,
+                "trial_{}".format(trial.number), "train_args")
         metrics_callback = MetricsCallback()
         trainer = pl.Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         model = LitPSD(self.config)
