@@ -89,7 +89,7 @@
       "data_cache_size": 1
     },
     "dataloader_params": {
-      "use_pinned": true,
+      "pin_memory": true,
       "num_workers": 4
     },
     "n_train": 1000000,
