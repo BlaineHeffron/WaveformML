@@ -29,6 +29,7 @@ def check_config(config_file):
             if not os.path.exists(config_file):
                 raise IOError("Could not find config file {0}. search in"
                               " {1}".format(orig, config_file))
+    return config_file
 
 
 def main():
@@ -58,7 +59,7 @@ def main():
     if not os.path.exists(MODEL_DIR):
         path_create(MODEL_DIR)
     config_file = args.config
-    check_config(config_file)
+    config_file = check_config(config_file)
     if args.validation:
         valid_file = args.validation
     else:
@@ -104,12 +105,12 @@ def main():
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
         if args.optimize_config:
-            check_config(args.optimize_config)
+            args.optimize_config = check_config(args.optimize_config)
             op_config = util.DictionaryUtility.to_object(args.optimize_config)
             m = ModelOptimization(op_config, config, model_folder, trainer_args)
         else:
             m = ModelOptimization(config.optuna_config, config, model_folder, trainer_args)
-        m.run_study(pruning=args.pruning)
+        m.run_study(pruning=set_pruning)
     else:
         log_folder = join(model_folder, "runs")
         logger = TensorBoardLogger(log_folder, name=model_name)

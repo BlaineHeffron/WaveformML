@@ -4,6 +4,7 @@ Machine learning tools for waveform analysis.
 To use, first install the following dependencies.
 I used the conda package manager to install these.
 conda install -c pytorch pytorch=1.6
+conda install -c conda-forge optuna
 conda install json
 conda install yaml
 conda install hdf5
