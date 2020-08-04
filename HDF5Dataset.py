@@ -30,18 +30,14 @@ class HDF5Dataset(data.Dataset):
         file_excludes: list of file to be excluded from dataset
         label_name: string indicating the name of the labels
         data_cache_size: Number of HDF5 files that can be cached in the cache (default=3).
-        use_pinned: boolean whether or not to return batches in pinned memory (for use by the GPU)
     """
 
     def __init__(self, file_paths, recursive, load_data,
                  file_pattern, data_name, events_per_dir,
                  file_excludes=None,
                  label_name=None,
-                 data_cache_size=3,
-                 use_pinned=False,
-                 num_workers=4):
-        super().__init__(self, pin_memory=use_pinned, num_workers=num_workers)
-        #TODO: pass shuffle = true for training sets (see data.Dataset class)
+                 data_cache_size=3):
+        super().__init__()
         self.file_paths = file_paths
         self.file_excludes = file_excludes
         self.num_dirs = len(file_paths)
@@ -52,7 +48,6 @@ class HDF5Dataset(data.Dataset):
         self.label_name = label_name
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
         self.events_per_dir = events_per_dir
-        self.use_pinned = use_pinned
 
         # Search for all h5 files
         for i, file_path in enumerate(file_paths):
@@ -74,15 +69,8 @@ class HDF5Dataset(data.Dataset):
         # get data
         coords, vals = self.get_data(self.data_name, index)
         n = coords[-1,2] + 1 #number of events #TODO only return the data range given in get_data
-        if self.use_pinned:
-            # coords = torch.cuda.IntTensor(torch.from_numpy(coords))
-            coords = torch.from_numpy(coords).pin_memory()
-            vals = torch.ShortTensor(vals).pin_memory()
-            # vals = torch.from_numpy(vals).pin_memory()
-        else:
-            coords = torch.from_numpy(coords)
-            vals = torch.ShortTensor(vals)
-            # vals = torch.from_numpy(vals)
+        coords = torch.from_numpy(coords)
+        vals = torch.ShortTensor(vals)
         # get label
         if self.label_name is None:
             di = self.get_data_infos(self.data_name)[index]
@@ -93,14 +81,7 @@ class HDF5Dataset(data.Dataset):
             #print(di)
         else:
             y = self.get_data(self.label_name, index)
-        if self.use_pinned:
-            y = torch.from_numpy(y).pin_memory()
-        else:
-            y = torch.from_numpy(y)
-            # y = torch.ByteTensor(torch.from_numpy(y), pin_memory=self.use_pinned)
-        #print("loaded y shape: {}".format(y.shape))
-        #print("loaded coord shape: {}".format(coords.shape))
-
+        y = torch.from_numpy(y)
         return [[coords, vals], y]
 
     def __len__(self):
