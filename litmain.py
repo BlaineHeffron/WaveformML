@@ -108,11 +108,11 @@ def main():
     trainer_args.precision = 16
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
-            if not train_args.gpus:
+            if not trainer_args.gpus:
                 trainer_args.gpus = 1
             if args.num_nodes > 1:
                 trainer_args.distributed_backend = 'ddp'
-    trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
+    trainer = Trainer(**vars(trainer_args), callbacks=psd_callbacks.callbacks)
     trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
 
