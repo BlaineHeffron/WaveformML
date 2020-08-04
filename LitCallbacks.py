@@ -10,7 +10,7 @@ class PSDCallbacks:
     def __init__(self, config):
         self.config = config
         self.callbacks = []
-        self.callbacks.append(LearningRateLogger)
+        self.callbacks.append(LearningRateLogger())
 
     def set_args(self, args):
         args.early_stop_callback = EarlyStopping('val_loss')
