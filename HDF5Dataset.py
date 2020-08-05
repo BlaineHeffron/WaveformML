@@ -86,7 +86,7 @@ class HDF5Dataset(data.Dataset):
         while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 \
                 and self._needs_more_data(tally, events_per_dir, all_files):
             for i, file_set in enumerate(all_files):
-                while len(file_set) > 0:
+                while len(file_set) > 0 and tally[i] < events_per_dir:
                     if file_excludes and str(file_set[0].resolve()) in file_excludes:
                         file_set.pop(0)
                     else:
