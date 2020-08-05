@@ -4,14 +4,13 @@ from util import DictionaryUtility, ModuleUtility
 
 
 class PSDDataModule(pl.LightningDataModule):
-    def __init__(self, config, device):
+    def __init__(self, config):
         super().__init__()
         self.config = config
         self.ntype = len(self.config.paths)
         self.total_train = self.config.n_train * self.ntype
         self.modules = ModuleUtility(self.config.imports)
         self.dataset_class = self.modules.retrieve_class(self.config.dataset_class)
-        self.device = device
 
     def prepare_data(self):
         # called only on 1 GPU
