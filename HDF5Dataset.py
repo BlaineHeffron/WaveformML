@@ -142,10 +142,8 @@ class HDF5Dataset(data.Dataset):
 
         # type is derived from the name of the dataset; we expect the dataset
         # name to have a name such as 'data' or 'label' to identify its type
-        # we also store the shape of the data in case we need it
         self.data_info.append({'file_path': file_path,
                                'type': dataset_name,
-                               'shape': dataset[()].shape,
                                'cache_idx': idx,
                                'n_events': int(n_file_events),
                                'event_range': (0, int(num_events) - 1),
@@ -214,7 +212,7 @@ class HDF5Dataset(data.Dataset):
             self.data_cache.pop(removal_keys[0])
             # remove invalid cache_idx
             self.data_info = \
-                [{'file_path': di['file_path'], 'type': di['type'], 'shape': di['shape'],
+                [{'file_path': di['file_path'], 'type': di['type'], 
                   'dir_index': di['dir_index'],
                   'n_events': di['n_events'],
                   'event_range': di['event_range'],
