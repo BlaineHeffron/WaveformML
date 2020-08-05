@@ -61,7 +61,7 @@ class LitPSD(pl.LightningModule):
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('batch_val_loss', loss)
         pred = argmax(self.softmax(predictions), dim=1)
-        acc = accuracy(pred, batch[1])
+        acc = accuracy(pred, batch[1], num_classes=self.n_type)
         result.log('batch_val_acc', acc)
         return result
 
