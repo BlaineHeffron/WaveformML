@@ -9,8 +9,7 @@ class LitPSD(pl.LightningModule):
 
     def __init__(self, config):
         super(LitPSD, self).__init__()
-        self.config = config
-
+        self.hparams = config
         self.n_type = config.system_config.n_type
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
@@ -35,17 +34,17 @@ class LitPSD(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = \
-            self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
+            self.modules.retrieve_class(self.hparams.optimize_config.optimizer_class)(self.model.parameters(),
                                                                                      **DictionaryUtility.to_dict(
-                                                                                         self.config.optimize_config.optimizer_params))
-        if hasattr(self.config.optimize_config, "scheduler_class"):
-            if self.config.optimize_config.scheduler_class:
-                if not hasattr(self.config.optimize_config, "scheduler_params"):
+                                                                                         self.hparams.optimize_config.optimizer_params))
+        if hasattr(self.hparams.optimize_config, "scheduler_class"):
+            if self.hparams.optimize_config.scheduler_class:
+                if not hasattr(self.hparams.optimize_config, "scheduler_params"):
                     raise IOError(
                         "Optimizer config has a learning scheduler class specified. You must also set lr_schedule_parameters (dictionary of key value pairs).")
-                scheduler = self.modules.retrieve_class(self.config.optimize_config.scheduler_class)(optimizer,
+                scheduler = self.modules.retrieve_class(self.hparams.optimize_config.scheduler_class)(optimizer,
                                                                                                      **DictionaryUtility.to_dict(
-                                                                                                         self.config.optimize_config.scheduler_params))
+                                                                                                         self.hparams.optimize_config.scheduler_params))
                 return [optimizer], [scheduler]
         return optimizer
 
