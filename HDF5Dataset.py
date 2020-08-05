@@ -1,11 +1,10 @@
 from re import findall
 
 import h5py
-from numpy import full, int64
 from pathlib import Path
 import torch
 from torch.utils import data
-from torch import Tensor
+from numpy import where
 from os.path import dirname
 
 
@@ -102,10 +101,16 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
-        # n = coords[-1, 2] + 1  # number of events #TODO only return the data range given in get_data
+        ind = 0
+        di = self.get_data_infos(self.data_name)[index]
+        if coords[-1, 2] >= di['n_events']:
+            ind = where(coords[:, 2] == di['n_events'])[0][0]
         coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
-        di = self.get_data_infos(self.data_name)[index]
+        if ind > 0:
+            coords = coords[0:ind, :]
+            vals = vals[0:ind, :]
+
         # get label
         if self.label_name is None:
             y = torch.Tensor.new_full(torch.tensor([di['n_events']]),
