@@ -72,7 +72,7 @@
       "weight_decay": 0, "dampening": 0, "nesterov": true },
     "scheduler_class": "lr_scheduler.ExponentialLR",
     "scheduler_params": {
-      "alpha": 0.9
+      "gamma": 0.9
     }
   },
   "dataset_config": {

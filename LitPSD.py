@@ -43,8 +43,9 @@ class LitPSD(pl.LightningModule):
                 if not hasattr(self.config.optimize_config, "scheduler_params"):
                     raise IOError(
                         "Optimizer config has a learning scheduler class specified. You must also set lr_schedule_parameters (dictionary of key value pairs).")
-                scheduler = self.modules.retrieve_class(self.config.optimize_config.scheduler_class)(
-                    **DictionaryUtility.to_dict(self.config.optimize_config.scheduler_params))
+                scheduler = self.modules.retrieve_class(self.config.optimize_config.scheduler_class)(optimizer,
+                                                                                                     **DictionaryUtility.to_dict(
+                                                                                                         self.config.optimize_config.scheduler_params))
                 return [optimizer], [scheduler]
         return optimizer
 
