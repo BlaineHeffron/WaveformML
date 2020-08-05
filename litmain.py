@@ -114,7 +114,7 @@ def main():
         m.run_study(pruning=set_pruning)
     else:
         log_folder = join(model_folder, "runs")
-        logger = TensorBoardLogger(log_folder, name="tb_logs")
+        logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name)
         psd_callbacks = PSDCallbacks(config)
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
