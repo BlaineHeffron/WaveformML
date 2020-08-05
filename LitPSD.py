@@ -1,6 +1,8 @@
 import pytorch_lightning as pl
+from pytorch_lightning.metrics.functional import accuracy
 from PSDDataModule import *
-from torch.nn import LogSoftmax
+from torch.nn import Softmax
+from torch import argmax
 
 
 class LitPSD(pl.LightningModule):
@@ -17,6 +19,7 @@ class LitPSD(pl.LightningModule):
         self.data_module = PSDDataModule(config.dataset_config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        self.softmax = Softmax()
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -57,16 +60,16 @@ class LitPSD(pl.LightningModule):
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.EvalResult(checkpoint_on=loss)
         result.log('batch_val_loss', loss)
-        #pred = LogSoftmax(predictions).argmax(dim=1, keepdim=True)
-        #accuracy = pred.eq(batch[1].view_as(pred)).float().mean()
-        #result.log('batch_val_acc', accuracy)
+        pred = argmax(self.softmax(predictions), dim=1)
+        acc = accuracy(pred, batch[1])
+        result.log('batch_val_acc', acc)
         return result
 
     def validation_epoch_end(self, outputs):
         mean_loss = outputs['batch_val_loss'].mean()
-        #mean_accuracy = outputs['batch_val_acc'].mean()
+        mean_accuracy = outputs['batch_val_acc'].mean()
         return {
-            #'log': {'val_loss': mean_loss, 'val_acc': mean_accuracy},
-            'log': {'val_loss': mean_loss},
-            'progress_bar': {'mean_loss': mean_loss}
+            'log': {'val_loss': mean_loss, 'val_acc': mean_accuracy},
+            'progress_bar': {'val_loss': mean_loss},
+            'callback_metrics': {'val_loss': mean_loss, 'val_acc': mean_accuracy}
         }
