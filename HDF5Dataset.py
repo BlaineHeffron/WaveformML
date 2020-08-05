@@ -113,7 +113,7 @@ class HDF5Dataset(data.Dataset):
 
         # get label
         if self.label_name is None:
-            y = torch.Tensor.new_full(torch.tensor(di['n_events'], ), (di['n_events'],),
+            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1]+1, ), (di['event_range'][1]+1,),
                                       di['dir_index'], dtype=torch.int64, device=self.device)
         else:
             y = self.get_data(self.label_name, index)
