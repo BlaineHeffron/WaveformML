@@ -93,7 +93,8 @@
       "num_workers": 4
     },
     "n_train": 1000000,
-    "n_test": 1000000
+    "n_test": 1000000,
+    "n_validate": 20000000
   },
   "optuna_config": {
     "_comment": "set the path to the parameters you would like to optimize",

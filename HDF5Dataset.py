@@ -82,7 +82,7 @@ class HDF5Dataset(data.Dataset):
         else:
             y = self.get_data(self.label_name, index)
         y = torch.from_numpy(y)
-        return [[coords, vals], y]
+        return (coords, vals), y
 
     def __len__(self):
         return len(self.get_data_infos(self.data_name))
