@@ -1,7 +1,7 @@
 from re import findall
 
 import h5py
-from numpy import full, int8
+from numpy import full, int64
 from pathlib import Path
 import torch
 from torch.utils import data
@@ -70,19 +70,19 @@ class HDF5Dataset(data.Dataset):
         coords, vals = self.get_data(self.data_name, index)
         n = coords[-1, 2] + 1  # number of events #TODO only return the data range given in get_data
         coords = torch.from_numpy(coords)
-        vals = torch.ShortTensor(vals)
+        vals = torch.FloatTensor(vals)
         # get label
         if self.label_name is None:
             di = self.get_data_infos(self.data_name)[index]
             # y = full(di['n_events'], di['dir_index'],
             #         dtype=int64)
             y = full(n, di['dir_index'],
-                     dtype=int8)
+                     dtype=int64)
             # print(di)
         else:
             y = self.get_data(self.label_name, index)
         y = torch.from_numpy(y)
-        return (coords.transpose(1, 0), vals.transpose(1, 0)), y
+        return [coords, vals], y
 
     def __len__(self):
         return len(self.get_data_infos(self.data_name))
