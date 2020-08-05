@@ -115,9 +115,7 @@ class ModelOptimization:
         metrics_callback = MetricsCallback()
         trainer = pl.Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         model = LitPSD(self.config)
-        data_module = PSDDataModule(self.config.dataset_config)
         trainer.fit(model)
-        trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
 
         return metrics_callback.metrics[-1]["val_acc"].item()
 

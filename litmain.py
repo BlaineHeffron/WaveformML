@@ -130,9 +130,8 @@ def main():
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        config.run_config.exp_name, "train_args")
         model = LitPSD(config)
-        data_module = PSDDataModule(config.dataset_config, model.device)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
-        trainer.fit(model, data_module.train_dataloader(), data_module.val_dataloader())
+        trainer.fit(model)
 
 
 if __name__ == '__main__':
