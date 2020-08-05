@@ -103,8 +103,8 @@ class HDF5Dataset(data.Dataset):
         coords, vals = self.get_data(self.data_name, index)
         ind = 0
         di = self.get_data_infos(self.data_name)[index]
-        if coords[-1, 2] >= di['n_events']:
-            ind = where(coords[:, 2] == di['n_events'])[0][0]
+        if di['event_range'][1] + 1 < di['n_events']:
+            ind = where(coords[:, 2] == di['event_range'][1]+1)[0][0]
         coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
         if ind > 0:
@@ -123,7 +123,7 @@ class HDF5Dataset(data.Dataset):
     def __len__(self):
         return len(self.get_data_infos(self.data_name))
 
-    def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index):
+    def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events):
         # if data is not loaded its cache index is -1
         idx = -1
         if load_data:
@@ -137,7 +137,7 @@ class HDF5Dataset(data.Dataset):
                                'type': dataset_name,
                                'shape': dataset[()].shape,
                                'cache_idx': idx,
-                               'n_events': num_events,
+                               'n_events': n_file_events,
                                'event_range': [0, num_events - 1],
                                'dir_index': dir_index})
 
@@ -151,11 +151,12 @@ class HDF5Dataset(data.Dataset):
             if file_path in self.file_excludes:
                 return
         with h5py.File(file_path, 'r') as h5_file:
-            n = h5_file[self.data_name].attrs.get('nevents')[0]  # the number of events in the file
+            n_file_events = h5_file[self.data_name].attrs.get('nevents')[0]  # the number of events in the file
             # n = h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
             # a = len(unique(h5_file[self.data_name][self.coord_name][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
             #      " {2}".format(n,a,file_path))
+            n = n_file_events
             if self.events_per_dir - self.n_events[dir_index] < n:
                 n = self.events_per_dir - self.n_events[dir_index]
             self.n_events[dir_index] += n
@@ -164,9 +165,9 @@ class HDF5Dataset(data.Dataset):
             for gname, group in h5_file.items():
                 if hasattr(group, "items"):
                     for dname, ds in group.items():
-                        self._add_data_block(ds, dname, file_path, load_data, n, dir_index)
+                        self._add_data_block(ds, dname, file_path, load_data, n, dir_index, n_file_events)
                 else:
-                    self._add_data_block(group, gname, file_path, load_data, n, dir_index)
+                    self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events)
 
     def _get_dir_index(self, file_path):
         return self.file_paths.index(file_path)
