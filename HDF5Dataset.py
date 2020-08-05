@@ -95,8 +95,8 @@ class HDF5Dataset(data.Dataset):
                         if not tally[i] < max(tally):
                             break
 
-        print("file excludes ",file_excludes)
-        print(ordered_file_set)
+        #print("file excludes ",file_excludes)
+        #print(ordered_file_set)
         for h5dataset_fp in ordered_file_set:
             dir_index = self.file_paths.index(dirname(h5dataset_fp))
             if self.n_events[dir_index] >= self.events_per_dir:
@@ -119,8 +119,8 @@ class HDF5Dataset(data.Dataset):
             ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
-        print("coords size is ", coords.size())
-        print("vals size is ", vals.size())
+        #print("coords size is ", coords.size())
+        #print("vals size is ", vals.size())
         if ind > 0:
             coords = coords[0:ind, :]
             vals = vals[0:ind, :]
@@ -132,9 +132,9 @@ class HDF5Dataset(data.Dataset):
         else:
             y = self.get_data(self.label_name, index)
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
-        print("now coords size is ", coords.size())
-        print("now vals size is ", vals.size())
-        print("y size is ", y.size())
+        #print("now coords size is ", coords.size())
+        #print("now vals size is ", vals.size())
+        #print("y size is ", y.size())
         return [coords, vals], y
 
     def __len__(self):
