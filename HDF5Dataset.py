@@ -113,7 +113,7 @@ class HDF5Dataset(data.Dataset):
 
         # get label
         if self.label_name is None:
-            y = torch.Tensor.new_full(torch.tensor(di['n_events'],), (di['n_events'],),
+            y = torch.Tensor.new_full(torch.tensor(di['n_events'], ), (di['n_events'],),
                                       di['dir_index'], dtype=torch.int64, device=self.device)
         else:
             y = self.get_data(self.label_name, index)
@@ -143,14 +143,16 @@ class HDF5Dataset(data.Dataset):
 
     def _get_event_num(self, file_path):
         with h5py.File(file_path, 'r') as h5_file:
-            return h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
+            return h5_file['nevents']  # the number of events in the file
+            # return h5_file[self.data_name][self.coord_name][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
         if self.file_excludes:
             if file_path in self.file_excludes:
                 return
         with h5py.File(file_path, 'r') as h5_file:
-            n = h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
+            n = h5_file['nevents']
+            # n = h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
             # a = len(unique(h5_file[self.data_name][self.coord_name][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
             #      " {2}".format(n,a,file_path))
