@@ -5,6 +5,7 @@ from numpy import full, int64
 from pathlib import Path
 import torch
 from torch.utils import data
+from torch import Tensor
 from os.path import dirname
 
 
@@ -47,6 +48,7 @@ class HDF5Dataset(data.Dataset):
                  coordinate_name,
                  feature_name,
                  events_per_dir,
+                 device,
                  recursive=False,
                  load_data=False,
                  file_excludes=None,
@@ -65,6 +67,7 @@ class HDF5Dataset(data.Dataset):
         self.events_per_dir = events_per_dir
         self.coord_name = coordinate_name
         self.feat_name = feature_name
+        self.device = device
 
         # Search for all h5 files
         all_files = []
@@ -79,8 +82,8 @@ class HDF5Dataset(data.Dataset):
                 raise RuntimeError('No hdf5 datasets found')
             all_files.append(files)
 
-        #reorder according to events in each dir
-        tally = [0]*len(all_files) #event tally for each directory
+        # reorder according to events in each dir
+        tally = [0] * len(all_files)  # event tally for each directory
         ordered_file_set = []
         while sum([len(all_files[i]) for i in range(len(all_files))]) > 0:
             for i, file_set in enumerate(all_files):
@@ -93,26 +96,23 @@ class HDF5Dataset(data.Dataset):
         for h5dataset_fp in ordered_file_set:
             dir_index = self.file_paths.index(dirname(h5dataset_fp))
             if self.n_events[dir_index] >= self.events_per_dir:
-                break
+                continue
             self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
 
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
-        n = coords[-1, 2] + 1  # number of events #TODO only return the data range given in get_data
-        coords = torch.from_numpy(coords)
-        vals = torch.FloatTensor(vals)
+        # n = coords[-1, 2] + 1  # number of events #TODO only return the data range given in get_data
+        coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
+        vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
+        di = self.get_data_infos(self.data_name)[index]
         # get label
         if self.label_name is None:
-            di = self.get_data_infos(self.data_name)[index]
-            # y = full(di['n_events'], di['dir_index'],
-            #         dtype=int64)
-            y = full(n, di['dir_index'],
-                     dtype=int64)
-            # print(di)
+            y = torch.Tensor.new_full(torch.tensor([di['n_events']]),
+                                      di['dir_index'], dtype=torch.LongTensor, device=self.device)
         else:
             y = self.get_data(self.label_name, index)
-        y = torch.from_numpy(y)
+            y = torch.tensor(y, device=self.device, dtype=torch.int64)
         return [coords, vals], y
 
     def __len__(self):

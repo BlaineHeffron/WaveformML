@@ -17,7 +17,7 @@ class PulseDataset2D(HDF5Dataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2]
     where N is the number of PMTs fired for the M = batch size events"""
 
-    def __init__(self, config, n_per_dir,
+    def __init__(self, config, n_per_dir, device,
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3):
@@ -36,6 +36,7 @@ class PulseDataset2D(HDF5Dataset):
                          "*WaveformPairSim.h5", "WaveformPairs",
                          "coord", "waveform",
                          n_per_dir,
+                         device,
                          file_excludes=file_excludes,
                          label_name=label_name,
                          data_cache_size=data_cache_size)
@@ -48,7 +49,7 @@ class PulseDataset3D(HDF5Dataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2]
     where N is the number of PMTs fired for the M = batch size events"""
 
-    def __init__(self, config, n_per_dir,
+    def __init__(self, config, n_per_dir, device,
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3):
@@ -67,6 +68,7 @@ class PulseDataset3D(HDF5Dataset):
                          "*Waveform3DPairSim.h5", "Waveform3DPairs",
                          "coord", "waveform",
                          n_per_dir,
+                         device,
                          file_excludes=file_excludes,
                          label_name=label_name,
                          data_cache_size=data_cache_size)
