@@ -99,7 +99,7 @@ class ModelOptimization:
         log_folder = os.path.join(self.study_dir, "runs")
         if not os.path.exists(log_folder):
             os.mkdir(log_folder)
-        logger = TensorBoardLogger(log_folder, name=self.config.run_config.exp_name)
+        logger = TensorBoardLogger(log_folder)
         psd_callbacks = PSDCallbacks(self.config)
         trainer_args = psd_callbacks.set_args(self.trainer_args)
         trainer_args["checkpoint_callback"] = \
