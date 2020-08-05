@@ -83,10 +83,11 @@ class HDF5Dataset(data.Dataset):
         # reorder according to events in each dir
         tally = [0] * len(all_files)  # event tally for each directory
         ordered_file_set = []
-        while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 and self._needs_more_data(tally, events_per_dir):
+        while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 \
+                and self._needs_more_data(tally, events_per_dir, all_files):
             for i, file_set in enumerate(all_files):
                 while len(file_set) > 0:
-                    if file_excludes and file_set[0] in file_excludes:
+                    if file_excludes and str(file_set[0].resolve()) in file_excludes:
                         file_set.pop(0)
                     else:
                         ordered_file_set.append(file_set.pop(0))
@@ -100,10 +101,11 @@ class HDF5Dataset(data.Dataset):
                 continue
             self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
 
-    def _needs_more_data(self,tally,n):
-        for i in tally:
-            if i < n:
-                return True
+    def _needs_more_data(self, tally, n, all_files):
+        for i, val in enumerate(tally):
+            if val < n:
+                if len(all_files[i]) > 0:
+                    return True
         return False
 
     def __getitem__(self, index):
@@ -112,7 +114,7 @@ class HDF5Dataset(data.Dataset):
         ind = 0
         di = self.get_data_infos(self.data_name)[index]
         if di['event_range'][1] + 1 < di['n_events']:
-            ind = where(coords[:, 2] == di['event_range'][1]+1)[0][0]
+            ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
         if ind > 0:
@@ -121,7 +123,7 @@ class HDF5Dataset(data.Dataset):
 
         # get label
         if self.label_name is None:
-            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1]+1, ), (di['event_range'][1]+1,),
+            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1, ), (di['event_range'][1] + 1,),
                                       di['dir_index'], dtype=torch.int64, device=self.device)
         else:
             y = self.get_data(self.label_name, index)
