@@ -84,12 +84,11 @@ class HDF5Dataset(data.Dataset):
         ordered_file_set = []
         while sum([len(all_files[i]) for i in range(len(all_files))]) > 0:
             for i, file_set in enumerate(all_files):
-                if file_set:
-                    while True:
-                        ordered_file_set.append(file_set.pop(0))
-                        tally[i] += self._get_event_num(ordered_file_set[-1])
-                        if not tally[i] < max(tally):
-                            break
+                while len(file_set) > 0:
+                    ordered_file_set.append(file_set.pop(0))
+                    tally[i] += self._get_event_num(ordered_file_set[-1])
+                    if not tally[i] < max(tally):
+                        break
 
         for h5dataset_fp in ordered_file_set:
             dir_index = self.file_paths.index(dirname(h5dataset_fp))
