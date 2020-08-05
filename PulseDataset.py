@@ -34,7 +34,7 @@ class PulseDataset2D(HDF5Dataset):
 
         super().__init__(paths,
                          "*WaveformPairSim.h5", "WaveformPairs",
-                         "coords","waveforms",
+                         "coord", "waveform",
                          n_per_dir,
                          file_excludes=file_excludes,
                          label_name=label_name,
@@ -42,6 +42,7 @@ class PulseDataset2D(HDF5Dataset):
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
+
 
 class PulseDataset3D(HDF5Dataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2]
@@ -63,8 +64,8 @@ class PulseDataset3D(HDF5Dataset):
         paths = [os.path.join(config.base_path, path) for path in config.paths]
 
         super().__init__(paths,
-                         "*WaveformPair3DSim.h5", "WaveformPairs",
-                         "coords","waveforms",
+                         "*Waveform3DPairSim.h5", "Waveform3DPairs",
+                         "coord", "waveform",
                          n_per_dir,
                          file_excludes=file_excludes,
                          label_name=label_name,
