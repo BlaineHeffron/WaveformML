@@ -19,7 +19,7 @@ class LitPSD(pl.LightningModule):
         self.data_module = PSDDataModule(config.dataset_config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
-        self.softmax = Softmax()
+        self.softmax = Softmax(dim=1)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -60,7 +60,7 @@ class LitPSD(pl.LightningModule):
         predictions = self.model(batch[0])
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.EvalResult(checkpoint_on=loss)
-        pred = argmax(self.softmax(predictions), dim=1)
+        pred = argmax(self.softmax(predictions, dim=1), dim=1)
         acc = accuracy(pred, batch[1], num_classes=self.n_type)
         result.log_dict({'val_loss': loss, 'val_acc': acc})
         return result

@@ -5,6 +5,7 @@ from numpy import full, int64
 from pathlib import Path
 import torch
 from torch.utils import data
+from os.path import dirname
 
 
 def _sort_pattern(name):
@@ -16,24 +17,38 @@ def _sort_pattern(name):
 
 
 class HDF5Dataset(data.Dataset):
-    """Represents an abstract HDF5 dataset.
+    """Represents an HDF5 dataset for coordinate-value type data.
+    __getitem__ returns 3 tensors, one for the coordinate, feature, and label
+    data in a tuple of the form
+        [coordinates, features], labels
+
+    note if the optional parameter label_name is set, the hdf5 file should contain a datset by that name
+    containing the labels. If not, the program uses the directories given as the labels.
     
     Input params:
         file_paths: list of paths to the folders containing the dataset (one or multiple HDF5 files).
+        file_pattern: file pattern to match, e.g. *WaveformPairSim.h5
+        data_name: string indicating the name of the dataset
+        coordinate_name: string indicating the name of the coordinates vector within the dataset
+        feature_name: string indicating the name of the features vector within the dataset
+        events_per_dir: number of events to be included in the dataset per given directory
         recursive: If True, searches for h5 files in subdirectories.
         load_data: If True, loads all the data immediately into RAM. Use this if
             the dataset is fits into memory. Otherwise, leave this at false and 
             the data will load lazily.
-        file_pattern: file pattern to match, e.g. *WaveformPairSim.h5
-        data_name: string indicating the name of the dataset
-        events_per_dir: number of events to be included in the dataset per given directory
         file_excludes: list of file to be excluded from dataset
-        label_name: string indicating the name of the labels
+        label_name: string indicating the name of the labels dataset if applicable
         data_cache_size: Number of HDF5 files that can be cached in the cache (default=3).
     """
 
-    def __init__(self, file_paths, recursive, load_data,
-                 file_pattern, data_name, events_per_dir,
+    def __init__(self, file_paths,
+                 file_pattern,
+                 data_name,
+                 coordinate_name,
+                 feature_name,
+                 events_per_dir,
+                 recursive=False,
+                 load_data=False,
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3):
@@ -48,8 +63,11 @@ class HDF5Dataset(data.Dataset):
         self.label_name = label_name
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
         self.events_per_dir = events_per_dir
+        self.coord_name = coordinate_name
+        self.feat_name = feature_name
 
         # Search for all h5 files
+        all_files = []
         for i, file_path in enumerate(file_paths):
             p = Path(file_path)
             assert (p.is_dir())
@@ -59,11 +77,25 @@ class HDF5Dataset(data.Dataset):
                 files = sorted(p.glob(file_pattern), key=lambda e: _sort_pattern(e))
             if len(files) < 1:
                 raise RuntimeError('No hdf5 datasets found')
+            all_files.append(files)
 
-            for h5dataset_fp in files:
-                if self.n_events[i] >= self.events_per_dir:
-                    break
-                self._add_data_infos(str(h5dataset_fp.resolve()), i, load_data)
+        #reorder according to events in each dir
+        tally = [0]*len(all_files) #event tally for each directory
+        ordered_file_set = []
+        while sum([len(all_files[i]) for i in range(len(all_files))]) > 0:
+            for i, file_set in enumerate(all_files):
+                if file_set:
+                    while True:
+                        ordered_file_set.append(file_set.pop(0))
+                        tally[i] += self._get_event_num(ordered_file_set[-1])
+                        if not tally[i] < max(tally):
+                            break
+
+        for h5dataset_fp in ordered_file_set:
+            dir_index = self.file_paths.index(dirname(h5dataset_fp))
+            if self.n_events[dir_index] >= self.events_per_dir:
+                break
+            self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
 
     def __getitem__(self, index):
         # get data
@@ -105,13 +137,17 @@ class HDF5Dataset(data.Dataset):
                                'event_range': [0, num_events - 1],
                                'dir_index': dir_index})
 
+    def _get_event_num(self, file_path):
+        with h5py.File(file_path, 'r') as h5_file:
+            return h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
+
     def _add_data_infos(self, file_path, dir_index, load_data):
         if self.file_excludes:
             if file_path in self.file_excludes:
                 return
         with h5py.File(file_path, 'r') as h5_file:
-            n = h5_file[self.data_name]['coord'][-1][2] + 1  # the number of events in the file
-            # a = len(unique(h5_file[self.data_name]['coord'][:,2]))
+            n = h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
+            # a = len(unique(h5_file[self.data_name][self.coord_name][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
             #      " {2}".format(n,a,file_path))
             if self.events_per_dir - self.n_events[dir_index] < n:
@@ -177,9 +213,9 @@ class HDF5Dataset(data.Dataset):
         list for every file_path, containing all datasets in that file.
         """
         if file_path not in self.data_cache:
-            self.data_cache[file_path] = [(data['coord'], data['waveform'])]
+            self.data_cache[file_path] = [(data[self.coord_name], data[self.feat_name])]
         else:
-            self.data_cache[file_path].append((data['coord'], data['waveform']))
+            self.data_cache[file_path].append((data[self.coord_name], data[self.feat_name]))
         return len(self.data_cache[file_path]) - 1
 
     def get_data_infos(self, data_type):

@@ -31,10 +31,44 @@ class PulseDataset2D(HDF5Dataset):
             use_pinned: whether to use pinned memory (for GPU loading)
         """
         paths = [os.path.join(config.base_path, path) for path in config.paths]
-        super().__init__(paths, False, False,
+
+        super().__init__(paths,
                          "*WaveformPairSim.h5", "WaveformPairs",
-                         n_per_dir, file_excludes, label_name,
-                         data_cache_size)
+                         "coords","waveforms",
+                         n_per_dir,
+                         file_excludes=file_excludes,
+                         label_name=label_name,
+                         data_cache_size=data_cache_size)
+
+    def __getitem__(self, idx):
+        return super().__getitem__(idx)
+
+class PulseDataset3D(HDF5Dataset):
+    """Pulse data in the form of ChannelData of size [N,nsamples*2]
+    where N is the number of PMTs fired for the M = batch size events"""
+
+    def __init__(self, config, n_per_dir,
+                 file_excludes=None,
+                 label_name=None,
+                 data_cache_size=3):
+        """
+        Args:
+            config: configuration file object
+            n_per_dir: number of events to use per directory
+            file_excludes: list of file paths to exclude from dataset
+            label_name: name of the table
+            data_cache_size: number of file to hold in memory
+            use_pinned: whether to use pinned memory (for GPU loading)
+        """
+        paths = [os.path.join(config.base_path, path) for path in config.paths]
+
+        super().__init__(paths,
+                         "*WaveformPair3DSim.h5", "WaveformPairs",
+                         "coords","waveforms",
+                         n_per_dir,
+                         file_excludes=file_excludes,
+                         label_name=label_name,
+                         data_cache_size=data_cache_size)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
