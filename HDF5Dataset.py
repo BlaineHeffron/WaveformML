@@ -137,8 +137,8 @@ class HDF5Dataset(data.Dataset):
                                'type': dataset_name,
                                'shape': dataset[()].shape,
                                'cache_idx': idx,
-                               'n_events': n_file_events,
-                               'event_range': [0, num_events - 1],
+                               'n_events': int(n_file_events),
+                               'event_range': (0, int(num_events) - 1),
                                'dir_index': dir_index})
 
     def _get_event_num(self, file_path):
