@@ -59,12 +59,12 @@ class LitPSD(pl.LightningModule):
         predictions = self.model(batch[0])
         loss = self.criterion.forward(predictions, batch[1])
         result = pl.EvalResult(checkpoint_on=loss)
-        result.log('batch_val_loss', loss)
         pred = argmax(self.softmax(predictions), dim=1)
         acc = accuracy(pred, batch[1], num_classes=self.n_type)
-        result.log('batch_val_acc', acc)
+        result.log_dict({'val_loss': loss, 'val_acc': acc})
         return result
 
+    """
     def validation_epoch_end(self, outputs):
         mean_loss = outputs['batch_val_loss'].mean()
         mean_accuracy = outputs['batch_val_acc'].mean()
@@ -73,3 +73,4 @@ class LitPSD(pl.LightningModule):
             'progress_bar': {'val_loss': mean_loss},
             'callback_metrics': {'val_loss': mean_loss, 'val_acc': mean_accuracy}
         }
+    """
