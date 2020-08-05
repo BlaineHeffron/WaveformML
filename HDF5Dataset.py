@@ -55,7 +55,6 @@ class HDF5Dataset(data.Dataset):
                  data_cache_size=3):
         super().__init__()
         self.file_paths = file_paths
-        self.file_excludes = file_excludes
         self.num_dirs = len(file_paths)
         self.data_info = []
         self.data_cache = {}
@@ -87,7 +86,7 @@ class HDF5Dataset(data.Dataset):
         while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 and self._needs_more_data(tally, events_per_dir):
             for i, file_set in enumerate(all_files):
                 while len(file_set) > 0:
-                    if file_set[0] in file_excludes:
+                    if file_excludes and file_set[0] in file_excludes:
                         file_set.pop(0)
                     else:
                         ordered_file_set.append(file_set.pop(0))
@@ -156,9 +155,6 @@ class HDF5Dataset(data.Dataset):
             # return h5_file[self.data_name][self.coord_name][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
-        if self.file_excludes:
-            if file_path in self.file_excludes:
-                return
         with h5py.File(file_path, 'r') as h5_file:
             n_file_events = h5_file[self.data_name].attrs.get('nevents')[0]  # the number of events in the file
             # n = h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
