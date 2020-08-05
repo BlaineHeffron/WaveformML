@@ -84,19 +84,28 @@ class HDF5Dataset(data.Dataset):
         # reorder according to events in each dir
         tally = [0] * len(all_files)  # event tally for each directory
         ordered_file_set = []
-        while sum([len(all_files[i]) for i in range(len(all_files))]) > 0:
+        while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 and self._needs_more_data(tally, events_per_dir):
             for i, file_set in enumerate(all_files):
                 while len(file_set) > 0:
-                    ordered_file_set.append(file_set.pop(0))
-                    tally[i] += self._get_event_num(ordered_file_set[-1])
-                    if not tally[i] < max(tally):
-                        break
+                    if file_set[0] in file_excludes:
+                        file_set.pop(0)
+                    else:
+                        ordered_file_set.append(file_set.pop(0))
+                        tally[i] += self._get_event_num(ordered_file_set[-1])
+                        if not tally[i] < max(tally):
+                            break
 
         for h5dataset_fp in ordered_file_set:
             dir_index = self.file_paths.index(dirname(h5dataset_fp))
             if self.n_events[dir_index] >= self.events_per_dir:
                 continue
             self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
+
+    def _needs_more_data(self,tally,n):
+        for i in tally:
+            if i < n:
+                return True
+        return False
 
     def __getitem__(self, index):
         # get data
