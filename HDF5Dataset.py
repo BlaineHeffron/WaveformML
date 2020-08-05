@@ -143,7 +143,7 @@ class HDF5Dataset(data.Dataset):
 
     def _get_event_num(self, file_path):
         with h5py.File(file_path, 'r') as h5_file:
-            return h5_file['nevents']  # the number of events in the file
+            return h5_file[self.data_name].attrs.get('nevents')[0]  # the number of events in the file
             # return h5_file[self.data_name][self.coord_name][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
@@ -151,7 +151,7 @@ class HDF5Dataset(data.Dataset):
             if file_path in self.file_excludes:
                 return
         with h5py.File(file_path, 'r') as h5_file:
-            n = h5_file['nevents']
+            n = h5_file[self.data_name].attrs.get('nevents')[0]  # the number of events in the file
             # n = h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
             # a = len(unique(h5_file[self.data_name][self.coord_name][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
