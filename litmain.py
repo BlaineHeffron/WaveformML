@@ -119,8 +119,8 @@ def main():
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
-        trainer_args = psd_callbacks.set_args(args)
-        trainer_args.checkpoint_callback = \
+        trainer_args = psd_callbacks.set_args(trainer_args)
+        trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name))
         trainer_args["logger"] = logger
