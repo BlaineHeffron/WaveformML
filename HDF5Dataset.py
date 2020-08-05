@@ -68,21 +68,21 @@ class HDF5Dataset(data.Dataset):
     def __getitem__(self, index):
         # get data
         coords, vals = self.get_data(self.data_name, index)
-        n = coords[-1,2] + 1 #number of events #TODO only return the data range given in get_data
+        n = coords[-1, 2] + 1  # number of events #TODO only return the data range given in get_data
         coords = torch.from_numpy(coords)
         vals = torch.ShortTensor(vals)
         # get label
         if self.label_name is None:
             di = self.get_data_infos(self.data_name)[index]
-            #y = full(di['n_events'], di['dir_index'],
+            # y = full(di['n_events'], di['dir_index'],
             #         dtype=int64)
             y = full(n, di['dir_index'],
                      dtype=int8)
-            #print(di)
+            # print(di)
         else:
             y = self.get_data(self.label_name, index)
         y = torch.from_numpy(y)
-        return (coords, vals), y
+        return (coords.transpose(1, 0), vals.transpose(1, 0)), y
 
     def __len__(self):
         return len(self.get_data_infos(self.data_name))
@@ -102,7 +102,7 @@ class HDF5Dataset(data.Dataset):
                                'shape': dataset[()].shape,
                                'cache_idx': idx,
                                'n_events': num_events,
-                               'event_range': [0, num_events - 1], 
+                               'event_range': [0, num_events - 1],
                                'dir_index': dir_index})
 
     def _add_data_infos(self, file_path, dir_index, load_data):
@@ -110,9 +110,9 @@ class HDF5Dataset(data.Dataset):
             if file_path in self.file_excludes:
                 return
         with h5py.File(file_path, 'r') as h5_file:
-            n = h5_file[self.data_name]['coord'][-1][2]+1  # the number of events in the file
-            #a = len(unique(h5_file[self.data_name]['coord'][:,2]))
-            #print("nevents is {0}, length of dataset is {1} for file "
+            n = h5_file[self.data_name]['coord'][-1][2] + 1  # the number of events in the file
+            # a = len(unique(h5_file[self.data_name]['coord'][:,2]))
+            # print("nevents is {0}, length of dataset is {1} for file "
             #      " {2}".format(n,a,file_path))
             if self.events_per_dir - self.n_events[dir_index] < n:
                 n = self.events_per_dir - self.n_events[dir_index]
