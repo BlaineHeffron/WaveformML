@@ -93,6 +93,8 @@ class ModelOptimization:
                 self.hyperparameters[hp] = trial.suggest_int(name, bounds[0], bounds[1])
             elif isinstance(bounds[0], float):
                 self.hyperparameters[hp] = trial.suggest_float(name, bounds[0], bounds[1])
+            elif isinstance(bounds[0], bool):
+                self.hyperparameters[hp] = trial.suggest_int(name, 0, 1)
 
     def objective(self, trial):
         self.modify_config(trial)
