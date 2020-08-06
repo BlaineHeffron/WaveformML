@@ -63,6 +63,7 @@ def main():
                         "pruning"]
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
+    verbosity = args.verbosity
     if not os.path.exists(MODEL_DIR):
         path_create(MODEL_DIR)
     config_file = args.config
@@ -100,16 +101,16 @@ def main():
     if args.name:
         config.run_config.exp_name = args.name
     debug_level = logging.NOTSET
-    if args.verbosity:
-        if args.verbosity == 1:
+    if verbosity:
+        if verbosity == 1:
             debug_level = logging.CRITICAL
-        elif args.verbosity == 2:
+        elif verbosity == 2:
             debug_level = logging.ERROR
-        elif args.verbosity == 3:
+        elif verbosity == 3:
             debug_level = logging.WARNING
-        elif args.verbosity == 4:
+        elif verbosity == 4:
             debug_level = logging.INFO
-        elif args.verbosity == 5:
+        elif verbosity == 5:
             debug_level = logging.DEBUG
 
     loggingargs = {}
@@ -151,8 +152,8 @@ def main():
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name))
-        if trainer_args["profiler"] or args.verbosity >= 5:
-            if args.verbosity >= 5:
+        if trainer_args["profiler"] or verbosity >= 5:
+            if verbosity >= 5:
                 profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
             else:
                 profiler = SimpleProfiler(output_filename=join(log_folder, "profile_results.txt"))
