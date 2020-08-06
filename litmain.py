@@ -133,7 +133,9 @@ def main():
             del trainer_args[non_trainer_arg]
         if opt_config:
             opt_config = check_config(opt_config)
-            opt_config = util.DictionaryUtility.to_object(opt_config)
+            with open(opt_config) as f:
+                opt_config = json.load(f)
+                opt_config = util.DictionaryUtility.to_object(opt_config)
             m = ModelOptimization(opt_config, config, model_folder, trainer_args)
         else:
             m = ModelOptimization(config.optuna_config, config, model_folder, trainer_args)
