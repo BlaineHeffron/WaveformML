@@ -58,7 +58,9 @@ def main():
         help="Activate the pruning feature. `MedianPruner` stops unpromising "
              "trials at the early stages of training.",
     )
-    non_trainer_args = ["config", "name", "verbosity", "validation", "optimize_config", "pruning"]
+    non_trainer_args = ["config", "name", "verbosity",
+                        "logfile", "validation", "optimize_config",
+                        "pruning"]
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     if not os.path.exists(MODEL_DIR):
