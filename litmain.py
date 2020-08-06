@@ -140,6 +140,8 @@ def main():
         m.run_study(pruning=set_pruning)
     else:
         tb_folder = join(model_folder, "runs")
+        if not os.path.exists(tb_folder):
+            os.mkdir(tb_folder)
         logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
         log_folder = logger.log_dir
         if not os.path.exists(log_folder):
