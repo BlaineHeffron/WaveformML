@@ -55,7 +55,7 @@ class LitPSD(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         (coo, feat), targets = batch
         for c, f, target in zip(coo, feat, targets):
-            predictions = self.model([c,f])
+            predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
@@ -64,12 +64,12 @@ class LitPSD(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         (coo, feat), targets = batch
         for c, f, target in zip(coo, feat, targets):
-            predictions = self.model([c,f])
+            predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             result = pl.EvalResult(checkpoint_on=loss)
             pred = argmax(self.softmax(predictions), dim=1)
             acc = accuracy(pred, target, num_classes=self.n_type)
-            result.log_dict({'val_loss': loss, 'val_acc': acc})
+            result.log_dict({'val_loss': loss, 'val_acc': acc}, on_epoch=True)
         return result
 
     """
