@@ -12,6 +12,7 @@ class LitPSD(pl.LightningModule):
         self.config = config
         self.hparams = DictionaryUtility.to_dict(config)
         self.n_type = config.system_config.n_type
+        self.lr = config.optimize_config.lr
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
@@ -36,13 +37,15 @@ class LitPSD(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = \
             self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
+                                                                                     lr=(self.lr or self.learning_rate),
                                                                                      **DictionaryUtility.to_dict(
                                                                                          self.config.optimize_config.optimizer_params))
         if hasattr(self.config.optimize_config, "scheduler_class"):
             if self.config.optimize_config.scheduler_class:
                 if not hasattr(self.config.optimize_config, "scheduler_params"):
                     raise IOError(
-                        "Optimizer config has a learning scheduler class specified. You must also set lr_schedule_parameters (dictionary of key value pairs).")
+                        "Optimizer config has a learning scheduler class specified. You must also set "
+                        "lr_schedule_parameters (dictionary of key value pairs).")
                 scheduler = self.modules.retrieve_class(self.config.optimize_config.scheduler_class)(optimizer,
                                                                                                      **DictionaryUtility.to_dict(
                                                                                                          self.config.optimize_config.scheduler_params))
@@ -52,7 +55,7 @@ class LitPSD(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         (coo, feat), targets = batch
         for c, f, target in zip(coo, feat, targets):
-            predictions = self.model([c, f])
+            predictions = self.model([c,f])
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
@@ -61,7 +64,7 @@ class LitPSD(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         (coo, feat), targets = batch
         for c, f, target in zip(coo, feat, targets):
-            predictions = self.model([c, f])
+            predictions = self.model([c,f])
             loss = self.criterion.forward(predictions, target)
             result = pl.EvalResult(checkpoint_on=loss)
             pred = argmax(self.softmax(predictions), dim=1)
