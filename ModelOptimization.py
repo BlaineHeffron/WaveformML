@@ -122,11 +122,12 @@ class ModelOptimization:
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        "trial_{}".format(trial.number), "train_args")
         metrics_callback = MetricsCallback()
-        trainer = pl.Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
+        cbs = psd_callbacks.callbacks
+        cbs.append(metrics_callback)
+        trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         model = LitPSD(self.config)
         trainer.fit(model)
-
-        return metrics_callback.metrics[-1]["val_acc"].item()
+        return metrics_callback.metrics[-1]["val_checkpoint_on"].item()
 
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
