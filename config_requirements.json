@@ -25,10 +25,10 @@
       "torch.optim.lr_scheduler"
     ],
     "total_epoch": 30,
+    "lr": 1e-3,
     "validation_freq": 1,
     "optimizer_class": "optim.SGD",
     "optimizer_params": {
-      "lr": 1e-3,
       "momentum": 0.9,
       "weight_decay": 0,
       "dampening": 0,
