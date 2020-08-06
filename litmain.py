@@ -1,7 +1,7 @@
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.profiler import AdvancedProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 from LitCallbacks import *
 from os.path import join, abspath, exists
 from LitPSD import *
@@ -42,7 +42,7 @@ def main():
     # TODO implement verbosity
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
-                        type=int)
+                        type=int, default=0)
     parser.add_argument("--logfile", "-l",
                         help="Set the filename or path to the filename for the program log this run."
                              " Set --verbosity to control the amount of information logged.",
@@ -152,7 +152,10 @@ def main():
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name))
         if trainer_args["profiler"] or args.verbosity >= 5:
-            profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
+            if args.verbosity >= 5:
+                profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
+            else:
+                profiler = SimpleProfiler(output_filename=join(log_folder, "profile_results.txt"))
             trainer_args["profiler"] = profiler
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = model_folder
