@@ -24,6 +24,12 @@ Some useful command line arguments:
 --overfit_batches 0.001 // overfits on a small percentage of the data. Useful for debugging a network
 --auto_lr_find true // starts the training session with a learning rate finder algorithm, prints results / saves to log folder
 --profiler true // profiles the program, showing time spent in each section. output written in log dir found in <model folder>/runs/<experiment name>/version_<n> where n is the (n-1)th run of the experiment
+--auto_scale_batchsize binsearch // automatically scales batch size until it finds the largest that fits in memory
+
+
+see https://pytorch-lightning.readthedocs.io/en/latest/trainer.html#trainer-flags
+for a complete list of arguments
+
 
 For performance tweaking on a GPU, set --profile=true, then slowly increase the num_workers
 (under dataset_config/dataloader_params) until you find optimal performance.

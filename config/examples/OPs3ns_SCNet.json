@@ -64,7 +64,7 @@
   "optimize_config":{
     "imports": ["torch.optim","torch.optim.lr_scheduler"],
     "total_epoch":30,
-    "freq_display":1,
+    "validation_freq":1,
     "optimizer_class": "optim.SGD",
     "optimizer_params": {
       "lr": 1e-3,
@@ -80,6 +80,7 @@
     "_comment2": "n_train and n_test correspond to the number trained per type",
     "_comment3": "dataset_class is set to the classname of the Dataset class being used",
     "_comment4": "cache_size is number of files to hold in memory",
+    "_comment5": "a good starting point for num_workers is the number of cpus of the system",
     "mode": "path",
     "base_path": "/home/blaine/projects/orthopositronium",
     "paths": ["Positron","OrthoPositronium"],

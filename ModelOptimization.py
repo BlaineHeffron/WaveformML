@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.profiler import AdvancedProfiler
 from LitCallbacks import *
 from LitPSD import *
 import optuna
@@ -111,6 +112,11 @@ class ModelOptimization:
         trainer_args["default_root_dir"] = self.study_dir
         set_default_trainer_args(trainer_args, self.config)
         trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_acc")
+        if trainer_args["profiler"]:
+            profiler = AdvancedProfiler(join(log_folder, "profile_results.txt"))
+            trainer_args["profiler"] = profiler
+        if hasattr(self.config.optimize_config,"validation_freq"):
+            trainer_args["check_val_every_n_epoch"] = self.config.optimize_config.validation_freq
         save_config(self.config, log_folder, "trial_{}".format(trial.number), "config")
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        "trial_{}".format(trial.number), "train_args")

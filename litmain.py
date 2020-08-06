@@ -43,6 +43,10 @@ def main():
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int)
+    parser.add_argument("--logfile", "-l",
+                        help="Set the filename or path to the filename for the program log this run."
+                             " Set --verbosity to control the amount of information logged.",
+                        type=str)
     parser.add_argument("--validation", "-cv", type=str,
                         help="Set the path to the config validation file.")
     parser.add_argument("--optimize_config", "-oc", type=str,
@@ -106,8 +110,13 @@ def main():
         elif args.verbosity == 5:
             debug_level = logging.DEBUG
 
+    loggingargs = {}
+    if args.logfile:
+        loggingargs["filename"] = args.logfile
+
     logging.basicConfig(level=debug_level,
-                        format='%(levelname)-6s %(message)s')
+                        format='%(levelname)-6s %(message)s',
+                        **loggingargs)
 
     logging.info('=======================================================')
     logging.info('Using system from %s' % config_file)
@@ -138,17 +147,19 @@ def main():
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name))
-        profiler = None
-        if trainer_args["profile"] or args.verbosity >= 5:
+        if trainer_args["profiler"] or args.verbosity >= 5:
             profiler = AdvancedProfiler(join(log_folder, "profile_results.txt"))
+            trainer_args["profiler"] = profiler
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = model_folder
+        if hasattr(config.optimize_config,"validation_freq"):
+            trainer_args["check_val_every_n_epoch"] = config.optimize_config.validation_freq
         set_default_trainer_args(trainer_args, config)
         save_config(config, log_folder, config.run_config.exp_name, "config")
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        config.run_config.exp_name, "train_args")
         model = LitPSD(config)
-        trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks, profiler=profiler)
+        trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         trainer.fit(model)
 
 
