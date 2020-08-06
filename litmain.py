@@ -139,6 +139,8 @@ def main():
         tb_folder = join(model_folder, "runs")
         logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
         log_folder = logger.log_dir
+        if not os.path.exists(log_folder):
+            os.mkdir(log_folder)
         psd_callbacks = PSDCallbacks(config)
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
