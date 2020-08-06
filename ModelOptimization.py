@@ -105,7 +105,7 @@ class ModelOptimization:
         logger = TensorBoardLogger(log_folder)
         log_folder = logger.log_dir
         if not os.path.exists(log_folder):
-            os.mkdir(log_folder)
+            os.makedirs(log_folder, exist_ok=True)
         psd_callbacks = PSDCallbacks(self.config)
         trainer_args = psd_callbacks.set_args(self.trainer_args)
         trainer_args["checkpoint_callback"] = \
