@@ -148,7 +148,7 @@ def main():
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name))
         if trainer_args["profiler"] or args.verbosity >= 5:
-            profiler = AdvancedProfiler(join(log_folder, "profile_results.txt"))
+            profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
             trainer_args["profiler"] = profiler
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = model_folder

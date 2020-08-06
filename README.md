@@ -1,6 +1,7 @@
 # WaveformML
 Machine learning tools for waveform analysis.
 
+## Install
 To use, first install the following dependencies.
 I used the conda package manager to install these.
 conda install -c pytorch pytorch=1.6
@@ -9,7 +10,7 @@ conda install json
 conda install yaml
 conda install hdf5
 
-To run:
+## Usage
 
 python main.py <name of config.json file>
 
@@ -18,18 +19,23 @@ output is logged in model/<model name>/runs/<experiment name>/version_<n> where 
 Requirements for the config file are shown in config_requirements.json. This can be used as a template.
 A full example config file is found in config/examples
 
-Some useful command line arguments:
+## Some useful command line arguments:
 
 --log_gpu_memory true // logs the gpu usage
 --overfit_batches 0.001 // overfits on a small percentage of the data. Useful for debugging a network
 --auto_lr_find true // starts the training session with a learning rate finder algorithm, prints results / saves to log folder
 --profiler true // profiles the program, showing time spent in each section. output written in log dir found in <model folder>/runs/<experiment name>/version_<n> where n is the (n-1)th run of the experiment
 --auto_scale_batchsize binsearch // automatically scales batch size until it finds the largest that fits in memory
+--limit_test_batches n // if int, limits number of batches used for testing to n batches. If float < 1, uses that fraction of the test batches.
+--limit_val_batches n
+--limit_train_batches n
 
 
 see https://pytorch-lightning.readthedocs.io/en/latest/trainer.html#trainer-flags
 for a complete list of arguments
 
+
+## Performance tweaking and optimization
 
 For performance tweaking on a GPU, set --profile=true, then slowly increase the num_workers
 (under dataset_config/dataloader_params) until you find optimal performance.
@@ -37,8 +43,8 @@ For performance tweaking on a GPU, set --profile=true, then slowly increase the 
 Once optimal data loading performance is found, then tune your learning rate. You can set
 --auto_lr_find=true to find an optimal learning rate for your learning scheduler.
 
-Once a good learning rate is chosen, set up a hyperparameter optimization config and set
--oc <name of config file or path to config file>.
+Once a good learning rate is chosen, set up a hyperparameter optimization config
+and set -oc <name of config file or path to config file>.
 The search path for the optimize config is the same for model config files. Alternatively, you
 can add an optuna_config section in the config file.
 
