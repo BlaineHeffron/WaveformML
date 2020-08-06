@@ -258,6 +258,3 @@ class OrderlyJSONEncoder(json.JSONEncoder):
             return list(o)
         return json.JSONEncoder.default(self, o)
 
-
-def collate_fn(batch):
-    return tuple(zip(*batch))

@@ -50,19 +50,21 @@ class LitPSD(pl.LightningModule):
         return optimizer
 
     def training_step(self, batch, batch_idx):
-        predictions = self.model(batch[0])
-        loss = self.criterion.forward(predictions, batch[1])
-        result = pl.TrainResult(loss)
-        result.log('train_loss', loss)
+        for minibatch in batch:
+            predictions = self.model(minibatch[0])
+            loss = self.criterion.forward(predictions, minibatch[1])
+            result = pl.TrainResult(loss)
+            result.log('train_loss', loss)
         return result
 
     def validation_step(self, batch, batch_idx):
-        predictions = self.model(batch[0])
-        loss = self.criterion.forward(predictions, batch[1])
-        result = pl.EvalResult(checkpoint_on=loss)
-        pred = argmax(self.softmax(predictions), dim=1)
-        acc = accuracy(pred, batch[1], num_classes=self.n_type)
-        result.log_dict({'val_loss': loss, 'val_acc': acc})
+        for minibatch in batch:
+            predictions = self.model(minibatch[0])
+            loss = self.criterion.forward(predictions, minibatch[1])
+            result = pl.EvalResult(checkpoint_on=loss)
+            pred = argmax(self.softmax(predictions), dim=1)
+            acc = accuracy(pred, minibatch[1], num_classes=self.n_type)
+            result.log_dict({'val_loss': loss, 'val_acc': acc})
         return result
 
     """

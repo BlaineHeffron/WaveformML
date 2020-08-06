@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
-from util import DictionaryUtility, ModuleUtility, collate_fn
+from util import DictionaryUtility, ModuleUtility
 
 
 class PSDDataModule(pl.LightningDataModule):
@@ -47,7 +47,6 @@ class PSDDataModule(pl.LightningDataModule):
         if not hasattr(self, "train_dataset"):
             self.prepare_data()
         return DataLoader(self.train_dataset,
-                          collate_fn=collate_fn,
                           shuffle=True,
                           **DictionaryUtility.to_dict(self.config.dataloader_params))
 
@@ -55,7 +54,6 @@ class PSDDataModule(pl.LightningDataModule):
         if not hasattr(self, "val_dataset"):
             self.prepare_data()
         return DataLoader(self.val_dataset,
-                          collate_fn=collate_fn,
                           shuffle=False,
                           **DictionaryUtility.to_dict(self.config.dataloader_params))
 
@@ -63,6 +61,5 @@ class PSDDataModule(pl.LightningDataModule):
         if not hasattr(self, "test_dataset"):
             self.prepare_data()
         return DataLoader(self.test_dataset,
-                          collate_fn=collate_fn,
                           shuffle=False,
                           **DictionaryUtility.to_dict(self.config.dataloader_params))
