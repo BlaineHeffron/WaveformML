@@ -1,6 +1,7 @@
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.profiler import AdvancedProfiler
 from LitCallbacks import *
 from os.path import join, abspath, exists
 from LitPSD import *
@@ -92,7 +93,20 @@ def main():
             config.run_config.exp_name = exp_name
     if args.name:
         config.run_config.exp_name = args.name
-    logging.basicConfig(level=logging.DEBUG,
+    debug_level = logging.NOTSET
+    if args.verbosity:
+        if args.verbosity == 1:
+            debug_level = logging.CRITICAL
+        elif args.verbosity == 2:
+            debug_level = logging.ERROR
+        elif args.verbosity == 3:
+            debug_level = logging.WARNING
+        elif args.verbosity == 4:
+            debug_level = logging.INFO
+        elif args.verbosity == 5:
+            debug_level = logging.DEBUG
+
+    logging.basicConfig(level=debug_level,
                         format='%(levelname)-6s %(message)s')
 
     logging.info('=======================================================')
@@ -113,8 +127,9 @@ def main():
             m = ModelOptimization(config.optuna_config, config, model_folder, trainer_args)
         m.run_study(pruning=set_pruning)
     else:
-        log_folder = join(model_folder, "runs")
-        logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name)
+        tb_folder = join(model_folder, "runs")
+        logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
+        log_folder = logger.log_dir
         psd_callbacks = PSDCallbacks(config)
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
@@ -123,6 +138,9 @@ def main():
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name))
+        profiler = None
+        if trainer_args["profile"] or args.verbosity >= 5:
+            profiler = AdvancedProfiler(join(log_folder, "profile_results.txt"))
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = model_folder
         set_default_trainer_args(trainer_args, config)
@@ -130,7 +148,7 @@ def main():
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        config.run_config.exp_name, "train_args")
         model = LitPSD(config)
-        trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
+        trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks, profiler=profiler)
         trainer.fit(model)
 
 
