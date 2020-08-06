@@ -1,4 +1,4 @@
-from re import findall
+from re import findall, compile
 
 import h5py
 from pathlib import Path
@@ -7,13 +7,23 @@ from torch.utils import data
 from numpy import where
 from os.path import dirname
 
+FILENAME_SORT_REGEX = compile(r'_(\d+)')
+
 
 def _sort_pattern(name):
-    nums = findall(r'_(\d+)', str(name))
+    nums = FILENAME_SORT_REGEX.findall(str(name))
     if nums:
         return int(nums[0])
     else:
         return name
+
+
+def _needs_more_data(tally, n, all_files):
+    for i, val in enumerate(tally):
+        if val < n:
+            if len(all_files[i]) > 0:
+                return True
+    return False
 
 
 class HDF5Dataset(data.Dataset):
@@ -84,7 +94,7 @@ class HDF5Dataset(data.Dataset):
         tally = [0] * len(all_files)  # event tally for each directory
         ordered_file_set = []
         while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 \
-                and self._needs_more_data(tally, events_per_dir, all_files):
+                and _needs_more_data(tally, events_per_dir, all_files):
             for i, file_set in enumerate(all_files):
                 while len(file_set) > 0 and tally[i] < events_per_dir:
                     if file_excludes and str(file_set[0].resolve()) in file_excludes:
@@ -95,20 +105,13 @@ class HDF5Dataset(data.Dataset):
                         if not tally[i] < max(tally):
                             break
 
-        #print("file excludes ",file_excludes)
-        #print(ordered_file_set)
+        # print("file excludes ",file_excludes)
+        # print(ordered_file_set)
         for h5dataset_fp in ordered_file_set:
             dir_index = self.file_paths.index(dirname(h5dataset_fp))
             if self.n_events[dir_index] >= self.events_per_dir:
                 continue
             self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
-
-    def _needs_more_data(self, tally, n, all_files):
-        for i, val in enumerate(tally):
-            if val < n:
-                if len(all_files[i]) > 0:
-                    return True
-        return False
 
     def __getitem__(self, index):
         # get data
@@ -119,8 +122,8 @@ class HDF5Dataset(data.Dataset):
             ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
-        #print("coords size is ", coords.size())
-        #print("vals size is ", vals.size())
+        # print("coords size is ", coords.size())
+        # print("vals size is ", vals.size())
         if ind > 0:
             coords = coords[0:ind, :]
             vals = vals[0:ind, :]
@@ -132,9 +135,9 @@ class HDF5Dataset(data.Dataset):
         else:
             y = self.get_data(self.label_name, index)
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
-        #print("now coords size is ", coords.size())
-        #print("now vals size is ", vals.size())
-        #print("y size is ", y.size())
+        # print("now coords size is ", coords.size())
+        # print("now vals size is ", vals.size())
+        # print("y size is ", y.size())
         return [coords, vals], y
 
     def __len__(self):
@@ -219,7 +222,7 @@ class HDF5Dataset(data.Dataset):
             self.data_cache.pop(removal_keys[0])
             # remove invalid cache_idx
             self.data_info = \
-                [{'file_path': di['file_path'], 'type': di['type'], 
+                [{'file_path': di['file_path'], 'type': di['type'],
                   'dir_index': di['dir_index'],
                   'n_events': di['n_events'],
                   'event_range': di['event_range'],
