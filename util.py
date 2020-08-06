@@ -257,3 +257,7 @@ class OrderlyJSONEncoder(json.JSONEncoder):
         elif isinstance(o, Sequence):
             return list(o)
         return json.JSONEncoder.default(self, o)
+
+
+def collate_fn(batch):
+    return tuple(zip(*batch))
