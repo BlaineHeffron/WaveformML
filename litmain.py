@@ -160,11 +160,9 @@ def main():
             trainer_args["profiler"] = profiler
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = model_folder
-        if hasattr(config.optimize_config,"validation_freq"):
-            trainer_args["check_val_every_n_epoch"] = config.optimize_config.validation_freq
         set_default_trainer_args(trainer_args, config)
         save_config(config, log_folder, config.run_config.exp_name, "config")
-        #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
+        # save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        config.run_config.exp_name, "train_args")
         model = LitPSD(config)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)

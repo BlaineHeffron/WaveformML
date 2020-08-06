@@ -118,8 +118,6 @@ class ModelOptimization:
         if trainer_args["profiler"]:
             profiler = SimpleProfiler(output_filename=join(log_folder, "profile_results.txt"))
             trainer_args["profiler"] = profiler
-        if hasattr(self.config.optimize_config,"validation_freq"):
-            trainer_args["check_val_every_n_epoch"] = self.config.optimize_config.validation_freq
         save_config(self.config, log_folder, "trial_{}".format(trial.number), "config")
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        "trial_{}".format(trial.number), "train_args")

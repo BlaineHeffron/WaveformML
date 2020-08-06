@@ -157,6 +157,8 @@ def set_default_trainer_args(trainer_args, config):
             if trainer_args["num_nodes"] > 1:
                 trainer_args["distributed_backend"] = 'ddp'
     trainer_args["max_epochs"] = config.optimize_config.total_epoch
+    if hasattr(config.optimize_config, "validation_freq"):
+        trainer_args["check_val_every_n_epoch"] = config.optimize_config.validation_freq
 
 
 def unique_path_combine(pathlist):
