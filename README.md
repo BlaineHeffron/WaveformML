@@ -21,15 +21,17 @@ A full example config file is found in config/examples
 
 ## Some useful command line arguments:
 
---log_gpu_memory true // logs the gpu usage
 --overfit_batches 0.001 // overfits on a small percentage of the data. Useful for debugging a network
---auto_lr_find true // starts the training session with a learning rate finder algorithm, prints results / saves to log folder
 --profiler true // profiles the program, showing time spent in each section. output written in log dir found in <model folder>/runs/<experiment name>/version_<n> where n is the (n-1)th run of the experiment
---auto_scale_batchsize binsearch // automatically scales batch size until it finds the largest that fits in memory
 --limit_test_batches n // if int, limits number of batches used for testing to n batches. If float < 1, uses that fraction of the test batches.
 --limit_val_batches n
 --limit_train_batches n
+--log_gpu_memory true // logs the gpu usage
 
+Here are some that aren't currently working for some reason but look quite useful:
+
+--auto_lr_find true // starts the training session with a learning rate finder algorithm, prints results / saves to log folder
+--auto_scale_batchsize binsearch // automatically scales batch size until it finds the largest that fits in memory
 
 see https://pytorch-lightning.readthedocs.io/en/latest/trainer.html#trainer-flags
 for a complete list of arguments
@@ -53,6 +55,8 @@ can add an optuna_config section in the config file.
 
 Create your own modules by extending the LitPSD class. See
 https://pytorch-lightning.readthedocs.io/en/latest/child_modules.html for more information.
+
+
 
 
 

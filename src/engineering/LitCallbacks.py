@@ -1,7 +1,5 @@
-from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks import LearningRateLogger
-from os.path import join
 
 
 
