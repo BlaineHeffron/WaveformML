@@ -97,10 +97,9 @@ class ModelOptimization:
 
     def objective(self, trial):
         self.modify_config(trial)
-        log_folder = os.path.join(self.study_dir, "runs")
-        if not os.path.exists(log_folder):
-            os.mkdir(log_folder)
-        logger = TensorBoardLogger(log_folder)
+        if not os.path.exists(self.study_dir):
+            os.mkdir(self.study_dir)
+        logger = TensorBoardLogger(self.study_dir, name="trial_{}".format(trial.number))
         log_folder = logger.log_dir
         if not os.path.exists(log_folder):
             os.makedirs(log_folder, exist_ok=True)
@@ -108,13 +107,14 @@ class ModelOptimization:
         trainer_args = psd_callbacks.set_args(self.trainer_args)
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
-                os.path.join(self.study_dir, "trial_{}".format(trial.number), "{epoch}"), monitor="val_acc")
+                os.path.join(self.study_dir, "trial_{}".format(trial.number), "{epoch}"),
+                monitor="val_acc")
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = self.study_dir
         set_default_trainer_args(trainer_args, self.config)
         trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_acc")
         if trainer_args["profiler"]:
-            profiler = SimpleProfiler(output_filename=join(log_folder, "profile_results.txt"))
+            profiler = SimpleProfiler(output_filename=os.path.join(log_folder, "profile_results.txt"))
             trainer_args["profiler"] = profiler
         save_config(self.config, log_folder, "trial_{}".format(trial.number), "config")
         #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
