@@ -31,8 +31,8 @@ def setup_logger(args):
 
     # set up logging to file - see previous section for more details
     logargs = {}
-    if args.filename:
-        logargs["filename"] = args.filename
+    if args.logfile:
+        logargs["filename"] = args.logfile
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
