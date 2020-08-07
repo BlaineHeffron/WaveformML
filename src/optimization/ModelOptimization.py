@@ -145,7 +145,10 @@ class ModelOptimization:
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         model = LitPSD(self.config)
         trainer.fit(model)
-        return metrics_callback.metrics[-1]["val_checkpoint_on"].item()
+        if metrics_callback.metrics:
+            return metrics_callback.metrics[-1]["val_checkpoint_on"].item()
+        else:
+            return 0
 
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
