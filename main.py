@@ -9,19 +9,10 @@ import logging
 from src.utils import util
 import argparse
 from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args
-import git
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
 CONFIG_VALIDATION = "./config_requirements.json"
-
-
-def write_run_info(dir):
-    repo = git.Repo(search_parent_directories=True)
-    sha = repo.head.object.hexsha
-    info = {"args": sys.argv,
-            "github_hexsha": sha}
-    save_config(info, dir, "run", "info", True)
 
 
 def setup_logger(args):
@@ -146,7 +137,6 @@ def main():
     logging.info('=======================================================')
     logging.info('Using system from %s' % config_file)
     logging.info('=======================================================')
-
 
     if args.optimize_config or hasattr(config, "optuna_config"):
         set_pruning = args.pruning

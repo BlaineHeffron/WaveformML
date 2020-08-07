@@ -3,8 +3,7 @@ import os
 import json
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
-import torch
-import pickle
+import git
 
 
 class DictionaryUtility:
@@ -153,7 +152,7 @@ def set_default_trainer_args(trainer_args, config):
     trainer_args["precision"] = 16
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
-            trainer_args["gpus"] = 1 #TODO add config option for multiple gpus
+            trainer_args["gpus"] = 1  # TODO add config option for multiple gpus
             if trainer_args["num_nodes"] > 1:
                 trainer_args["distributed_backend"] = 'ddp'
     trainer_args["max_epochs"] = config.optimize_config.total_epoch
@@ -260,3 +259,10 @@ class OrderlyJSONEncoder(json.JSONEncoder):
             return list(o)
         return json.JSONEncoder.default(self, o)
 
+
+def write_run_info(mydir):
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    info = {"args": sys.argv,
+            "github_hexsha": sha}
+    save_config(info, mydir, "run", "info", True)

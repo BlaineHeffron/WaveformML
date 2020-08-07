@@ -11,7 +11,7 @@ from optuna.integration import PyTorchLightningPruningCallback
 
 from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
-from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args
+from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args, write_run_info
 
 log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
@@ -73,6 +73,7 @@ class ModelOptimization:
         self.trainer_args = trainer_args
         if not os.path.exists(self.study_dir):
             os.mkdir(self.study_dir)
+        write_run_info(self.study_dir)
         self.hyperparameters_bounds = DictionaryUtility.to_dict(self.optuna_config.hyperparameters)
         self.parse_config()
 
