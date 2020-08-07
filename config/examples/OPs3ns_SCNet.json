@@ -1,8 +1,8 @@
 {
   "run_config": {
     "exp_name": "sparseconvnet",
-    "imports": ["PSDRun"],
-    "run_class": "PSDRun"
+    "imports": ["src.engineering.LitPSD"],
+    "run_class": "LitPSD"
   },
   "system_config":{
     "model_name": "Positron_OrthoPositronium",
@@ -15,7 +15,7 @@
     "_comment": "convolution args: dimension, nIn, nOut, filter_size, filter_stride, bias, groups=1",
     "criterion_class": "CrossEntropyLoss",
     "criterion_params": [],
-    "imports": ["torch.nn","sparseconvnet","SCNet"],
+    "imports": ["torch.nn","sparseconvnet","src.models.SCNet"],
     "net_class": "SCNet.SCNet",
     "sequence_class": "sparseconvnet.Sequential",
     "net_type": "2DConvolution",
@@ -84,7 +84,7 @@
     "mode": "path",
     "base_path": "/home/blaine/projects/orthopositronium",
     "paths": ["Positron","OrthoPositronium"],
-    "imports": ["PulseDataset"],
+    "imports": ["src.datasets.PulseDataset"],
     "dataset_class": "PulseDataset2D",
     "dataset_params": {
       "data_cache_size": 1
