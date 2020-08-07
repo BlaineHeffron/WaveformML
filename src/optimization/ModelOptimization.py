@@ -99,11 +99,11 @@ class ModelOptimization:
             name = hp.split("/")[-1]
             bounds = self.hyperparameters_bounds[hp]
             if isinstance(bounds[0], int):
-                setattr(self.hyperparameters[hp], hp, trial.suggest_int(name, bounds[0], bounds[1]))
+                setattr(self.hyperparameters[hp], name, trial.suggest_int(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], float):
-                setattr(self.hyperparameters[hp], hp, trial.suggest_float(name, bounds[0], bounds[1]))
+                setattr(self.hyperparameters[hp], name, trial.suggest_float(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], bool):
-                setattr(self.hyperparameters[hp], hp, trial.suggest_int(name, 0, 1))
+                setattr(self.hyperparameters[hp], name, trial.suggest_int(name, 0, 1))
 
     def objective(self, trial):
         self.modify_config(trial)
