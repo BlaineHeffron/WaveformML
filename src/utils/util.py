@@ -4,6 +4,7 @@ import json
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
 import git
+import sys
 
 
 class DictionaryUtility:
