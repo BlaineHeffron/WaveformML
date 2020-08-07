@@ -7,6 +7,8 @@ I used the conda package manager to install these.
 
     conda install -c pytorch pytorch=1.6
     conda install -c conda-forge optuna
+    conda install -c conda-forge omegaconf
+    conda install -c conda-forge pytorch-lightning
     conda install json
     conda install yaml
     conda install hdf5
@@ -46,10 +48,17 @@ For performance tweaking on a GPU, set --profile=true, then slowly increase the 
 Once optimal data loading performance is found, then tune your learning rate. You can set
 --auto_lr_find=true to find an optimal learning rate for your learning scheduler.
 
+### Hyperparameter optimization
+
 Once a good learning rate is chosen, set up a hyperparameter optimization config
 and set -oc <name of config file or path to config file>.
+
 The search path for the optimize config is the same for model config files. Alternatively, you
 can add an optuna_config section in the config file.
+
+Results are in studies/<experiment name>. Each trial's logs and model checkpoints are saved
+to the trial_<n> folder.
+
 
 
 ## Creating your own modules

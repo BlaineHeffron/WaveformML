@@ -11,7 +11,7 @@ from optuna.integration import PyTorchLightningPruningCallback
 import re
 from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args
 
-INDEX_PATTERN = re.compile(r'(\[[0-9]+\])')
+INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
 class MetricsCallback(Callback):
@@ -29,13 +29,19 @@ def get_from_path(obj, name):
     m = INDEX_PATTERN.search(name)
     if m:
         myobj = getattr(obj, name[0:m.start()])
-        ind = int(m.group()[0][1:-1])
-        if len(myobj) < ind + 1:
-            raise IOError(
-                "Optuna hyperparameter path config error: no object found at index {0} of {1}".format(ind, name))
-        else:
-            return myobj[ind]
+        for ind in m.group():
+            ind = int(ind)
+            if len(myobj) < ind + 1:
+                raise IOError(
+                    "Optuna hyperparameter path config error: no object found at index {0} of {1}".format(ind, name))
+            else:
+                myobj = myobj[ind]
+        return myobj
     else:
+        if not hasattr(obj, name):
+            raise AttributeError(
+                f"Object `{name}` cannot be loaded from `{obj}`."
+            )
         return getattr(obj, name)
 
 
@@ -73,15 +79,19 @@ class ModelOptimization:
                 "No hyperparameters found in optuna config. You must set the hyperparameters to a dictionary of key: value where key is hte path to the hyperparameter in the config file, and value is an array of two elements bounding the range of the parameter")
         for h in self.hyperparameters_bounds.keys():
             i = 0
-            for name in h.split("/"):
-                if not name: 
+            path_list = h.split("/")
+            path_list = [p for p in path_list if p]
+            plen = len(path_list)
+            for j, name in enumerate(path_list):
+                if not name:
                     continue
+                if j == plen - 1:
+                    break
                 if i > 0:
                     myobj = get_from_path(myobj, name)
                 else:
                     myobj = get_from_path(self.config, name)
                 i += 1
-            #TODO: this doesnt actually let you modify the object, it will not work, DEBUG THIS
             self.hyperparameters[h] = myobj
 
     def modify_config(self, trial):
@@ -89,11 +99,11 @@ class ModelOptimization:
             name = hp.split("/")[-1]
             bounds = self.hyperparameters_bounds[hp]
             if isinstance(bounds[0], int):
-                self.hyperparameters[hp] = trial.suggest_int(name, bounds[0], bounds[1])
+                setattr(self.hyperparameters[hp], hp, trial.suggest_int(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], float):
-                self.hyperparameters[hp] = trial.suggest_float(name, bounds[0], bounds[1])
+                setattr(self.hyperparameters[hp], hp, trial.suggest_float(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], bool):
-                self.hyperparameters[hp] = trial.suggest_int(name, 0, 1)
+                setattr(self.hyperparameters[hp], hp, trial.suggest_int(name, 0, 1))
 
     def objective(self, trial):
         self.modify_config(trial)
@@ -117,7 +127,7 @@ class ModelOptimization:
             profiler = SimpleProfiler(output_filename=os.path.join(log_folder, "profile_results.txt"))
             trainer_args["profiler"] = profiler
         save_config(self.config, log_folder, "trial_{}".format(trial.number), "config")
-        #save_config(DictionaryUtility.to_object(trainer_args), log_folder,
+        # save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        "trial_{}".format(trial.number), "train_args")
         metrics_callback = MetricsCallback()
         cbs = psd_callbacks.callbacks
