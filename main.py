@@ -21,7 +21,7 @@ def write_run_info(dir):
     sha = repo.head.object.hexsha
     info = {"args": sys.argv,
             "github_hexsha": sha}
-    save_config(info, "run", "info")
+    save_config(info, dir, "run", "info", True)
 
 
 def setup_logger(args):
@@ -141,12 +141,12 @@ def main():
     if args.name:
         config.run_config.exp_name = args.name
     setup_logger(args)
+    logging.debug('Command line arguments: %s' % str(sys.argv))
 
     logging.info('=======================================================')
     logging.info('Using system from %s' % config_file)
     logging.info('=======================================================')
 
-    logging.info('Command line arguments: %s' % str(sys.argv))
 
     if args.optimize_config or hasattr(config, "optuna_config"):
         set_pruning = args.pruning
@@ -155,12 +155,14 @@ def main():
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
         if opt_config:
+            logging.info('Running optimization routine using optuna config file: %s' % str(opt_config))
             opt_config = check_config(opt_config)
             with open(opt_config) as f:
                 opt_config = json.load(f)
                 opt_config = util.DictionaryUtility.to_object(opt_config)
             m = ModelOptimization(opt_config, config, model_folder, trainer_args)
         else:
+            logging.info('Running optimization routine using optuna_config')
             m = ModelOptimization(config.optuna_config, config, model_folder, trainer_args)
         m.run_study(pruning=set_pruning)
     else:
@@ -169,6 +171,7 @@ def main():
             os.mkdir(tb_folder)
         logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
         log_folder = logger.log_dir
+        write_run_info(log_folder)
         if not os.path.exists(log_folder):
             os.makedirs(log_folder, exist_ok=True)
         psd_callbacks = PSDCallbacks(config)
