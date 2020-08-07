@@ -149,6 +149,7 @@ class ModelOptimization:
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
         study = optuna.create_study(direction="maximize", pruner=pruner)
+        log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
         study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args))
         output = {}
         print("Number of finished trials: {}".format(len(study.trials)))
