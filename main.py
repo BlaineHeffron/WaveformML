@@ -1,12 +1,12 @@
+from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import AdvancedProfiler
-from os.path import abspath, exists
+from os.path import abspath, exists, join
 from src.optimization.ModelOptimization import *
 
 import json
 import logging
 from src.utils import util
 import argparse
-import os
 from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args
 
 MODEL_DIR = "./model"
@@ -19,9 +19,9 @@ def check_config(config_file):
     if not config_file.endswith(".json"):
         config_file = "{}.json".format(config_file)
     if not os.path.isabs(config_file):
-        config_file = os.path.join(CONFIG_DIR, config_file)
+        config_file = join(CONFIG_DIR, config_file)
         if not os.path.exists(config_file):
-            config_file = os.path.join(os.getcwd(), config_file)
+            config_file = join(os.getcwd(), config_file)
             if not os.path.exists(config_file):
                 raise IOError("Could not find config file {0}. search in"
                               " {1}".format(orig, config_file))
