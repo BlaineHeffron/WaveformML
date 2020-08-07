@@ -29,18 +29,38 @@ def setup_logger(args):
         elif args.verbosity == 5:
             debug_level = logging.DEBUG
 
+    # set up logging to file - see previous section for more details
+    logargs = {}
+    if args.filename:
+        logargs["filename"] = args.filename
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filemode='a', **logargs)
+    # define a Handler which writes INFO messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+    # add the handler to the root logger
+    logging.getLogger('').addHandler(console)
+
     # create logger
     logger = logging.getLogger('WaveformML')
     logger.setLevel(debug_level)
 
+    logger.info("logging verbosity set to {}".format(args.verbosity))
+
     # create formatter
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+    formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
     # create console handler and set level to  user specified level
-    ch = logging.StreamHandler()
-    ch.setLevel(debug_level)
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    #ch = logging.StreamHandler()
+    #ch.setLevel(debug_level)
+    #ch.setFormatter(formatter)
+    #logger.addHandler(ch)
 
     # create a file handler if specified in command args
     if args.logfile:
@@ -48,6 +68,7 @@ def setup_logger(args):
         fh.setLevel(debug_level)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
+        logger.info("Logging to file {}".format(args.logfile))
 
 
 def check_config(config_file):
