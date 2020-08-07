@@ -13,7 +13,7 @@ from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
 from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args, write_run_info
 
-log = logging.getLogger(__name__)
+module_log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
@@ -66,6 +66,7 @@ class ModelOptimization:
         self.model_dir = model_dir
         self.config = config
         self.hyperparameters = {}
+        self.log = logging.getLogger(__name__)
         base_dir = os.path.join(model_dir, "studies")
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
@@ -111,8 +112,8 @@ class ModelOptimization:
             elif isinstance(bounds[0], bool):
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, 0, 1))
-            log.debug("OPTUNA DEBUG: setting {0} to {1}"
-                      .format(hp, getattr(self.hyperparameters[hp], name)))
+            self.log.debug("OPTUNA DEBUG: setting {0} to {1}"
+                           .format(hp, getattr(self.hyperparameters[hp], name)))
 
     def objective(self, trial):
         self.modify_config(trial)
