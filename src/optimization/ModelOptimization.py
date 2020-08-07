@@ -53,7 +53,7 @@ def get_attribute(obj, name):
         return getattr(obj, name)
     else:
         raise IOError(
-            "optuna hyperparameter path not specified properly. {0} not found in {1}".format(name[0:m.start()], obj))
+            "optuna hyperparameter path not specified properly. {0} not found in {1}".format(name, obj))
 
 
 class ModelOptimization:
@@ -152,14 +152,14 @@ class ModelOptimization:
         log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
         study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args))
         output = {}
-        print("Number of finished trials: {}".format(len(study.trials)))
+        log.info("Number of finished trials: {}".format(len(study.trials)))
         output["n_finished_trials"] = len(study.trials)
-        print("Best trial:")
+        log.info("Best trial:")
         trial = study.best_trial
         output["best_trial"] = trial.value
-        print("  Value: {}".format(trial.value))
+        log.info("  Value: {}".format(trial.value))
         output["best_trial_params"] = trial.params
-        print("  Params: ")
+        log.info("  Params: ")
         for key, value in trial.params.items():
-            print("    {}: {}".format(key, value))
+            log.info("    {}: {}".format(key, value))
         save_config(output, self.study_dir, "trial", "results", True)
