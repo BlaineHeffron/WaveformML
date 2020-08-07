@@ -1,6 +1,5 @@
-import pytorch_lightning as pl
 from pytorch_lightning.metrics.functional import accuracy
-from PSDDataModule import *
+from src.engineering.PSDDataModule import *
 from torch.nn import Softmax
 from torch import argmax
 

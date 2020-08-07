@@ -1,5 +1,5 @@
 import os
-from HDF5Dataset import *
+from src.datasets.HDF5Dataset import *
 
 """
 mydl = DataLoader(dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, num_workers=0,

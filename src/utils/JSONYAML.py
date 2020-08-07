@@ -5,7 +5,7 @@ from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.scalarstring import PreservedScalarString, SingleQuotedScalarString
 from ruamel.yaml.compat import string_types, MutableMapping, MutableSequence
 import os
-from util import OrderlyJSONEncoder
+from src.utils.util import OrderlyJSONEncoder
 
 
 class JSONYAML:

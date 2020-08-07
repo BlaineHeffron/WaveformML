@@ -1,17 +1,15 @@
 import os
-import shutil
 
-import pytorch_lightning as pl
 from pytorch_lightning import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import SimpleProfiler
-from LitCallbacks import *
-from LitPSD import *
+from src.engineering.LitCallbacks import *
+from src.engineering.LitPSD import *
 import optuna
 from optuna.integration import PyTorchLightningPruningCallback
 import re
-from util import save_config, DictionaryUtility, set_default_trainer_args
+from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args
 
 INDEX_PATTERN = re.compile(r'(\[[0-9]+\])')
 

@@ -1,5 +1,5 @@
 from torch import nn, LongTensor
-from util import *
+from src.utils.util import *
 import sparseconvnet as scn
 
 

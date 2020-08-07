@@ -1,6 +1,6 @@
 import spconv
 from torch import nn
-from util import *
+from src.utils.util import *
 
 class SpConvNet(nn.Module):
     def __init__(self, config):

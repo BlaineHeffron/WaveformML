@@ -1,4 +1,4 @@
-from re import findall, compile
+from re import compile
 
 import h5py
 from pathlib import Path
