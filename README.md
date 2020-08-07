@@ -2,24 +2,45 @@
 Machine learning tools for waveform analysis.
 
 ## Install
-To use, first install the following dependencies.
-I used the conda package manager to install these.
+Recommended to use conda installation manager. https://docs.conda.io/projects/conda/en/latest/user-guide/install/
 
-    conda install -c pytorch pytorch=1.6
+To use, first install the following dependencies pytorch version 1.6 or higher, see https://pytorch.org/get-started/locally/
+
+On linux with GPU support, cuda version 10.2, this command is
+
+    conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
+
+With no GPU support, the command is
+
+    conda install pytorch torchvision cpuonly -c pytorch
+
+Then, install pytorch-lightning and optuna
+
     conda install -c conda-forge optuna
-    conda install -c conda-forge omegaconf
     conda install -c conda-forge pytorch-lightning
-    conda install -c conda-forge gitpython
+
+Then install remaining dependencies:
+
+    conda install gitpython
     conda install json
     conda install yaml
     conda install hdf5
     conda install git
 
+I used the conda package manager to install these.
+
+    conda install -c conda-forge optuna
+    conda install -c conda-forge pytorch-lightning
+
 ## Usage
 
     python main.py <name of config.json file>
 
-output is logged in model/<model name>/runs/<experiment name>/version_<n> where n is the (n-1)th run of the experiment
+output is logged in 
+
+    model/<model name>/runs/<experiment name>/version_<n> 
+    
+where n is the (n-1)th run of the experiment
 
 Requirements for the config file are shown in config_requirements.json. This can be used as a template.
 A full example config file is found in config/examples
@@ -44,8 +65,10 @@ for a complete list of arguments
 
 ## Performance tweaking and optimization
 
-For performance tweaking on a GPU, set --profile=true, then slowly increase the num_workers
-(under dataset_config/dataloader_params) until you find optimal performance.
+For performance tweaking on a GPU, set 
+    
+    --profile=true
+then slowly increase the num_workers (under dataset_config/dataloader_params) until you find optimal performance.
 
 Once optimal data loading performance is found, then tune your learning rate. You can set
 --auto_lr_find=true to find an optimal learning rate for your learning scheduler.
@@ -53,13 +76,20 @@ Once optimal data loading performance is found, then tune your learning rate. Yo
 ### Hyperparameter optimization
 
 Once a good learning rate is chosen, set up a hyperparameter optimization config
-and set -oc <name of config file or path to config file>.
+and set 
+
+    -oc <name of config file or path to config file>.
 
 The search path for the optimize config is the same for model config files. Alternatively, you
 can add an optuna_config section in the config file.
 
-Results are in studies/<experiment name>. Each trial's logs and model checkpoints are saved
-to the trial_<n> folder.
+Results are in 
+
+    ./studies/<experiment name>
+Each trial's logs and model checkpoints are saved to the 
+
+    ./studies/<experiment name>/trial_<n> 
+folder.
 
 
 
