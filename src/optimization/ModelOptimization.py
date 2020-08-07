@@ -112,7 +112,7 @@ class ModelOptimization:
             elif isinstance(bounds[0], bool):
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, 0, 1))
-            self.log.debug("OPTUNA DEBUG: setting {0} to {1}"
+            self.log.debug("setting {0} to {1}"
                            .format(hp, getattr(self.hyperparameters[hp], name)))
 
     def objective(self, trial):
@@ -151,7 +151,7 @@ class ModelOptimization:
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
         study = optuna.create_study(direction="maximize", pruner=pruner)
         self.log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
-        study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args))
+        study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args), show_progress_bar=True, gc_after_trial=True)
         output = {}
         print("Number of finished trials: {}".format(len(study.trials)))
         print("Best trial:")
