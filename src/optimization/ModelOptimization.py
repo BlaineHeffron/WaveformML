@@ -1,16 +1,19 @@
 import os
+import re
+import logging
 
 from pytorch_lightning import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import SimpleProfiler
-from src.engineering.LitCallbacks import *
-from src.engineering.LitPSD import *
 import optuna
 from optuna.integration import PyTorchLightningPruningCallback
-import re
+
+from src.engineering.LitCallbacks import *
+from src.engineering.LitPSD import *
 from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args
 
+log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
@@ -99,11 +102,16 @@ class ModelOptimization:
             name = hp.split("/")[-1]
             bounds = self.hyperparameters_bounds[hp]
             if isinstance(bounds[0], int):
-                setattr(self.hyperparameters[hp], name, trial.suggest_int(name, bounds[0], bounds[1]))
+                setattr(self.hyperparameters[hp], name,
+                        trial.suggest_int(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], float):
-                setattr(self.hyperparameters[hp], name, trial.suggest_float(name, bounds[0], bounds[1]))
+                setattr(self.hyperparameters[hp], name,
+                        trial.suggest_float(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], bool):
-                setattr(self.hyperparameters[hp], name, trial.suggest_int(name, 0, 1))
+                setattr(self.hyperparameters[hp], name,
+                        trial.suggest_int(name, 0, 1))
+            log.debug("OPTUNA DEBUG: setting {0} to {1}"
+                      .format(hp, getattr(self.hyperparameters[hp], name)))
 
     def objective(self, trial):
         self.modify_config(trial)

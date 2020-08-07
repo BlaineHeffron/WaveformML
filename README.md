@@ -9,9 +9,11 @@ I used the conda package manager to install these.
     conda install -c conda-forge optuna
     conda install -c conda-forge omegaconf
     conda install -c conda-forge pytorch-lightning
+    conda install -c conda-forge gitpython
     conda install json
     conda install yaml
     conda install hdf5
+    conda install git
 
 ## Usage
 

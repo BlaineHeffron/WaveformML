@@ -3,15 +3,60 @@ from pytorch_lightning.profiler import AdvancedProfiler
 from os.path import abspath, exists, join
 from src.optimization.ModelOptimization import *
 
+import sys
 import json
 import logging
 from src.utils import util
 import argparse
 from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args
+import git
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
 CONFIG_VALIDATION = "./config_requirements.json"
+
+
+def write_run_info(dir):
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    info = {"args": sys.argv,
+            "github_hexsha": sha}
+    save_config(info, "run", "info")
+
+
+def setup_logger(args):
+    debug_level = logging.ERROR
+    if args.verbosity:
+        if args.verbosity == 1:
+            debug_level = logging.CRITICAL
+        elif args.verbosity == 2:
+            debug_level = logging.ERROR
+        elif args.verbosity == 3:
+            debug_level = logging.WARNING
+        elif args.verbosity == 4:
+            debug_level = logging.INFO
+        elif args.verbosity == 5:
+            debug_level = logging.DEBUG
+
+    # create logger
+    logger = logging.getLogger('WaveformML')
+    logger.setLevel(debug_level)
+
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+
+    # create console handler and set level to  user specified level
+    ch = logging.StreamHandler()
+    ch.setLevel(debug_level)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    # create a file handler if specified in command args
+    if args.logfile:
+        fh = logging.FileHandler(args.logfile)
+        fh.setLevel(debug_level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
 
 
 def check_config(config_file):
@@ -95,30 +140,13 @@ def main():
             config.run_config.exp_name = exp_name
     if args.name:
         config.run_config.exp_name = args.name
-    debug_level = logging.NOTSET
-    if verbosity:
-        if verbosity == 1:
-            debug_level = logging.CRITICAL
-        elif verbosity == 2:
-            debug_level = logging.ERROR
-        elif verbosity == 3:
-            debug_level = logging.WARNING
-        elif verbosity == 4:
-            debug_level = logging.INFO
-        elif verbosity == 5:
-            debug_level = logging.DEBUG
-
-    loggingargs = {}
-    if args.logfile:
-        loggingargs["filename"] = args.logfile
-
-    logging.basicConfig(level=debug_level,
-                        format='%(levelname)-6s %(message)s',
-                        **loggingargs)
+    setup_logger(args)
 
     logging.info('=======================================================')
     logging.info('Using system from %s' % config_file)
     logging.info('=======================================================')
+
+    logging.info('Command line arguments: %s' % str(sys.argv))
 
     if args.optimize_config or hasattr(config, "optuna_config"):
         set_pruning = args.pruning
