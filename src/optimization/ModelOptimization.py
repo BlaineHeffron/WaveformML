@@ -150,17 +150,23 @@ class ModelOptimization:
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
         study = optuna.create_study(direction="maximize", pruner=pruner)
-        log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
+        self.log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
         study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args))
         output = {}
-        log.info("Number of finished trials: {}".format(len(study.trials)))
-        output["n_finished_trials"] = len(study.trials)
-        log.info("Best trial:")
+        print("Number of finished trials: {}".format(len(study.trials)))
+        print("Best trial:")
         trial = study.best_trial
-        output["best_trial"] = trial.value
-        log.info("  Value: {}".format(trial.value))
-        output["best_trial_params"] = trial.params
-        log.info("  Params: ")
+        print("  Value: {}".format(trial.value))
+        print("  Params: ")
         for key, value in trial.params.items():
-            log.info("    {}: {}".format(key, value))
+            print("    {}: {}".format(key, value))
+        self.log.info("Number of finished trials: {}".format(len(study.trials)))
+        output["n_finished_trials"] = len(study.trials)
+        self.log.info("Best trial:")
+        output["best_trial"] = trial.value
+        self.log.info("  Value: {}".format(trial.value))
+        output["best_trial_params"] = trial.params
+        self.log.info("  Params: ")
+        for key, value in trial.params.items():
+            self.log.info("    {}: {}".format(key, value))
         save_config(output, self.study_dir, "trial", "results", True)
