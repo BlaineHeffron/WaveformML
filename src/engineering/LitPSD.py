@@ -2,12 +2,14 @@ from pytorch_lightning.metrics.functional import accuracy
 from src.engineering.PSDDataModule import *
 from torch.nn import Softmax
 from torch import argmax
+import logging
 
 
 class LitPSD(pl.LightningModule):
 
     def __init__(self, config):
         super(LitPSD, self).__init__()
+        self.log = logging.getLogger(__name__)
         self.config = config
         self.hparams = DictionaryUtility.to_dict(config)
         self.n_type = config.system_config.n_type
@@ -58,6 +60,8 @@ class LitPSD(pl.LightningModule):
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
+            self.log.debug("batch id: {0}, train_loss: {1}"
+                           .format(batch_idx, str(loss.item())))
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -69,6 +73,8 @@ class LitPSD(pl.LightningModule):
             pred = argmax(self.softmax(predictions), dim=1)
             acc = accuracy(pred, target, num_classes=self.n_type)
             result.log_dict({'val_loss': loss, 'val_acc': acc}, on_epoch=True)
+            self.log.debug("batch id: {0}, val_loss: {1}, val_acc: {2}"
+                           .format(batch_idx, str(loss.item()), str(acc.item())))
         return result
 
     """
