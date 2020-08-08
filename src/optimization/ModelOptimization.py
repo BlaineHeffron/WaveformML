@@ -130,11 +130,11 @@ class ModelOptimization:
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
                 os.path.join(self.study_dir, "trial_{}".format(trial.number), "{epoch}"),
-                monitor="val_acc")
+                monitor="val_loss")
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = self.study_dir
         set_default_trainer_args(trainer_args, self.config)
-        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_acc")
+        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_loss")
         if trainer_args["profiler"]:
             profiler = SimpleProfiler(output_filename=os.path.join(log_folder, "profile_results.txt"))
             trainer_args["profiler"] = profiler
@@ -154,7 +154,7 @@ class ModelOptimization:
 
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
-        study = optuna.create_study(direction="maximize", pruner=pruner)
+        study = optuna.create_study(direction="minimize", pruner=pruner)
         self.log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
         study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args), show_progress_bar=True, gc_after_trial=True)
         output = {}
