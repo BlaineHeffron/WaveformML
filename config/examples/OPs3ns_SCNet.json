@@ -5,11 +5,13 @@
     "run_class": "LitPSD"
   },
   "system_config":{
+    "_comment": "set half_precision to true to utilize 16 bit training mode.",
     "model_name": "Positron_OrthoPositronium",
     "n_type":2,
     "type_names": ["Positron","OrthoPositronium"],
     "n_samples": 150,
-    "gpu_enabled": true
+    "gpu_enabled": true,
+    "half_precision": true
   },
   "net_config":{
     "_comment": "convolution args: dimension, nIn, nOut, filter_size, filter_stride, bias, groups=1",
