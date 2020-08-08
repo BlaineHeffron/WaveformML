@@ -119,6 +119,8 @@ class ModelOptimization:
         self.modify_config(trial)
         if not os.path.exists(self.study_dir):
             os.mkdir(self.study_dir)
+        if not os.path.exists(os.path.join(self.study_dir, "trial_{}".format(trial.number))):
+            os.mkdir(os.path.join(self.study_dir, "trial_{}".format(trial.number)))
         logger = TensorBoardLogger(self.study_dir, name="trial_{}".format(trial.number))
         log_folder = logger.log_dir
         if not os.path.exists(log_folder):
