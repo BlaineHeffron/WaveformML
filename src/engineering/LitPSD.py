@@ -71,8 +71,7 @@ class LitPSD(pl.LightningModule):
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             result = pl.EvalResult(checkpoint_on=loss)
-            _, pred = max(self.softmax(predictions), 1)
-            #pred = argmax(self.softmax(predictions), dim=1)
+            pred = argmax(self.softmax(predictions), dim=1)
             acc = accuracy(pred, target, num_classes=self.n_type)
             result.log_dict({'val_loss': loss, 'val_acc': acc}, on_epoch=True)
             if self.log.level > 4:
