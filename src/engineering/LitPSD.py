@@ -1,7 +1,7 @@
 from pytorch_lightning.metrics.functional import accuracy
 from src.engineering.PSDDataModule import *
 from torch.nn import Softmax
-from torch import argmax
+from torch import argmax, max
 import logging
 
 
@@ -60,8 +60,9 @@ class LitPSD(pl.LightningModule):
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
-            self.log.debug("batch id: {0}, train_loss: {1}"
-                           .format(batch_idx, str(loss.item())))
+            if self.log.level > 4:
+                self.log.debug("batch id: {0}, train_loss: {1}"
+                               .format(batch_idx, str(loss.item())))
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -70,11 +71,13 @@ class LitPSD(pl.LightningModule):
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             result = pl.EvalResult(checkpoint_on=loss)
-            pred = argmax(self.softmax(predictions), dim=1)
+            _, pred = max(self.softmax(predictions), 1)
+            #pred = argmax(self.softmax(predictions), dim=1)
             acc = accuracy(pred, target, num_classes=self.n_type)
             result.log_dict({'val_loss': loss, 'val_acc': acc}, on_epoch=True)
-            self.log.debug("batch id: {0}, val_loss: {1}, val_acc: {2}"
-                           .format(batch_idx, str(loss.item()), str(acc.item())))
+            if self.log.level > 4:
+                self.log.debug("batch id: {0}, val_loss: {1}, val_acc: {2}"
+                               .format(batch_idx, str(loss.item()), str(acc.item())))
         return result
 
     """
