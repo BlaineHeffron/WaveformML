@@ -38,7 +38,7 @@ I used the conda package manager to install these.
 
 output is logged in 
 
-    model/<model name>/runs/<experiment name>/version_<n> 
+    ./model/<model name>/runs/<experiment name>/version_<n> 
     
 where n is the (n-1)th run of the experiment
 
@@ -53,6 +53,7 @@ A full example config file is found in config/examples
     --limit_val_batches n
     --limit_train_batches n
     --log_gpu_memory true // logs the gpu usage
+    --terminate_on_nan true // terminates when nan loss is returned
 
 Here are some that aren't currently working for some reason but look quite useful:
 
