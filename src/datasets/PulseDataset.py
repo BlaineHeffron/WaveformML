@@ -61,7 +61,7 @@ class PulseDataset(HDF5Dataset):
         self.file_mask = file_mask
         self.config = config.dataset_config
         self.batch_index = batch_index
-        paths = [os.path.join(config.base_path, path) for path in self.config.paths]
+        paths = [os.path.join(self.config.base_path, path) for path in self.config.paths]
         super().__init__(paths,
                          file_mask, dataset_name,
                          coord_name, feat_name,
@@ -312,7 +312,6 @@ class PulseDataset3D(PulseDataset):
             data_cache_size: number of file to hold in memory
             use_pinned: whether to use pinned memory (for GPU loading)
         """
-        paths = [os.path.join(config.base_path, path) for path in config.paths]
 
         super().__init__(config, n_per_dir, device, dataset_type,
                          "*Waveform3DPairSim.h5", "Waveform3DPairs",
