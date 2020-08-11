@@ -85,7 +85,7 @@
     "_comment3": "cache_size is number of files to hold in memory",
     "_comment4": "a good starting point for num_workers is the number of cpus of the system",
     "_comment5": "chunk_size configures the number of rows of the hdf5 file accessed during iteration.",
-    "base_path": "/home/blaine/projects/orthopositronium",
+    "base_path": "/path/to/datafolder",
     "paths": ["Positron","OrthoPositronium"],
     "data_prep": "shuffle",
     "chunk_size": 1024,

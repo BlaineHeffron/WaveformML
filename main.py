@@ -147,6 +147,8 @@ def main():
     if not os.path.exists(model_dir):
         path_create(model_dir)
     model_folder = join(abspath(model_dir), model_name)
+    if not os.path.exists(model_folder):
+        path_create(model_folder)
     if hasattr(config, "run_config"):
         if not hasattr(config.run_config, "exp_name"):
             counter = 1
