@@ -99,6 +99,7 @@ class PulseDataset(HDF5Dataset):
             if self.config.data_prep == "shuffle":
                 self.log.info("Preparing to shuffle the dataset, alternating directory.")
                 self._gen_shuffle_map()
+                self.log.debug("Shuffle queue is {}".format(self.shuffle_queue))
             else:
                 self.log.warning(
                     "{0} was given for dataset_config.data_prep but {1} does not know how to process".format(
