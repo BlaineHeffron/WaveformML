@@ -145,8 +145,10 @@ class ModelOptimization:
         cbs = psd_callbacks.callbacks
         cbs.append(metrics_callback)
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
-        model = LitPSD(self.config)
-        trainer.fit(model)
+        modules = ModuleUtility(self.config.run_config.imports)
+        model = modules.retrieve_class(self.config.run_config.run_class)(self.config)
+        data_module = PSDDataModule(self.config)
+        trainer.fit(model, data_module)
         if metrics_callback.metrics:
             return metrics_callback.metrics[-1]["val_checkpoint_on"].item()
         else:

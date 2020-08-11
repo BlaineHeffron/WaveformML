@@ -19,7 +19,6 @@ class LitPSD(pl.LightningModule):
                                      config.optimize_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
         self.model = self.model_class(config)
-        self.data_module = PSDDataModule(config, self.device)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.softmax = Softmax(dim=1)
@@ -27,6 +26,7 @@ class LitPSD(pl.LightningModule):
     def forward(self, x, *args, **kwargs):
         return self.model(x)
 
+    """
     def prepare_data(self):
         self.data_module.prepare_data()
 
@@ -35,6 +35,7 @@ class LitPSD(pl.LightningModule):
 
     def val_dataloader(self):
         return self.data_module.val_dataloader()
+    """
 
     def configure_optimizers(self):
         optimizer = \

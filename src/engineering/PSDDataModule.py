@@ -6,7 +6,7 @@ import logging
 
 
 class PSDDataModule(pl.LightningDataModule):
-    def __init__(self, config, device):
+    def __init__(self, config):
         super().__init__()
         self.log = logging.getLogger(__name__)
         self.config = config
@@ -14,7 +14,6 @@ class PSDDataModule(pl.LightningDataModule):
         self.total_train = self.config.dataset_config.n_train * self.ntype
         self.modules = ModuleUtility(self.config.dataset_config.imports)
         self.dataset_class = self.modules.retrieve_class(self.config.dataset_config.dataset_class)
-        self.device = device
         self.dataset_shuffle_map = {}
 
     def prepare_data(self):
@@ -46,16 +45,17 @@ class PSDDataModule(pl.LightningDataModule):
                                                    **DictionaryUtility.to_dict(self.config.dataset_config.dataset_params))
             self.log.info("Test dataset generated.")
 
-    def setup(self):
+    def setup(self, stage=None):
         # called on every GPU
-        worker_info = get_worker_info()
-        if hasattr(self.config.dataset_config, "data_prep"):
-            if self.config.dataset_config.data_prep == "shuffle":
-                if worker_info is None:
-                    self.log.info("Main process beginning to shuffle dataset.")
-                else:
-                    self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
-                self.train_dataset.write_shuffled()  # might need to make this call configurable
+        if stage == 'fit' or stage is None:
+            worker_info = get_worker_info()
+            if hasattr(self.config.dataset_config, "data_prep"):
+                if self.config.dataset_config.data_prep == "shuffle":
+                    if worker_info is None:
+                        self.log.info("Main process beginning to shuffle dataset.")
+                    else:
+                        self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
+                    self.train_dataset.write_shuffled()  # might need to make this call configurable
 
     def train_dataloader(self):
         if not hasattr(self, "train_dataset"):
