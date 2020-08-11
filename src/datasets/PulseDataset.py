@@ -72,7 +72,7 @@ class PulseDataset(HDF5Dataset):
                          data_cache_size=data_cache_size)
 
         model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
-        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(config.system_config.model_base_path)), "data")
+        self.data_dir = os.path.join(os.path.dirname(config.system_config.model_base_path), "data")
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
         self.dataset_dir = os.path.join(model_dir, "datasets")
@@ -80,9 +80,9 @@ class PulseDataset(HDF5Dataset):
             os.mkdir(self.dataset_dir)
         self.dataset_type = dataset_type
         if hasattr(self.config, "name"):
-            self.file_path = os.path.join(model_dir, self.config.name + "_dataset.json")
+            self.file_path = os.path.join(self.dataset_dir, self.config.name + "_dataset.json")
         else:
-            self.file_path = os.path.join(model_dir,
+            self.file_path = os.path.join(self.dataset_dir,
                                           "{0}_{1}_{2}_dataset.json".format(dataset_type, dataset_name, str(n_per_dir)))
         if not hasattr(self.config, "chunk_size"):
             self.chunk_size = 16384
@@ -138,7 +138,7 @@ class PulseDataset(HDF5Dataset):
                 if n_events <= n_per_category - current_total[cat]:
                     #self.log.debug("appending ({0}, {1}) to file {2} for category {3}".format(fp, di['event_range'],
                     #                                                                          cur_file, cat))
-                    self.shuffle_queue[cur_file][cat].append((fp,copy(di['event_range'])))
+                    self.shuffle_queue[cur_file][cat].append((fp,copy(di['event_range']), di['modified'] ))
                     current_total[cat] += n_events
                 else:
                     subrange = [di['event_range'][0], n_per_category - 1 - current_total[cat]]
@@ -147,7 +147,7 @@ class PulseDataset(HDF5Dataset):
                             self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         #self.log.debug(
                         #    "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
-                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange)))
+                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange), di['modified']))
                         cur_file += 1
                         subrange[0] = subrange[1] + 1
                         subrange[1] = di['event_range'][1] if di['event_range'][1] - subrange[0] + 1 <= n_per_category \
@@ -159,7 +159,7 @@ class PulseDataset(HDF5Dataset):
                             self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         #self.log.debug(
                         #    "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
-                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange)))
+                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange), di['modified']))
                         current_total[cat] = subrange[1] - subrange[0] + 1
 
     def _read_chunk(self, file_info, dataset, columns):
@@ -185,26 +185,33 @@ class PulseDataset(HDF5Dataset):
 
     def _to_hdf(self, data, fname, dataset_name, columns, event_counter):
         coords, features = data
-        h5f = h5py.File(fname, 'a')
-        ds = h5f.create_dataset(dataset_name, compression="zlib", compression_opts=6, chunk=True)
-        ds[coords].append(coords)
-        ds[features].append(features)
-        ds.attrs["nevents"] = event_counter
-        h5f.close()
+        with h5py.File(fname, 'a') as h5f:
+            if dataset_name not in h5f.keys():
+                h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,data=coords, maxshape=(None,coords.shape[1]), chunks=True)
+                h5f.create_dataset(dataset_name + "/" + columns[1], compression="gzip", compression_opts=6,data=features, maxshape=(None,features.shape[1]), chunks=True)
+                h5f[dataset_name].attrs["nevents"] = event_counter
+            else:
+                h5f[dataset_name][columns[0]].resize((h5f[dataset_name][columns[0]].shape[0] + coords.shape[0]), axis=0)
+                h5f[dataset_name][columns[0]][-coords.shape[0]:,:] = coords
+                h5f[dataset_name][columns[1]].resize((h5f[dataset_name][columns[1]].shape[0] + features.shape[0]), axis=0)
+                h5f[dataset_name][columns[1]][-features.shape[0]:,:] = features
+                h5f[dataset_name].attrs["nevents"] = event_counter
 
-    def _get_index(self, data, idx):
+    def _get_index(self, data, idx, offset):
         if not data:
             return data
-        inds = npwhere(data[0][:,self.batch_index] == idx)
+        inds = npwhere(data[0][:,self.batch_index] == idx + offset)
         return data[0][inds], data[1][inds]
 
     def _not_empty(self, chunk):
+        if isinstance(chunk, int):
+            return False
         return len(chunk) > 0 and chunk[0].size
 
     def _concat(self, d1, d2):
         if not len(d1):
             return d2
-        return concatenate(d1[0],d2[0]), concatenate(d1[1], d2[1])
+        return concatenate((d1[0],d2[0])), concatenate((d1[1], d2[1]))
 
     def _write_shuffled(self, data_info, fname):
         self.log.debug("working on shuffling the following data into file {0}: {1}".format(fname, data_info))
@@ -212,6 +219,7 @@ class PulseDataset(HDF5Dataset):
         labels = []
         n_categories = len(data_info.keys())
         data_queue = [[]] * n_categories
+        data_queue_offsets = [0]*n_categories
         last_id_grabbed = [-1] * n_categories
         current_file_indices = [0] * n_categories
         chunksize = int(self.chunk_size / n_categories)
@@ -232,6 +240,7 @@ class PulseDataset(HDF5Dataset):
                 chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'], columns)
                 if self._not_empty(chunk):
                     data_queue[cat] = chunk
+                    data_queue_offsets[cat] = data_info[cat][current_file_indices[cat]][1][0]
                     current_file_chunk[cat] += 1
                 else:
                     current_file_indices[cat] += 1
@@ -240,33 +249,36 @@ class PulseDataset(HDF5Dataset):
                     if not self._not_empty(chunk):
                         self.log.warning("no chunk for category {0} found")
                         data_queue[cat] = 0
+                        data_queue_offsets[cat] = 0
                     else:
                         data_queue[cat] = chunk
+                        data_queue_offsets[cat] = data_info[cat][current_file_indices[cat]][1][0]
                         current_file_chunk[cat] += 1
 
             all_chunks_have_data = True
             while all_chunks_have_data:
                 for cat in data_info.keys():
                     if prepend_last_data[cat]:
-                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat])
+                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat], data_queue_offsets[cat])
                     else:
-                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat] + 1)
+                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat] + 1, data_queue_offsets[cat])
                     if self._not_empty(tempdf):
                         if prepend_last_data[cat]:
-                            tempdf[:, self.info['coord_name'], self.batch_index] = event_counter
+                            tempdf[0][:, self.batch_index] = event_counter
                             tempdf = self._concat(last_data[cat], tempdf)
                             last_data[cat] = 0
                             prepend_last_data[cat] = False
                         else:
                             last_id_grabbed[cat] += 1
                             event_counter += 1
-                            tempdf[:, self.info['coord_name'], self.batch_index] = event_counter
+                            tempdf[0][:, self.batch_index] = event_counter
                         if last_data[cat]:
                             out_df = self._concat(out_df, last_data[cat])
                             labels.append(cat)
                         last_data[cat] = tempdf
                     else:
                         data_queue[cat] = 0
+                        data_queue_offsets[cat] = 0
                         prepend_last_data[cat] = True
                         all_chunks_have_data = False
             for cat in data_info.keys():
@@ -277,10 +289,11 @@ class PulseDataset(HDF5Dataset):
             out_df = []
         if event_counter != len(labels):
             self.log.error("Labels length is not the same as event counter")
-        h5f = h5py.File(fname, 'a')
-        ds = h5f.create_dataset('labels', data=labels, compression="zlib", compression_opts=6, chunk=True, dtype=int8)
-        ds.attrs["nevents"] = event_counter
-        h5f.close()
+        with h5py.File(fname, 'a') as h5f:
+            ds = h5f.create_dataset('labels', data=labels, compression="gzip", compression_opts=6, dtype=int8, chunks=True)
+            ds.attrs["nevents"] = event_counter
+        # save metadata regarding the events in the combined file
+        save_object_to_file(data_info, fname[0:-3] + ".json")
         self.log.debug("finished shuffling data into file {}".format(fname))
 
     def write_shuffled(self):
