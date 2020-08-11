@@ -148,7 +148,7 @@ class PulseDataset(HDF5Dataset):
                             self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         #self.log.debug(
                         #    "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
-                        self.shuffle_queue[cur_file][cat].append((fp, subrange))
+                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange)))
                         cur_file += 1
                         subrange[0] = subrange[1] + 1
                         subrange[1] = di['event_range'][1] if di['event_range'][1] - subrange[0] + 1 <= n_per_category \
@@ -159,7 +159,7 @@ class PulseDataset(HDF5Dataset):
                         self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         #self.log.debug(
                         #    "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
-                        self.shuffle_queue[cur_file][cat].append((fp, subrange))
+                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange)))
                         current_total[cat] = subrange[1] - subrange[0] + 1
 
     def _get_where(self, file_info):
