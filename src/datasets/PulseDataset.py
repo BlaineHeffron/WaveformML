@@ -26,6 +26,7 @@ def _has_files(fset):
             return True
     return False
 
+
 def _needs_ids(data_info, last_id_retrieved, current_file_indices):
     for cat in data_info.keys():
         if last_id_retrieved[cat] < data_info[cat][current_file_indices[cat]][1][1]:
@@ -124,7 +125,8 @@ class PulseDataset(HDF5Dataset):
         current_file_info = {}
         next_file_info = {}
         next_total = [0] * n_categories
-        category_map = {os.path.normpath(os.path.dirname(os.path.join(self.config.base_path,p))): i for i, p in enumerate(self.config.paths)}
+        category_map = {os.path.normpath(os.path.join(self.config.base_path, p)): i for i, p in
+                        enumerate(self.config.paths)}
         self.log.debug("category map: {}".format(category_map))
         for fp in self.ordered_file_set:
             ordered_paths_by_dir[category_map[os.path.normpath(os.path.dirname(fp))]].append(fp)
@@ -173,20 +175,20 @@ class PulseDataset(HDF5Dataset):
         n_categories = len(data_info.keys())
         data_queue = [DataFrame()] * n_categories
         last_id_grabbed = [-1] * n_categories
-        current_file_indices = [0]*n_categories
-        chunksize = int(self.chunk_size/n_categories)
-        current_file_chunk = [0]*n_categories
-        prepend_last_data = [False]*n_categories
-        last_data = [0]*n_categories
+        current_file_indices = [0] * n_categories
+        chunksize = int(self.chunk_size / n_categories)
+        current_file_chunk = [0] * n_categories
+        prepend_last_data = [False] * n_categories
+        last_data = [0] * n_categories
         event_counter = -1
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
             for cat in data_info.keys():
                 if data_queue[cat]:
                     continue
                 chunk = read_hdf(data_info[cat][current_file_indices[cat]][0], self.info['data_name'],
-                                  chunksize=chunksize,
-                                  where = self._get_where(data_info[cat][current_file_indices[cat]]),
-                                 start = current_file_chunk[cat]*chunksize)
+                                 chunksize=chunksize,
+                                 where=self._get_where(data_info[cat][current_file_indices[cat]]),
+                                 start=current_file_chunk[cat] * chunksize)
                 if chunk.size:
                     data_queue[cat] = chunk
                     current_file_chunk[cat] += 1
@@ -210,7 +212,7 @@ class PulseDataset(HDF5Dataset):
                     if prepend_last_data[cat]:
                         tempdf = data_queue[cat].query("{0}[{1}] == {2}".format(
                             self.info['coord_name'],
-                            str(self.batch_index), last_id_grabbed[cat] ))
+                            str(self.batch_index), last_id_grabbed[cat]))
                     else:
                         tempdf = data_queue[cat].query("{0}[{1}] == {2}".format(
                             self.info['coord_name'],
