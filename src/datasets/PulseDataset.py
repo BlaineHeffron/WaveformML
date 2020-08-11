@@ -131,12 +131,13 @@ class PulseDataset(HDF5Dataset):
         for cat in ordered_paths_by_dir.keys():
             cur_file = 0
             for fp in ordered_paths_by_dir[cat]:
+                self.log.debug("determining where to place events from file {0}".format(fp))
                 di = self.get_path_info(fp)
                 n_events = di['event_range'][1] - di['event_range'][0] + 1
                 if len(self.shuffle_queue) <= cur_file:
                     self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                 if n_events <= n_per_category - current_total[cat]:
-                    self.log.debug("appending ({0}, {1}) to category {2}".format(fp, subrange, cat))
+                    self.log.debug("appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
                     self.shuffle_queue[cur_file][cat].append((fp,copy(di['event_range'])))
                     current_total[cat] += n_events
                 else:
@@ -144,7 +145,8 @@ class PulseDataset(HDF5Dataset):
                     while subrange[1] < di['event_range'][1]:
                         if len(self.shuffle_queue) <= cur_file:
                             self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
-                        self.log.debug("appending ({0}, {1}) to category {2}".format(fp, subrange, cat))
+                        self.log.debug(
+                            "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
                         self.shuffle_queue[cur_file][cat].append((fp, subrange))
                         cur_file += 1
                         current_total[cat] = 0
@@ -153,7 +155,8 @@ class PulseDataset(HDF5Dataset):
                     if subrange[1] >= di['event_range'][1]:
                         subrange[1] = copy(di['event_range'][1])
                         self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
-                        self.log.debug("appending ({0}, {1}) to category {2}".format(fp, subrange, cat))
+                        self.log.debug(
+                            "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
                         self.shuffle_queue[cur_file][cat].append((fp, subrange))
                         current_total[cat] = subrange[1] - subrange[0] + 1
 
