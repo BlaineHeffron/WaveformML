@@ -2,7 +2,7 @@ from re import compile
 
 import h5py
 from pathlib import Path
-from os.path import getmtime
+from os.path import getmtime, normpath
 import torch
 from torch.utils import data
 from numpy import where
@@ -241,7 +241,7 @@ class HDF5Dataset(data.Dataset):
 
     def get_path_info(self, file_path):
         for di in self.info['data_info']:
-            if di['file_path'] == file_path:
+            if normpath(di['file_path']) == file_path:
                 return di
 
     def get_data_infos(self, data_type):
