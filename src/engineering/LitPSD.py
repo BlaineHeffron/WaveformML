@@ -10,6 +10,7 @@ class LitPSD(pl.LightningModule):
     def __init__(self, config):
         super(LitPSD, self).__init__()
         self.log = logging.getLogger(__name__)
+        logging.getLogger("lightning").setLevel(self.log.level)
         self.config = config
         self.hparams = DictionaryUtility.to_dict(config)
         self.n_type = config.system_config.n_type
@@ -18,7 +19,7 @@ class LitPSD(pl.LightningModule):
                                      config.optimize_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
         self.model = self.model_class(config)
-        self.data_module = PSDDataModule(config.dataset_config, self.device)
+        self.data_module = PSDDataModule(config, self.device)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.softmax = Softmax(dim=1)

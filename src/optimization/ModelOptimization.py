@@ -158,13 +158,13 @@ class ModelOptimization:
         self.log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
         study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args), show_progress_bar=True, gc_after_trial=True)
         output = {}
-        print("Number of finished trials: {}".format(len(study.trials)))
-        print("Best trial:")
+        self.log.info("Number of finished trials: {}".format(len(study.trials)))
+        self.log.info("Best trial:")
         trial = study.best_trial
-        print("  Value: {}".format(trial.value))
-        print("  Params: ")
+        self.log.info("  Value: {}".format(trial.value))
+        self.log.info("  Params: ")
         for key, value in trial.params.items():
-            print("    {}: {}".format(key, value))
+            self.log.info("    {}: {}".format(key, value))
         self.log.info("Number of finished trials: {}".format(len(study.trials)))
         output["n_finished_trials"] = len(study.trials)
         self.log.info("Best trial:")

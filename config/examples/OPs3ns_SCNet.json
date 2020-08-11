@@ -6,7 +6,9 @@
   },
   "system_config":{
     "_comment": "set half_precision to true to utilize 16 bit training mode.",
+    "_comment2": "set model_base_path to write model output to a directory of your choosing. Defaults to ./model",
     "model_name": "Positron_OrthoPositronium",
+    "model_base_path": "./model",
     "n_type":2,
     "type_names": ["Positron","OrthoPositronium"],
     "n_samples": 150,
@@ -78,14 +80,16 @@
     }
   },
   "dataset_config": {
-    "_comment": "mode can be path or config. if mode is set, set base_path and paths. If config, set config_path",
-    "_comment2": "n_train and n_test correspond to the number trained per type",
-    "_comment3": "dataset_class is set to the classname of the Dataset class being used",
-    "_comment4": "cache_size is number of files to hold in memory",
-    "_comment5": "a good starting point for num_workers is the number of cpus of the system",
-    "mode": "path",
+    "_comment": "n_train and n_test correspond to the number trained per type",
+    "_comment2": "dataset_class is set to the classname of the Dataset class being used",
+    "_comment3": "cache_size is number of files to hold in memory",
+    "_comment4": "a good starting point for num_workers is the number of cpus of the system",
+    "_comment5": "chunk_size configures the number of rows of the hdf5 file accessed during iteration.",
     "base_path": "/home/blaine/projects/orthopositronium",
     "paths": ["Positron","OrthoPositronium"],
+    "data_prep": "shuffle",
+    "chunk_size": 1024,
+    "shuffled_filesize": 16384,
     "imports": ["src.datasets.PulseDataset"],
     "dataset_class": "PulseDataset2D",
     "dataset_params": {

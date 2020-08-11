@@ -1,6 +1,7 @@
 import importlib
 import os
 import json
+import pickle
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
 import git
@@ -142,6 +143,21 @@ def save_path(model_folder, model_name, exp_name):
             raise IOError("No model name given. Set model_name property in net_config.")
     else:
         raise IOError("No experiment name given. Set exp_name property in run_config.")
+
+
+def save_object_to_file(obj, path, fmt="json"):
+    if fmt == "json":
+        json.dump(obj, path, indent=2)
+    else:
+        pickle.dump(obj, path)
+
+
+def read_object_from_file(path, fmt="json"):
+    if fmt == "json":
+        obj = json.load(path, indent=2)
+    else:
+        obj = pickle.load(path)
+    return obj
 
 
 def save_config(config, log_folder, exp_name, postfix, is_dict=False):

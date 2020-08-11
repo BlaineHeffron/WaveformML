@@ -57,10 +57,10 @@ def setup_logger(args):
     formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
     # create console handler and set level to  user specified level
-    #ch = logging.StreamHandler()
-    #ch.setLevel(debug_level)
-    #ch.setFormatter(formatter)
-    #logger.addHandler(ch)
+    # ch = logging.StreamHandler()
+    # ch.setLevel(debug_level)
+    # ch.setFormatter(formatter)
+    # logger.addHandler(ch)
 
     # create a file handler if specified in command args
     if args.logfile:
@@ -116,8 +116,6 @@ def main():
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     verbosity = args.verbosity
-    if not os.path.exists(MODEL_DIR):
-        path_create(MODEL_DIR)
     config_file = args.config
     config_file = check_config(config_file)
     if args.validation:
@@ -141,7 +139,14 @@ def main():
         model_name = config.system_config.model_name
     else:
         model_name = util.unique_path_combine(config.dataset_config.paths)
-    model_folder = join(abspath("./model"), model_name)
+    if hasattr(config.system_config, "model_base_path"):
+        model_dir = config.system_config.model_base_path
+    else:
+        model_dir = MODEL_DIR
+        setattr(config.system_config, "model_base_path", model_dir)
+    if not os.path.exists(model_dir):
+        path_create(model_dir)
+    model_folder = join(abspath(model_dir), model_name)
     if hasattr(config, "run_config"):
         if not hasattr(config.run_config, "exp_name"):
             counter = 1

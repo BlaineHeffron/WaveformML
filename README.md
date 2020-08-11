@@ -4,7 +4,14 @@ Machine learning tools for waveform analysis.
 ## Install
 Recommended to use conda installation manager. https://docs.conda.io/projects/conda/en/latest/user-guide/install/
 
-To use, first install the following dependencies pytorch version 1.6 or higher, see https://pytorch.org/get-started/locally/
+First, install prerequisites:
+
+    conda install gitpython
+    conda install json
+    conda install yaml
+    conda install hdf5
+
+Then install pytorch version 1.6 or higher, see https://pytorch.org/get-started/locally/
 
 On linux with GPU support, cuda version 10.2, this command is
 
@@ -17,20 +24,11 @@ With no GPU support, the command is
 Then, install pytorch-lightning and optuna
 
     conda install -c conda-forge optuna
-    conda install -c conda-forge pytorch-lightning
 
-Then install remaining dependencies:
+Pytorch lightning requires version 0.9 or higher:
+    
+    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
 
-    conda install gitpython
-    conda install json
-    conda install yaml
-    conda install hdf5
-    conda install git
-
-I used the conda package manager to install these.
-
-    conda install -c conda-forge optuna
-    conda install -c conda-forge pytorch-lightning
 
 ## Usage
 
@@ -38,9 +36,32 @@ I used the conda package manager to install these.
 
 output is logged in 
 
-    ./model/<model name>/runs/<experiment name>/version_<n> 
+    {model folder}/runs/<experiment name>/version_<n> 
     
-where n is the (n-1)th run of the experiment
+where {model folder} defaults to 
+
+    ./model/<model name>
+    
+and \<n> is the run number of the experiment starting from 0
+
+### Selecting data
+
+Set dataset_config.paths to the directories you 
+would like to retrieve hdf5 data from. Set the 
+number of events to draw from this directory with 
+n_train, n_validate, and n_test. 
+
+Metadata of events selected will be logged to 
+
+    {model folder}/datasets/<dataset name>_config.json
+
+Constructed datasets will be saved on disk to 
+    
+    ./data/<model_name>/<dataset name>.json
+
+
+   
+To train with a spe
 
 Requirements for the config file are shown in config_requirements.json. This can be used as a template.
 A full example config file is found in config/examples
@@ -68,7 +89,7 @@ for a complete list of arguments
 
 For performance tweaking on a GPU, set 
     
-    --profile=true
+    --profiler=true
 then slowly increase the num_workers (under dataset_config/dataloader_params) until you find optimal performance.
 
 Once optimal data loading performance is found, then tune your learning rate. You can set

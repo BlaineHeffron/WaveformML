@@ -2,10 +2,12 @@ from re import compile
 
 import h5py
 from pathlib import Path
+from os.path import getmtime
 import torch
 from torch.utils import data
 from numpy import where
 from os.path import dirname
+from src.utils.util import read_object_from_file, save_object_to_file
 
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
 
@@ -64,19 +66,20 @@ class HDF5Dataset(data.Dataset):
                  label_name=None,
                  data_cache_size=3):
         super().__init__()
-        self.file_paths = file_paths
+        self.info = {}
         self.num_dirs = len(file_paths)
-        self.data_info = []
         self.data_cache = {}
-        self.data_cache_size = data_cache_size
-        self.data_name = data_name
-        self.label_name = label_name
+        self.data_cache_map = {}
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
-        self.events_per_dir = events_per_dir
-        self.coord_name = coordinate_name
-        self.feat_name = feature_name
         self.device = device
-
+        self.info["file_paths"] = self.file_paths
+        self.info["data_info"] = []
+        self.info["data_cache_size"] = data_cache_size
+        self.info["data_name"] = data_name
+        self.info["coord_name"] = coordinate_name
+        self.info["feat_name"] = feature_name
+        self.info["label_name"] = label_name
+        self.info["events_per_dir"] = events_per_dir
         # Search for all h5 files
         all_files = []
         for i, file_path in enumerate(file_paths):
@@ -107,17 +110,18 @@ class HDF5Dataset(data.Dataset):
 
         # print("file excludes ",file_excludes)
         # print(ordered_file_set)
+        self.ordered_file_set = ordered_file_set
         for h5dataset_fp in ordered_file_set:
             dir_index = self.file_paths.index(dirname(h5dataset_fp))
-            if self.n_events[dir_index] >= self.events_per_dir:
+            if self.n_events[dir_index] >= self.info['events_per_dir']:
                 continue
             self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
 
     def __getitem__(self, index):
         # get data
-        coords, vals = self.get_data(self.data_name, index)
+        coords, vals = self.get_data(self.info['data_name'], index)
         ind = 0
-        di = self.get_data_infos(self.data_name)[index]
+        di = self.get_data_infos(self.info['data_name'])[index]
         if di['event_range'][1] + 1 < di['n_events']:
             ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
@@ -129,11 +133,11 @@ class HDF5Dataset(data.Dataset):
             vals = vals[0:ind, :]
 
         # get label
-        if self.label_name is None:
+        if self.info['label_name'] is None:
             y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1, ), (di['event_range'][1] + 1,),
                                       di['dir_index'], dtype=torch.int64, device=self.device)
         else:
-            y = self.get_data(self.label_name, index)
+            y = self.get_data(self.info['label_name'], index)
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
         # print("now coords size is ", coords.size())
         # print("now vals size is ", vals.size())
@@ -141,48 +145,49 @@ class HDF5Dataset(data.Dataset):
         return [coords, vals], y
 
     def __len__(self):
-        return len(self.get_data_infos(self.data_name))
+        return len(self.get_data_infos(self.info['data_name']))
 
-    def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events):
+    def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
+                        modified):
         # if data is not loaded its cache index is -1
         idx = -1
         if load_data:
             # add data to the data cache
             idx = self._add_to_cache(dataset, file_path)
 
-        # type is derived from the name of the dataset; we expect the dataset
-        # name to have a name such as 'data' or 'label' to identify its type
-        self.data_info.append({'file_path': file_path,
-                               'type': dataset_name,
-                               'cache_idx': idx,
-                               'n_events': int(n_file_events),
-                               'event_range': (0, int(num_events) - 1),
-                               'dir_index': dir_index})
+        self.data_cache_map[file_path] = idx
+        self.info['data_info'].append({'file_path': file_path,
+                                       'name': dataset_name,
+                                       'modified': modified,
+                                       'n_events': int(n_file_events),
+                                       'event_range': (0, int(num_events) - 1),
+                                       'dir_index': dir_index})
 
     def _get_event_num(self, file_path):
         with h5py.File(file_path, 'r') as h5_file:
-            return h5_file[self.data_name].attrs.get('nevents')[0]  # the number of events in the file
-            # return h5_file[self.data_name][self.coord_name][-1][2] + 1
+            return h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+            # return h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
         with h5py.File(file_path, 'r') as h5_file:
-            n_file_events = h5_file[self.data_name].attrs.get('nevents')[0]  # the number of events in the file
-            # n = h5_file[self.data_name][self.coord_name][-1][2] + 1  # the number of events in the file
-            # a = len(unique(h5_file[self.data_name][self.coord_name][:,2]))
+            modified = getmtime(file_path)
+            n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+            # n = h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1  # the number of events in the file
+            # a = len(unique(h5_file[self.info['data_name']][self.info['coord_name']][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
             #      " {2}".format(n,a,file_path))
             n = n_file_events
-            if self.events_per_dir - self.n_events[dir_index] < n:
-                n = self.events_per_dir - self.n_events[dir_index]
+            if self.info['events_per_dir'] - self.n_events[dir_index] < n:
+                n = self.info['events_per_dir'] - self.n_events[dir_index]
             self.n_events[dir_index] += n
 
             # Walk through all groups, extracting datasets
             for gname, group in h5_file.items():
                 if hasattr(group, "items"):
                     for dname, ds in group.items():
-                        self._add_data_block(ds, dname, file_path, load_data, n, dir_index, n_file_events)
+                        self._add_data_block(ds, dname, file_path, load_data, n, dir_index, n_file_events, modified)
                 else:
-                    self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events)
+                    self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
 
     def _get_dir_index(self, file_path):
         return self.file_paths.index(file_path)
@@ -201,49 +206,47 @@ class HDF5Dataset(data.Dataset):
                         idx = self._add_to_cache(ds, file_path)
 
                         # find the beginning index of the hdf5 file we are looking for
-                        file_idx = next(i for i, v in enumerate(self.data_info)
+                        file_idx = next(i for i, v in enumerate(self.info['data_info'])
                                         if v['file_path'] == file_path)
 
                         # the data info should have the same index since we loaded it in the same way
-                        self.data_info[file_idx + idx]['cache_idx'] = idx
+                        self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']] = idx
                 else:
                     idx = self._add_to_cache(group, file_path)
                     # find the beginning index of the hdf5 file we are looking for
-                    file_idx = next(i for i, v in enumerate(self.data_info)
+                    file_idx = next(i for i, v in enumerate(self.info['data_info'])
                                     if v['file_path'] == file_path)
                     # the data info should have the same index since we loaded it in the same way
-                    self.data_info[file_idx + idx]['cache_idx'] = idx
+                    self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']] = idx
 
         # remove an element from data cache if size was exceeded
-        if len(self.data_cache) > self.data_cache_size:
+        if len(self.data_cache) > self.info['data_cache_size']:
             # remove one item from the cache at random
             removal_keys = list(self.data_cache)
             removal_keys.remove(file_path)
             self.data_cache.pop(removal_keys[0])
             # remove invalid cache_idx
-            self.data_info = \
-                [{'file_path': di['file_path'], 'type': di['type'],
-                  'dir_index': di['dir_index'],
-                  'n_events': di['n_events'],
-                  'event_range': di['event_range'],
-                  'cache_idx': -1}
-                 if di['file_path'] == removal_keys[0]
-                 else di for di in self.data_info]
+            self.data_cache_map[removal_keys[0]] = -1
 
     def _add_to_cache(self, data, file_path):
         """Adds data to the cache and returns its index. There is one cache
         list for every file_path, containing all datasets in that file.
         """
         if file_path not in self.data_cache:
-            self.data_cache[file_path] = [(data[self.coord_name], data[self.feat_name])]
+            self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
         else:
-            self.data_cache[file_path].append((data[self.coord_name], data[self.feat_name]))
+            self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
         return len(self.data_cache[file_path]) - 1
+
+    def get_path_info(self, file_path):
+        for di in self.info['data_info']:
+            if di['file_path'] == file_path:
+                return di
 
     def get_data_infos(self, data_type):
         """Get data infos belonging to a certain type of data.
         """
-        data_info_type = [di for di in self.data_info if di['type'] == data_type]
+        data_info_type = [di for di in self.info['data_info'] if di['name'] == data_type]
         return data_info_type
 
     def get_data(self, data_type, i):
@@ -256,8 +259,17 @@ class HDF5Dataset(data.Dataset):
             self._load_data(fp)
 
         # get new cache_idx assigned by _load_data_info
-        cache_idx = self.get_data_infos(data_type)[i]['cache_idx']
+        cache_idx = self.data_cache_map[self.get_data_infos(data_type)[i]['file_path']]
         return self.data_cache[fp][cache_idx]
 
     def get_file_list(self):
-        return [di['file_path'] for di in self.data_info]
+        return [di['file_path'] for di in self.info['data_info']]
+
+    def __str__(self):
+        return str(self.info)
+
+    def save_info_to_file(self, fpath):
+        save_object_to_file(self.info, fpath)
+
+    def read_info_from_file(self, fpath):
+        self.info = read_object_from_file(fpath)
