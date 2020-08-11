@@ -186,13 +186,13 @@ class PulseDataset(HDF5Dataset):
         event_counter = -1
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
             for cat in data_info.keys():
-                if data_queue[cat] == 0:
+                if isinstance(data_queue[cat], int):
                     continue
                 chunk = read_hdf(data_info[cat][current_file_indices[cat]][0], self.info['data_name'],
                                  chunksize=chunksize,
                                  where=self._get_where(data_info[cat][current_file_indices[cat]]),
                                  start=current_file_chunk[cat] * chunksize)
-                if chunk.size:
+                if not chunk.empty:
                     data_queue[cat] = chunk
                     current_file_chunk[cat] += 1
                 else:
@@ -202,7 +202,7 @@ class PulseDataset(HDF5Dataset):
                                      chunksize=chunksize,
                                      where=self._get_where(data_info[cat][current_file_indices[cat]]),
                                      start=current_file_chunk[cat] * chunksize)
-                    if not chunk.size:
+                    if chunk.empty:
                         self.log.warning("no chunk for category {0} found")
                         data_queue[cat] = 0
                     else:
