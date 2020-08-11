@@ -147,8 +147,9 @@ class PulseDataset(HDF5Dataset):
                         next_file_info[category] = (fp, [event_range[1] + 1, di['event_range'][1]])
                         next_total[category] += di['event_range'][1] - event_range[1]
                     else:
-                        del next_file_info[category]
-                        next_total[category] = 0
+                        if category in next_file_info.keys():
+                            del next_file_info[category]
+                            next_total[category] = 0
                     current_total[category] += event_range[1] - event_range[0] + 1
                     if category not in current_file_info.keys():
                         current_file_info[category] = []
