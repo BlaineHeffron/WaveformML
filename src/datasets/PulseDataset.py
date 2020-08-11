@@ -2,7 +2,7 @@ import os
 from copy import copy
 from torch.utils.data import get_worker_info
 import logging
-from numpy import int8, where as npwhere, concatenate, empty
+from numpy import int8, where as npwhere, concatenate
 
 from src.datasets.HDF5Dataset import *
 from src.utils.util import DictionaryUtility, save_object_to_file, read_object_from_file
@@ -227,14 +227,14 @@ class PulseDataset(HDF5Dataset):
                 self.log.debug("using dataset name {}".format(self.info['data_name']))
 
                 chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'], columns)
-                if self._not_empty(chunk)
+                if self._not_empty(chunk):
                     data_queue[cat] = chunk
                     current_file_chunk[cat] += 1
                 else:
                     current_file_indices[cat] += 1
                     current_file_chunk[cat] = 0
                     chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'], columns)
-                    if not self._not_empty(chunk)
+                    if not self._not_empty(chunk):
                         self.log.warning("no chunk for category {0} found")
                         data_queue[cat] = 0
                     else:
@@ -248,7 +248,7 @@ class PulseDataset(HDF5Dataset):
                         tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat])
                     else:
                         tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat] + 1)
-                    if self._not_empty(tempdf)
+                    if self._not_empty(tempdf):
                         if prepend_last_data[cat]:
                             tempdf[:, self.info['coord_name'], self.batch_index] = event_counter
                             tempdf = self._concat(last_data[cat], tempdf)
