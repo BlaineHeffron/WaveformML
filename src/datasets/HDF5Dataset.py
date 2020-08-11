@@ -164,7 +164,7 @@ class HDF5Dataset(data.Dataset):
                                        'name': dataset_name,
                                        'modified': modified,
                                        'n_events': int(n_file_events),
-                                       'event_range': (0, int(num_events) - 1),
+                                       'event_range': [0, int(num_events) - 1],
                                        'dir_index': dir_index})
 
     def _get_event_num(self, file_path):
