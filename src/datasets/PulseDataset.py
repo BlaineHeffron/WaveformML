@@ -196,6 +196,9 @@ class PulseDataset(HDF5Dataset):
         inds = npwhere(data[0][:,self.batch_index] == idx)
         return data[0][inds], data[1][inds]
 
+    def _not_empty(self, chunk):
+        return len(chunk) > 0 and chunk[0].size
+
     def _concat(self, d1, d2):
         if not len(d1):
             return d2
@@ -224,14 +227,14 @@ class PulseDataset(HDF5Dataset):
                 self.log.debug("using dataset name {}".format(self.info['data_name']))
 
                 chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'], columns)
-                if len(chunk) > 0 and chunk[0].size:
+                if self._not_empty(chunk)
                     data_queue[cat] = chunk
                     current_file_chunk[cat] += 1
                 else:
                     current_file_indices[cat] += 1
                     current_file_chunk[cat] = 0
                     chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'], columns)
-                    if chunk.empty:
+                    if not self._not_empty(chunk)
                         self.log.warning("no chunk for category {0} found")
                         data_queue[cat] = 0
                     else:
@@ -245,7 +248,7 @@ class PulseDataset(HDF5Dataset):
                         tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat])
                     else:
                         tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat] + 1)
-                    if not tempdf.empty:
+                    if self._not_empty(tempdf)
                         if prepend_last_data[cat]:
                             tempdf[:, self.info['coord_name'], self.batch_index] = event_counter
                             tempdf = self._concat(last_data[cat], tempdf)
