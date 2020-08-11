@@ -220,7 +220,7 @@ class PulseDataset(HDF5Dataset):
                         tempdf = data_queue[cat].query("{0}[{1}] == {2}".format(
                             self.info['coord_name'],
                             str(self.batch_index), last_id_grabbed[cat] + 1))
-                    if tempdf.size:
+                    if not tempdf.empty:
                         if prepend_last_data[cat]:
                             tempdf[:, self.info['coord_name'], self.batch_index] = event_counter
                             tempdf = pdconcat([last_data[cat], tempdf], ignore_index=True)
