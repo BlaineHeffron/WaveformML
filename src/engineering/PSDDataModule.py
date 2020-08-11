@@ -63,7 +63,7 @@ class PSDDataModule(pl.LightningDataModule):
             self.prepare_data()
         return DataLoader(self.val_dataset,
                           shuffle=False,
-                          **DictionaryUtility.to_dict(self.config.datset_config.dataloader_params))
+                          **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
 
     def test_dataloader(self):
         if not hasattr(self, "test_dataset"):
