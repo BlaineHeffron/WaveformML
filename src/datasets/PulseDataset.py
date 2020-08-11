@@ -150,7 +150,7 @@ class PulseDataset(HDF5Dataset):
                         subrange[1] += n_per_category
                     if subrange[1] > di['event_range'][1]:
                         subrange[1] = copy(di['event_range'][1])
-                        self.shuffle_queue.append({cat: []})
+                        self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         self.shuffle_queue[cur_file][cat].append((fp, subrange))
                         current_total[cat] = subrange[1] - subrange[0] + 1
 
