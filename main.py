@@ -189,9 +189,9 @@ def main():
             os.mkdir(tb_folder)
         logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
         log_folder = logger.log_dir
-        write_run_info(log_folder)
         if not os.path.exists(log_folder):
             os.makedirs(log_folder, exist_ok=True)
+        write_run_info(log_folder)
         psd_callbacks = PSDCallbacks(config)
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
