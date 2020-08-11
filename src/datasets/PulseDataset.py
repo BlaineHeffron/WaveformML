@@ -144,6 +144,7 @@ class PulseDataset(HDF5Dataset):
                     while subrange[1] <= di['event_range'][1]:
                         if len(self.shuffle_queue) < cur_file:
                             self.shuffle_queue.append({cat: []})
+                        self.log.debug("Shuffle queue is {0} long, current file is {1}".format(len(self.shuffle_queue),cur_file))
                         self.shuffle_queue[cur_file][cat].append((fp, subrange))
                         cur_file += 1
                         subrange[0] += n_per_category
