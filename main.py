@@ -211,9 +211,9 @@ def main():
         # save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        config.run_config.exp_name, "train_args")
 
-        data_module = PSDDataModule(config)
         modules = ModuleUtility(config.run_config.imports)
         runner = modules.retrieve_class(config.run_config.run_class)(config)
+        data_module = PSDDataModule(config, runner.device)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         trainer.fit(runner, data_module)
 

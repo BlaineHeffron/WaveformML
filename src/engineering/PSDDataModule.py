@@ -6,10 +6,11 @@ import logging
 
 
 class PSDDataModule(pl.LightningDataModule):
-    def __init__(self, config):
+    def __init__(self, config, device):
         super().__init__()
         self.log = logging.getLogger(__name__)
         self.config = config
+        self.device = device
         self.ntype = len(self.config.dataset_config.paths)
         self.total_train = self.config.dataset_config.n_train * self.ntype
         self.modules = ModuleUtility(self.config.dataset_config.imports)

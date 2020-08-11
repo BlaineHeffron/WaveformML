@@ -147,7 +147,7 @@ class ModelOptimization:
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config)
-        data_module = PSDDataModule(self.config)
+        data_module = PSDDataModule(self.config, model.device)
         trainer.fit(model, data_module)
         if metrics_callback.metrics:
             return metrics_callback.metrics[-1]["val_checkpoint_on"].item()
