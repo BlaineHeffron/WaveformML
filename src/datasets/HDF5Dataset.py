@@ -72,6 +72,7 @@ class HDF5Dataset(data.Dataset):
         self.data_cache_map = {}
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
         self.device = device
+        self.file_paths = file_paths
         self.info["file_paths"] = self.file_paths
         self.info["data_info"] = []
         self.info["data_cache_size"] = data_cache_size
