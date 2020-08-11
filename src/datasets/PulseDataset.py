@@ -141,7 +141,7 @@ class PulseDataset(HDF5Dataset):
                     if event_range[1] - event_range[0] + 1 > (n_per_category - current_total[category]):
                         if category not in next_file_info.keys():
                             next_file_info[category] = []
-                        event_range[1] = n_per_category - current_total - 1 + event_range[0]
+                        event_range[1] = n_per_category - current_total[category] - 1 + event_range[0]
                         next_file_info[category].append((fp, [event_range[1] + 1, di['event_range'][1]]))
                         next_total[category] += di['event_range'][1] - event_range[1]
                     current_total[category] += event_range[1] - event_range[0] + 1
@@ -158,17 +158,17 @@ class PulseDataset(HDF5Dataset):
 
     def _get_where(self, file_info):
         info = self.get_path_info(file_info[0])
-        where = None
+        where_string = None
         if info['n_events'] - 1 != file_info[1][1]:
-            where = '{0}[{1}] <= {2}'.format(self.info['coord_name'], str(self.batch_index), str(file_info[1][1]))
+            where_string = '{0}[{1}] <= {2}'.format(self.info['coord_name'], str(self.batch_index), str(file_info[1][1]))
         if file_info[1][0] > 0:
-            if where:
-                where += ' & {0}[{1}] >= {2}'.format(self.info['coord_name'],
-                                                     str(self.batch_index), str(file_info[1][0]))
+            if where_string:
+                where_string += ' & {0}[{1}] >= {2}'.format(self.info['coord_name'],
+                                                            str(self.batch_index), str(file_info[1][0]))
             else:
-                where = '{0}[{1}] >= {2}'.format(self.info['coord_name'],
-                                                 str(self.batch_index), str(file_info[1][0]))
-        return where
+                where_string = '{0}[{1}] >= {2}'.format(self.info['coord_name'],
+                                                        str(self.batch_index), str(file_info[1][0]))
+        return where_string
 
     def _write_shuffled(self, data_info, fname):
         self.log.debug("working on shuffling the following data into file {0}: {1}".format(fname, data_info))
@@ -253,11 +253,11 @@ class PulseDataset(HDF5Dataset):
 
     def write_shuffled(self):
         while len(self.shuffle_queue):
-            l = len(self.shuffle_queue)
+            shuffle_length = len(self.shuffle_queue)
             if "*" in self.file_mask:
-                fname = "Combined_{0}_{1}".format(l - 1, self.file_mask[self.file_mask.index("*") + 1:])
+                fname = "Combined_{0}_{1}".format(shuffle_length - 1, self.file_mask[self.file_mask.index("*") + 1:])
             else:
-                fname = "Combined_{0}_{1}".format(l - 1, self.file_mask)
+                fname = "Combined_{0}_{1}".format(shuffle_length - 1, self.file_mask)
             self._write_shuffled(self.shuffle_queue.pop(), os.path.join(self.data_dir, fname))
         if not get_worker_info():
             self.log.info("Shuffling dataset finished. Setting the dataset to the new directory")
