@@ -134,28 +134,26 @@ class PulseDataset(HDF5Dataset):
         while _has_files(ordered_paths_by_dir):
             for category in ordered_paths_by_dir.keys():
                 while current_total[category] < n_per_category and len(ordered_paths_by_dir[category]):
-                    if category in current_file_info.keys():
-                        fp = current_file_info[category][0]
-                        di = self.get_path_info(fp)
-                        event_range = current_file_info[category][1]
-                    else:
-                        fp = ordered_paths_by_dir[category].pop(0)
-                        di = self.get_path_info(fp)
-                        event_range = copy(di['event_range'])
+                    fp = ordered_paths_by_dir[category][0]
+                    di = self.get_path_info(fp)
+                    event_range = copy(di['event_range'])
+                    if category in next_file_info.keys():
+                        if fp == next_file_info[category][0]:
+                            event_range = next_file_info[category][1]
                     if event_range[1] - event_range[0] + 1 > (n_per_category - current_total[category]):
                         event_range[1] = n_per_category - current_total[category] - 1 + event_range[0]
-                        next_file_info[category] = (fp, [event_range[1] + 1, di['event_range'][1]])
-                        next_total[category] += di['event_range'][1] - event_range[1]
+                        if category not in next_file_info.keys():
+                            next_file_info[category] = (fp, [event_range[1] + 1, di['event_range'][1]])
+                        next_total[category] = di['event_range'][1] - event_range[1]
                     else:
-                        if category in next_file_info.keys():
-                            del next_file_info[category]
-                            next_total[category] = 0
+                        ordered_paths_by_dir[category].pop(0)
                     current_total[category] += event_range[1] - event_range[0] + 1
                     if category not in current_file_info.keys():
                         current_file_info[category] = []
                     current_file_info[category].append((fp, event_range))
             self.shuffle_queue.append(copy(current_file_info))
-            current_file_info = copy(next_file_info)
+            for category in next_file_info.keys():
+                current_file_info[category] = [copy(next_file_info)]
             next_file_info = {}
             current_total = copy(next_total)
             next_total = [0] * len(self.config.paths)
