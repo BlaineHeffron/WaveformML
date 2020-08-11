@@ -134,6 +134,7 @@ class PulseDataset(HDF5Dataset):
             for category in ordered_paths_by_dir.keys():
                 while current_total[category] < n_per_category and len(ordered_paths_by_dir[category]):
                     fp = ordered_paths_by_dir[category].pop(0)
+                    self.log.debug("Getting data info for path {}".format(fp))
                     di = self.get_path_info(fp)
                     self.log.debug("Data info: {} ".format(di))
                     event_range = copy(di['event_range'])
