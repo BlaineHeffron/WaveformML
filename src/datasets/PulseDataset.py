@@ -153,7 +153,7 @@ class PulseDataset(HDF5Dataset):
                     current_file_info[category].append((fp, event_range))
             self.shuffle_queue.append(copy(current_file_info))
             current_file_info = {}
-            current_total = 0
+            current_total = [0]*n_categories
         if sum(next_total) > 0:
             self.shuffle_queue.append(next_file_info)
 
