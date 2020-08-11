@@ -95,7 +95,7 @@ class PulseDataset(HDF5Dataset):
         else:
             self.shuffled_size = self.config.shuffled_size
         self.log = logging.getLogger(__name__)
-        if hasattr(self.config, "data_prep"):
+        if hasattr(self.config, "data_prep") and self.dataset_type == "train":
             if self.config.data_prep == "shuffle":
                 self.log.info("Preparing to shuffle the dataset, alternating directory.")
                 self._gen_shuffle_map()
@@ -135,9 +135,7 @@ class PulseDataset(HDF5Dataset):
             for category in ordered_paths_by_dir.keys():
                 while current_total[category] < n_per_category and len(ordered_paths_by_dir[category]):
                     fp = ordered_paths_by_dir[category].pop(0)
-                    self.log.debug("Getting data info for path {}".format(fp))
                     di = self.get_path_info(fp)
-                    self.log.debug("Data info: {} ".format(di))
                     event_range = copy(di['event_range'])
                     if event_range[1] - event_range[0] + 1 > (n_per_category - current_total[category]):
                         if category not in next_file_info.keys():

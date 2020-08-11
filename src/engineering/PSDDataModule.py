@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from src.utils.util import DictionaryUtility, ModuleUtility
-from os.path import join
+from torch.utils.data import get_worker_info
 import logging
 
 
@@ -48,8 +48,14 @@ class PSDDataModule(pl.LightningDataModule):
 
     def setup(self):
         # called on every GPU
-        if self.config.dataset_config.data_prep == "shuffle":
-            self.train_dataset.write_shuffled()  # might need to make this call configurable
+        worker_info = get_worker_info()
+        if hasattr(self.config.dataset_config, "data_prep"):
+            if self.config.dataset_config.data_prep == "shuffle":
+                if worker_info is None:
+                    self.log.info("Main process beginning to shuffle dataset.")
+                else:
+                    self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
+                self.train_dataset.write_shuffled()  # might need to make this call configurable
 
     def train_dataloader(self):
         if not hasattr(self, "train_dataset"):
