@@ -10,10 +10,10 @@ class PSDDataModule(pl.LightningDataModule):
         super().__init__()
         self.log = logging.getLogger(__name__)
         self.config = config
-        self.ntype = len(self.config.paths)
-        self.total_train = self.config.n_train * self.ntype
-        self.modules = ModuleUtility(self.config.imports)
-        self.dataset_class = self.modules.retrieve_class(self.config.dataset_class)
+        self.ntype = len(self.config.dataset_config.paths)
+        self.total_train = self.config.dataset_config.n_train * self.ntype
+        self.modules = ModuleUtility(self.config.dataset_config.imports)
+        self.dataset_class = self.modules.retrieve_class(self.config.dataset_config.dataset_class)
         self.device = device
         self.dataset_shuffle_map = {}
 
@@ -21,34 +21,34 @@ class PSDDataModule(pl.LightningDataModule):
         # called only on 1 GPU
         if not hasattr(self, "train_dataset"):
             self.train_dataset = self.dataset_class(self.config, "train",
-                                                    self.config.n_train,
+                                                    self.config.dataset_config.n_train,
                                                     self.device,
-                                                    **DictionaryUtility.to_dict(self.config.dataset_params))
+                                                    **DictionaryUtility.to_dict(self.config.dataset_config.dataset_params))
             self.log.info("Training dataset generated.")
 
         if not hasattr(self, "val_dataset"):
-            if hasattr(self.config, "n_validate"):
-                n_validate = self.config.n_validate
+            if hasattr(self.config.dataset_config, "n_validate"):
+                n_validate = self.config.dataset_config.n_validate
             else:
-                n_validate = self.config.n_test
+                n_validate = self.config.dataset_config.n_test
             self.val_dataset = self.dataset_class(self.config, "validate",
                                                   n_validate,
                                                   self.device,
                                                   file_excludes=self.train_dataset.get_file_list(),
-                                                  **DictionaryUtility.to_dict(self.config.dataset_params))
+                                                  **DictionaryUtility.to_dict(self.config.dataset_config.dataset_params))
             self.log.info("Validation dataset generated.")
 
         if not hasattr(self, "test_dataset"):
             self.test_dataset = self.dataset_class(self.config, "test",
-                                                   self.config.n_test,
+                                                   self.config.dataset_config.n_test,
                                                    self.device,
                                                    file_excludes=self.train_dataset.get_file_list() + self.val_dataset.get_file_list(),
-                                                   **DictionaryUtility.to_dict(self.config.dataset_params))
+                                                   **DictionaryUtility.to_dict(self.config.dataset_config.dataset_params))
             self.log.info("Test dataset generated.")
 
     def setup(self):
         # called on every GPU
-        if self.config.data_prep == "shuffle":
+        if self.config.dataset_config.data_prep == "shuffle":
             self.train_dataset.write_shuffled()  # might need to make this call configurable
 
     def train_dataloader(self):
@@ -56,18 +56,18 @@ class PSDDataModule(pl.LightningDataModule):
             self.prepare_data()
         return DataLoader(self.train_dataset,
                           shuffle=False,
-                          **DictionaryUtility.to_dict(self.config.dataloader_params))
+                          **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
 
     def val_dataloader(self):
         if not hasattr(self, "val_dataset"):
             self.prepare_data()
         return DataLoader(self.val_dataset,
                           shuffle=False,
-                          **DictionaryUtility.to_dict(self.config.dataloader_params))
+                          **DictionaryUtility.to_dict(self.config.datset_config.dataloader_params))
 
     def test_dataloader(self):
         if not hasattr(self, "test_dataset"):
             self.prepare_data()
         return DataLoader(self.test_dataset,
                           shuffle=False,
-                          **DictionaryUtility.to_dict(self.config.dataloader_params))
+                          **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
