@@ -80,9 +80,9 @@ class PulseDataset(HDF5Dataset):
             os.mkdir(self.dataset_dir)
         self.dataset_type = dataset_type
         if hasattr(self.config, "name"):
-            self.file_path = os.path.join(self.model_dir, self.config.name + "_dataset.json")
+            self.file_path = os.path.join(model_dir, self.config.name + "_dataset.json")
         else:
-            self.file_path = os.path.join(self.model_dir,
+            self.file_path = os.path.join(model_dir,
                                           "{0}_{1}_{2}_dataset.json".format(dataset_type, dataset_name, str(n_per_dir)))
         if not hasattr(self.config, "chunk_size"):
             self.chunk_size = 16384
