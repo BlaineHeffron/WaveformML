@@ -139,7 +139,7 @@ class PulseDataset(HDF5Dataset):
                     self.log.debug("Data info: {} ".format(di))
                     event_range = copy(di['event_range'])
                     if event_range[1] - event_range[0] + 1 > (n_per_category - current_total[category]):
-                        if not next_file_info[category]:
+                        if category not in next_file_info.keys():
                             next_file_info[category] = []
                         event_range[1] = n_per_category - current_total - 1 + event_range[0]
                         next_file_info[category].append((fp, [event_range[1] + 1, di['event_range'][1]]))
