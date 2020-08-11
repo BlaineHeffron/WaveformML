@@ -134,9 +134,14 @@ class PulseDataset(HDF5Dataset):
         while _has_files(ordered_paths_by_dir):
             for category in ordered_paths_by_dir.keys():
                 while current_total[category] < n_per_category and len(ordered_paths_by_dir[category]):
-                    fp = ordered_paths_by_dir[category].pop(0)
-                    di = self.get_path_info(fp)
-                    event_range = copy(di['event_range'])
+                    if category in next_file_info.keys():
+                        fp = next_file_info[category][0]
+                        di = self.get_path_info(fp)
+                        event_range = next_file_info[category][1]
+                    else:
+                        fp = ordered_paths_by_dir[category].pop(0)
+                        di = self.get_path_info(fp)
+                        event_range = copy(di['event_range'])
                     if event_range[1] - event_range[0] + 1 > (n_per_category - current_total[category]):
                         if category not in next_file_info.keys():
                             next_file_info[category] = []
