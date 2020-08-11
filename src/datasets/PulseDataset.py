@@ -133,7 +133,7 @@ class PulseDataset(HDF5Dataset):
             for fp in ordered_paths_by_dir[cat]:
                 di = self.get_path_info(fp)
                 n_events = di['event_range'][1] - di['event_range'][0] + 1
-                if len(self.shuffle_queue) < cur_file:
+                if len(self.shuffle_queue) <= cur_file:
                     self.shuffle_queue.append({cat: []})
                 if n_events <= n_per_category - current_total[cat]:
                     self.shuffle_queue[cur_file][cat].append((fp,copy(di['event_range'])))
@@ -142,9 +142,8 @@ class PulseDataset(HDF5Dataset):
                     subrange = [di['event_range'][0], n_per_category - 1]
                     setbreak = False
                     while subrange[1] <= di['event_range'][1]:
-                        if len(self.shuffle_queue) < cur_file:
+                        if len(self.shuffle_queue) <= cur_file:
                             self.shuffle_queue.append({cat: []})
-                        self.log.debug("Shuffle queue is {0} long, current file is {1}".format(len(self.shuffle_queue),cur_file))
                         self.shuffle_queue[cur_file][cat].append((fp, subrange))
                         cur_file += 1
                         subrange[0] += n_per_category
