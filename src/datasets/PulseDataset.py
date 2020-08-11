@@ -204,7 +204,7 @@ class PulseDataset(HDF5Dataset):
                                      start=current_file_chunk[cat] * chunksize)
                     if not chunk.size:
                         self.log.warning("no chunk for category {0} found")
-                        data_queue[cat] = None
+                        data_queue[cat] = 0
                     else:
                         data_queue[cat] = chunk
                         current_file_chunk[cat] += 1
