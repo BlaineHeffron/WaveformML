@@ -2,8 +2,7 @@ import os
 from copy import copy
 from torch.utils.data import get_worker_info
 import logging
-from numpy import int8, array
-from pandas import DataFrame, concat as pdconcat, read_hdf
+from numpy import int8, where as npwhere, concatenate, empty
 
 from src.datasets.HDF5Dataset import *
 from src.utils.util import DictionaryUtility, save_object_to_file, read_object_from_file
@@ -163,53 +162,75 @@ class PulseDataset(HDF5Dataset):
                         self.shuffle_queue[cur_file][cat].append((fp, copy(subrange)))
                         current_total[cat] = subrange[1] - subrange[0] + 1
 
-    def _get_where(self, file_info):
-        info = self.get_path_info(file_info[0])
-        where_string = None
-        if info['n_events'] - 1 != file_info[1][1]:
-            where_string = '{0}[{1}] <= {2}'.format(self.info['coord_name'], str(self.batch_index), str(file_info[1][1]))
-        if file_info[1][0] > 0:
-            if where_string:
-                where_string += ' & {0}[{1}] >= {2}'.format(self.info['coord_name'],
-                                                            str(self.batch_index), str(file_info[1][0]))
+    def _read_chunk(self, file_info, dataset, columns):
+        with h5py.File(file_info[0], 'r', ) as h5_file:
+            ds = h5_file[dataset]
+            coords = ds[columns[0]]
+            features = ds[columns[1]]
+            info = self.get_path_info(file_info[0])
+            if info['n_events'] - 1 != file_info[1][1]:
+                if file_info[1][0] > 0:
+                    inds = npwhere((coords[:, self.batch_index] >= file_info[1][0]) & (coords[:, self.batch_index] <= file_info[1][1]))
+                else:
+                    inds = npwhere(coords[:, self.batch_index] <= file_info[1][1])
             else:
-                where_string = '{0}[{1}] >= {2}'.format(self.info['coord_name'],
-                                                        str(self.batch_index), str(file_info[1][0]))
-        return where_string
+                if file_info[1][0] > 0:
+                    inds = npwhere(coords[:, self.batch_index] >= file_info[1][0])
+                else:
+                    inds = None
+        if inds:
+            return coords[inds], features[inds]
+        else:
+            return coords, features
+
+    def _to_hdf(self, data, fname, dataset_name, columns, event_counter):
+        coords, features = data
+        h5f = h5py.File(fname, 'a')
+        ds = h5f.create_dataset(dataset_name, compression="zlib", compression_opts=6, chunk=True)
+        ds[coords].append(coords)
+        ds[features].append(features)
+        ds.attrs["nevents"] = event_counter
+        h5f.close()
+
+    def _get_index(self, data, idx):
+        inds = npwhere(data[0][:,self.batch_index] == idx)
+        return data[0][inds], data[1][inds]
+
+    def _concat(self, d1, d2):
+        if not len(d1):
+            return d2
+        return concatenate(d1[0],d2[0]), concatenate(d1[1], d2[1])
 
     def _write_shuffled(self, data_info, fname):
         self.log.debug("working on shuffling the following data into file {0}: {1}".format(fname, data_info))
-        out_df = DataFrame()
+        out_df = []
         labels = []
         n_categories = len(data_info.keys())
-        data_queue = [DataFrame()] * n_categories
+        data_queue = [[]] * n_categories
         last_id_grabbed = [-1] * n_categories
         current_file_indices = [0] * n_categories
         chunksize = int(self.chunk_size / n_categories)
         current_file_chunk = [0] * n_categories
         prepend_last_data = [False] * n_categories
         last_data = [0] * n_categories
+        columns = [self.info['coord_name'], self.info['feat_name']]
         event_counter = -1
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
             for cat in data_info.keys():
                 if isinstance(data_queue[cat], int):
                     continue
+                print(data_info)
                 self.log.debug("attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
                 self.log.debug("using dataset name {}".format(self.info['data_name']))
-                chunk = read_hdf(data_info[cat][current_file_indices[cat]][0], self.info['data_name'],
-                                 chunksize=chunksize,
-                                 where=self._get_where(data_info[cat][current_file_indices[cat]]),
-                                 start=current_file_chunk[cat] * chunksize)
-                if not chunk.empty:
+
+                chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'], columns)
+                if len(chunk) > 0 and chunk[0].size:
                     data_queue[cat] = chunk
                     current_file_chunk[cat] += 1
                 else:
                     current_file_indices[cat] += 1
                     current_file_chunk[cat] = 0
-                    chunk = read_hdf(data_info[cat][current_file_indices[cat]][0], self.info['data_name'],
-                                     chunksize=chunksize,
-                                     where=self._get_where(data_info[cat][current_file_indices[cat]]),
-                                     start=current_file_chunk[cat] * chunksize)
+                    chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'], columns)
                     if chunk.empty:
                         self.log.warning("no chunk for category {0} found")
                         data_queue[cat] = 0
@@ -221,17 +242,13 @@ class PulseDataset(HDF5Dataset):
             while all_chunks_have_data:
                 for cat in data_info.keys():
                     if prepend_last_data[cat]:
-                        tempdf = data_queue[cat].query("{0}[{1}] == {2}".format(
-                            self.info['coord_name'],
-                            str(self.batch_index), last_id_grabbed[cat]))
+                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat])
                     else:
-                        tempdf = data_queue[cat].query("{0}[{1}] == {2}".format(
-                            self.info['coord_name'],
-                            str(self.batch_index), last_id_grabbed[cat] + 1))
+                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat] + 1)
                     if not tempdf.empty:
                         if prepend_last_data[cat]:
                             tempdf[:, self.info['coord_name'], self.batch_index] = event_counter
-                            tempdf = pdconcat([last_data[cat], tempdf], ignore_index=True)
+                            tempdf = self._concat(last_data[cat], tempdf)
                             last_data[cat] = 0
                             prepend_last_data[cat] = False
                         else:
@@ -239,7 +256,7 @@ class PulseDataset(HDF5Dataset):
                             event_counter += 1
                             tempdf[:, self.info['coord_name'], self.batch_index] = event_counter
                         if last_data[cat]:
-                            out_df = pdconcat([out_df, last_data[cat]], ignore_index=True)
+                            out_df = self._concat(out_df, last_data[cat])
                             labels.append(cat)
                         last_data[cat] = tempdf
                     else:
@@ -248,14 +265,14 @@ class PulseDataset(HDF5Dataset):
                         all_chunks_have_data = False
             for cat in data_info.keys():
                 if last_data[cat]:
-                    out_df = pdconcat([out_df, last_data[cat]], ignore_index=True)
+                    out_df = self._concat(out_df, last_data[cat])
                     labels.append(cat)
-            out_df.to_hdf(fname, self.info['data_name'], complevel=9, mode='a', append=True)
-            out_df = out_df.iloc[0:0]  # clear the dataframe
+            self._to_hdf(out_df, fname, self.info['data_name'], columns, event_counter)
+            out_df = []
         if event_counter != len(labels):
             self.log.error("Labels length is not the same as event counter")
         h5f = h5py.File(fname, 'a')
-        ds = h5f.create_dataset('labels', data=labels, compression="zlib", compression_opts=9, chunk=True, dtype=int8)
+        ds = h5f.create_dataset('labels', data=labels, compression="zlib", compression_opts=6, chunk=True, dtype=int8)
         ds.attrs["nevents"] = event_counter
         h5f.close()
         self.log.debug("finished shuffling data into file {}".format(fname))
@@ -331,6 +348,7 @@ class PulseDataset3D(PulseDataset):
         super().__init__(config, n_per_dir, device, dataset_type,
                          "*Waveform3DPairSim.h5", "Waveform3DPairs",
                          "coord", "waveform",
+                         batch_index=3,
                          file_excludes=file_excludes,
                          label_name=label_name,
                          data_cache_size=data_cache_size)
