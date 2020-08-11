@@ -116,6 +116,7 @@ class PulseDataset(HDF5Dataset):
 
     def _gen_shuffle_map(self):
         self.shuffle_queue = []
+        self.log.debug("Generating shuffle map for paths {}".format(self.config.paths))
         ordered_paths_by_dir = {i: [] for i in range(len(self.config.paths))}
         n_categories = len(self.config.paths)
         n_per_category = int(self.shuffled_size / n_categories)
