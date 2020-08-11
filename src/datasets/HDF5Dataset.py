@@ -8,6 +8,7 @@ from torch.utils import data
 from numpy import where
 from os.path import dirname
 from src.utils.util import read_object_from_file, save_object_to_file
+import logging
 
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
 
@@ -67,6 +68,7 @@ class HDF5Dataset(data.Dataset):
                  data_cache_size=3):
         super().__init__()
         self.info = {}
+        self.log = logging.getLogger(__name__)
         self.num_dirs = len(file_paths)
         self.data_cache = {}
         self.data_cache_map = {}
@@ -241,6 +243,7 @@ class HDF5Dataset(data.Dataset):
 
     def get_path_info(self, file_path):
         for di in self.info['data_info']:
+            self.log.debug(di)
             if normpath(di['file_path']) == file_path:
                 return di
 
