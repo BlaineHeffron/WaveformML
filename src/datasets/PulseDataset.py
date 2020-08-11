@@ -193,6 +193,8 @@ class PulseDataset(HDF5Dataset):
         h5f.close()
 
     def _get_index(self, data, idx):
+        if not data:
+            return data
         inds = npwhere(data[0][:,self.batch_index] == idx)
         return data[0][inds], data[1][inds]
 
@@ -222,7 +224,8 @@ class PulseDataset(HDF5Dataset):
             for cat in data_info.keys():
                 if isinstance(data_queue[cat], int):
                     continue
-                print(data_info)
+                if not data_info[cat]:
+                    continue
                 self.log.debug("attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
                 self.log.debug("using dataset name {}".format(self.info['data_name']))
 
