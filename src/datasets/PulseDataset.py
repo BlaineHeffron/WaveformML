@@ -186,7 +186,7 @@ class PulseDataset(HDF5Dataset):
         event_counter = -1
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
             for cat in data_info.keys():
-                if data_queue[cat]:
+                if data_queue[cat] == 0:
                     continue
                 chunk = read_hdf(data_info[cat][current_file_indices[cat]][0], self.info['data_name'],
                                  chunksize=chunksize,
