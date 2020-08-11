@@ -140,6 +140,7 @@ class PulseDataset(HDF5Dataset):
                     current_total[cat] += n_events
                 else:
                     subrange = [di['event_range'][0], n_per_category - 1]
+                    setbreak = False
                     while subrange[1] <= di['event_range'][1]:
                         if len(self.shuffle_queue) < cur_file:
                             self.shuffle_queue.append({cat: []})
@@ -152,6 +153,8 @@ class PulseDataset(HDF5Dataset):
                             self.shuffle_queue.append({cat: []})
                             self.shuffle_queue[cur_file][cat].append((fp, subrange))
                             current_total[cat] = subrange[1] - subrange[0] + 1
+                            setbreak = True
+                        if setbreak:
                             break
 
     def _get_where(self, file_info):
