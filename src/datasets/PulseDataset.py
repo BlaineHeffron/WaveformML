@@ -123,39 +123,36 @@ class PulseDataset(HDF5Dataset):
         n_categories = len(self.config.paths)
         n_per_category = int(self.shuffled_size / n_categories)
         current_total = [0] * n_categories
-        current_file_info = {}
-        next_file_info = {}
-        next_total = [0] * n_categories
         category_map = {os.path.normpath(os.path.join(self.config.base_path, p)): i for i, p in
                         enumerate(self.config.paths)}
         self.log.debug("category map: {}".format(category_map))
         for fp in self.ordered_file_set:
             ordered_paths_by_dir[category_map[os.path.normpath(os.path.dirname(fp))]].append(fp)
-        while _has_files(ordered_paths_by_dir):
-            for category in ordered_paths_by_dir.keys():
-                while current_total[category] < n_per_category and len(ordered_paths_by_dir[category]):
-                    fp = ordered_paths_by_dir[category][0]
-                    di = self.get_path_info(fp)
-                    event_range = copy(di['event_range'])
-                    if category in next_file_info.keys():
-                        if fp == next_file_info[category][0]:
-                            event_range = next_file_info[category][1]
-                    if event_range[1] - event_range[0] + 1 > (n_per_category - current_total[category]):
-                        event_range[1] = n_per_category - current_total[category] - 1 + event_range[0]
-                        if category not in next_file_info.keys():
-                            next_file_info[category] = (fp, [event_range[1] + 1, di['event_range'][1]])
-                        next_total[category] = di['event_range'][1] - event_range[1]
-                    else:
-                        ordered_paths_by_dir[category].pop(0)
-                    current_total[category] += event_range[1] - event_range[0] + 1
-                    if category not in current_file_info.keys():
-                        current_file_info[category] = []
-                    current_file_info[category].append((fp, event_range))
-            self.shuffle_queue.append(copy(current_file_info))
-            current_file_info = {}
-            current_total = [0]*n_categories
-        if sum(next_total) > 0:
-            self.shuffle_queue.append(next_file_info)
+        for cat in ordered_paths_by_dir.keys():
+            cur_file = 0
+            for fp in ordered_paths_by_dir[cat]:
+                di = self.get_path_info(fp)
+                n_events = di['event_range'][1] - di['event_range'][0] + 1
+                if len(self.shuffle_queue) < cur_file:
+                    self.shuffle_queue.append({cat: []})
+                if n_events <= n_per_category - current_total[cat]:
+                    self.shuffle_queue[cur_file][cat].append((fp,copy(di['event_range'])))
+                    current_total[cat] += n_events
+                else:
+                    subrange = [di['event_range'][0], n_per_category - 1]
+                    while subrange[1] <= di['event_range'][1]:
+                        if len(self.shuffle_queue) < cur_file:
+                            self.shuffle_queue.append({cat: []})
+                        self.shuffle_queue[cur_file][cat].append((fp, subrange))
+                        cur_file += 1
+                        subrange[0] += n_per_category
+                        subrange[1] += n_per_category
+                        if subrange[1] > di['event_range'][1]:
+                            subrange[1] = copy(di['event_range'][1])
+                            self.shuffle_queue.append({cat: []})
+                            self.shuffle_queue[cur_file][cat].append((fp, subrange))
+                            current_total[cat] = subrange[1] - subrange[0] + 1
+                            break
 
     def _get_where(self, file_info):
         info = self.get_path_info(file_info[0])
