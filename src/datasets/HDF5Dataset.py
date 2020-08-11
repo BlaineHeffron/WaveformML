@@ -243,8 +243,9 @@ class HDF5Dataset(data.Dataset):
 
     def get_path_info(self, file_path):
         for di in self.info['data_info']:
-            self.log.debug(di)
-            if normpath(di['file_path']) == file_path:
+            self.log.debug(di['file_path'])
+            self.log.debug(file_path)
+            if di['file_path'] == file_path:
                 return di
 
     def get_data_infos(self, data_type):
