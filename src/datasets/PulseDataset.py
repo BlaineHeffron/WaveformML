@@ -139,23 +139,20 @@ class PulseDataset(HDF5Dataset):
                     self.shuffle_queue[cur_file][cat].append((fp,copy(di['event_range'])))
                     current_total[cat] += n_events
                 else:
-                    subrange = [di['event_range'][0], n_per_category - 1]
-                    setbreak = False
+                    subrange = [di['event_range'][0], n_per_category - 1 - current_total[cat]]
                     while subrange[1] <= di['event_range'][1]:
                         if len(self.shuffle_queue) <= cur_file:
                             self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         self.shuffle_queue[cur_file][cat].append((fp, subrange))
                         cur_file += 1
+                        current_total[cat] = 0
                         subrange[0] += n_per_category
                         subrange[1] += n_per_category
-                        if subrange[1] > di['event_range'][1]:
-                            subrange[1] = copy(di['event_range'][1])
-                            self.shuffle_queue.append({cat: []})
-                            self.shuffle_queue[cur_file][cat].append((fp, subrange))
-                            current_total[cat] = subrange[1] - subrange[0] + 1
-                            setbreak = True
-                        if setbreak:
-                            break
+                    if subrange[1] > di['event_range'][1]:
+                        subrange[1] = copy(di['event_range'][1])
+                        self.shuffle_queue.append({cat: []})
+                        self.shuffle_queue[cur_file][cat].append((fp, subrange))
+                        current_total[cat] = subrange[1] - subrange[0] + 1
 
     def _get_where(self, file_info):
         info = self.get_path_info(file_info[0])
