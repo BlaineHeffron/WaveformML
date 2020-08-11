@@ -194,6 +194,8 @@ class PulseDataset(HDF5Dataset):
             for cat in data_info.keys():
                 if isinstance(data_queue[cat], int):
                     continue
+                self.log.debug("attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
+                self.log.debug("using dataset name {}".format(self.info['data_name']))
                 chunk = read_hdf(data_info[cat][current_file_indices[cat]][0], self.info['data_name'],
                                  chunksize=chunksize,
                                  where=self._get_where(data_info[cat][current_file_indices[cat]]),
