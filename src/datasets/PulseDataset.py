@@ -133,6 +133,7 @@ class PulseDataset(HDF5Dataset):
             for fp in ordered_paths_by_dir[cat]:
                 self.log.debug("determining where to place events from file {0}".format(fp))
                 di = self.get_path_info(fp)
+                self.log.debug("data info: {}".format(di))
                 n_events = di['event_range'][1] - di['event_range'][0] + 1
                 if len(self.shuffle_queue) <= cur_file:
                     self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
