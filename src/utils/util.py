@@ -147,9 +147,11 @@ def save_path(model_folder, model_name, exp_name):
 
 def save_object_to_file(obj, path, fmt="json"):
     if fmt == "json":
-        json.dump(obj, path, indent=2)
+        with open(path, 'w') as f:
+            json.dump(obj, f, indent=2)
     else:
-        pickle.dump(obj, path)
+        with open(path, 'w') as f:
+            pickle.dump(obj, f)
 
 
 def read_object_from_file(path, fmt="json"):
