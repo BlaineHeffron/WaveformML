@@ -124,6 +124,7 @@ class PulseDataset(HDF5Dataset):
         next_file_info = {}
         next_total = [0] * n_categories
         category_map = {os.path.normpath(os.path.dirname(p)): i for i, p in enumerate(self.config.paths)}
+        self.log.debug("category map: {}".format(category_map))
         for fp in self.ordered_file_set:
             ordered_paths_by_dir[category_map[os.path.normpath(os.path.dirname(fp))]].append(fp)
         while _has_files(ordered_paths_by_dir):
