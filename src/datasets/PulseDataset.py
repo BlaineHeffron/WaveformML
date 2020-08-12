@@ -279,6 +279,7 @@ class PulseDataset(HDF5Dataset):
                 coord_len, feat_len, dtypecoord, dtypefeat = self._get_coord_feat_len(data)
                 break
             break
+        self.log.debug("Initializing a length {0} dataset for {1}".format(total_rows, data_info))
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
     def _write_shuffled(self, data_info, fname):
