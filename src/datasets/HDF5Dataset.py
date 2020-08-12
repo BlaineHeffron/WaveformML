@@ -145,7 +145,7 @@ class HDF5Dataset(data.Dataset):
         coords, vals, y = self._concat_range(index, coords, vals, di)
 
         #coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
-        vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
+        #vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
         #self.log.debug("now coords size is ", coords.size())
         #self.log.debug("now vals size is ", vals.size())
         #self.log.debug("y size is ", y.size())
@@ -170,13 +170,13 @@ class HDF5Dataset(data.Dataset):
             coords = coords[0:ind, :]
             vals = vals[0:ind, :]
         if self.info['label_name'] is None:
-            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
-                                      (di['event_range'][1] + 1 - di['event_range'][0],),
-                                      di['dir_index'], dtype=torch.int64, device=self.device)
-            # y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
+            #y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
+            #                          (di['event_range'][1] + 1 - di['event_range'][0],),
+            #                          di['dir_index'], dtype=torch.int64, device=self.device)
+            y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
         else:
             y = self.get_data(self.info['label_name'], index)
-            y = torch.tensor(y, device=self.device, dtype=torch.int64)
+            #y = torch.tensor(y, device=self.device, dtype=torch.int64)
         return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
