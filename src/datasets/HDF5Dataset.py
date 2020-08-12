@@ -84,6 +84,7 @@ class HDF5Dataset(data.Dataset):
         self.info["label_name"] = label_name
         self.info["events_per_dir"] = events_per_dir
         self.group_mode = False
+        self.ordered_file_set = []
         # Search for all h5 files
         all_files = []
         for i, file_path in enumerate(file_paths):
@@ -122,7 +123,6 @@ class HDF5Dataset(data.Dataset):
 
             # print("file excludes ",file_excludes)
             # print(ordered_file_set)
-            self.ordered_file_set = []
             for h5dataset_fp in ordered_file_set:
                 dir_index = self.file_paths.index(dirname(h5dataset_fp))
                 if self.n_events[dir_index] >= self.info['events_per_dir']:
