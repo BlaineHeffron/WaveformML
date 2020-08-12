@@ -183,7 +183,13 @@ class HDF5Dataset(data.Dataset):
             # add data to the data cache
             idx = self._add_to_cache(dataset, file_path)
 
-        self.data_cache_map[file_path] = idx
+        if self.group_mode:
+            if not file_path in self.data_cache_map:
+                self.data_cache_map[file_path] = {dataset_name:idx}
+            else:
+                self.data_cache_map[file_path][dataset_name] = idx
+        else:
+            self.data_cache_map[file_path] = idx
         self.info['data_info'].append({'file_path': file_path,
                                        'name': dataset_name,
                                        'modified': modified,
@@ -237,10 +243,13 @@ class HDF5Dataset(data.Dataset):
 
                         # find the beginning index of the hdf5 file we are looking for
                         file_idx = next(i for i, v in enumerate(self.info['data_info'])
-                                        if v['file_path'] == file_path)
+                                        if v['file_path'] == file_path and v['name'] == dname)
 
                         # the data info should have the same index since we loaded it in the same way
-                        self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']] = idx
+                        if not file_path in self.data_cache_map:
+                            self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']] = {dname: idx}
+                        else:
+                            self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']][dname] = idx
                 else:
                     idx = self._add_to_cache(group, file_path)
                     # find the beginning index of the hdf5 file we are looking for
@@ -256,7 +265,11 @@ class HDF5Dataset(data.Dataset):
             removal_keys.remove(file_path)
             self.data_cache.pop(removal_keys[0])
             # remove invalid cache_idx
-            self.data_cache_map[removal_keys[0]] = -1
+            if self.group_mode:
+                for key in self.data_cache_map[removal_keys[0]].keys():
+                    self.data_cache_map[removal_keys[0]][key] = -1
+            else:
+                self.data_cache_map[removal_keys[0]] = -1
 
     def _add_to_cache(self, data, file_path):
         """Adds data to the cache and returns its index. There is one cache
@@ -295,7 +308,10 @@ class HDF5Dataset(data.Dataset):
             self._load_data(fp)
 
         # get new cache_idx assigned by _load_data_info
-        cache_idx = self.data_cache_map[self.get_data_infos(data_type)[i]['file_path']]
+        if self.group_mode:
+            cache_idx = self.data_cache_map[self.get_data_infos(data_type)[i]['file_path']][data_type]
+        else:
+            cache_idx = self.data_cache_map[self.get_data_infos(data_type)[i]['file_path']]
         return self.data_cache[fp][cache_idx]
 
     def get_file_list(self):
