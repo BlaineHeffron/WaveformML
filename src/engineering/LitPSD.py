@@ -29,6 +29,7 @@ class LitPSD(pl.LightningModule):
 
     def prepare_data(self):
         self.data_module.prepare_data()
+        self.data_module.setup()
 
     def train_dataloader(self):
         return self.data_module.train_dataloader()
