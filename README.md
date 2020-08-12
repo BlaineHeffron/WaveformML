@@ -10,8 +10,6 @@ First, install prerequisites:
     conda install json
     conda install yaml
     conda install hdf5
-    conda install pytables
-    conda install pandas
 
 Then install pytorch version 1.6 or higher, see https://pytorch.org/get-started/locally/
 
