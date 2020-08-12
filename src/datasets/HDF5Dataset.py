@@ -6,7 +6,7 @@ from os.path import getmtime, normpath
 import torch
 from torch.utils import data
 from numpy import where
-from os.path import dirname
+from os.path import dirname, abspath
 from src.utils.util import read_object_from_file, save_object_to_file
 import logging
 
@@ -85,7 +85,7 @@ class HDF5Dataset(data.Dataset):
         self.info["events_per_dir"] = events_per_dir
         # Search for all h5 files
         all_files = []
-        for i, file_path in enumerate(file_paths):
+        for i, abspath(file_path) in enumerate(file_paths):
             p = Path(file_path)
             assert (p.is_dir())
             if recursive:
