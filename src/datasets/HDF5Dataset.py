@@ -5,7 +5,7 @@ from pathlib import Path
 from os.path import getmtime, normpath
 import torch
 from torch.utils import data
-from numpy import where, full, int64
+from numpy import where, full, int64, int8
 from os.path import dirname, abspath
 from src.utils.util import read_object_from_file, save_object_to_file
 import logging
@@ -157,7 +157,7 @@ class HDF5Dataset(data.Dataset):
         if self.info['label_name'] is None:
         #    y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1, ), (di['event_range'][1] + 1,),
         #                             di['dir_index'], dtype=torch.int64, device=self.device)
-            y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int64)
+            y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
         else:
             y = self.get_data(self.info['label_name'], index)
             #y = torch.tensor(y, device=self.device, dtype=torch.int64)
