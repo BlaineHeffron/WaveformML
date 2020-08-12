@@ -4,7 +4,7 @@ from torch.utils.data import get_worker_info
 from src.utils.util import config_equals, unique_path_combine
 
 import logging
-from numpy import where as npwhere, concatenate, empty, array, int8
+from numpy import asarray, concatenate, empty, array, int8
 
 from src.datasets.HDF5Dataset import *
 from src.utils.util import DictionaryUtility, save_object_to_file, read_object_from_file
@@ -179,13 +179,13 @@ class PulseDataset(HDF5Dataset):
             info = self.get_path_info(file_info[0])
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
-                    inds = npwhere((coords[:, self.batch_index] >= file_info[1][0]) & (
+                    inds = self._npwhere((coords[:, self.batch_index] >= file_info[1][0]) & (
                                 coords[:, self.batch_index] <= file_info[1][1]))
                 else:
-                    inds = npwhere(coords[:, self.batch_index] <= file_info[1][1])
+                    inds = self._npwhere(coords[:, self.batch_index] <= file_info[1][1])
             else:
                 if file_info[1][0] > 0:
-                    inds = npwhere(coords[:, self.batch_index] >= file_info[1][0])
+                    inds = self._npwhere(coords[:, self.batch_index] >= file_info[1][0])
                 else:
                     inds = None
         if inds:
@@ -233,7 +233,7 @@ class PulseDataset(HDF5Dataset):
     def _get_index(self, data, idx, offset):
         if not data:
             return data
-        inds = npwhere(data[0][:, self.batch_index] == idx + offset)
+        inds = self._npwhere(data[0][:, self.batch_index] == idx + offset)
         return data[0][inds], data[1][inds]
 
     def _not_empty(self, chunk):
@@ -252,6 +252,9 @@ class PulseDataset(HDF5Dataset):
             feats = h5_file[self.info['data_name']][self.info['feat_name']]
             return coords.shape[1], feats.shape[1], coords.dtype, feats.dtype
 
+    def _npwhere(self,cond):
+        return asarray(cond).nonzero()
+
     def _get_length(self, file_info):
         length = 0
         with h5py.File(file_info[0], 'r', ) as h5_file:
@@ -259,13 +262,13 @@ class PulseDataset(HDF5Dataset):
             info = self.get_path_info(file_info[0])
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
-                    length = npwhere((coords[:, self.batch_index] >= file_info[1][0]) &
+                    length = self._npwhere((coords[:, self.batch_index] >= file_info[1][0]) &
                                        coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
                 else:
-                    length = npwhere(coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
+                    length = self._npwhere(coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
             else:
                 if file_info[1][0] > 0:
-                    length = npwhere(coords[:, self.batch_index] >= file_info[1][0])[0].shape[0]
+                    length = self._npwhere(coords[:, self.batch_index] >= file_info[1][0])[0].shape[0]
                 else:
                     length = coords.shape[0]
         self.log.debug("found a length of {0} for file {1} using range {2} - {3}".format(length,file_info[0],
