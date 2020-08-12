@@ -128,7 +128,7 @@ class HDF5Dataset(data.Dataset):
                     continue
                 self.ordered_file_set.append(str(h5dataset_fp.resolve()))
                 self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
-        self.log.debug("ordered file set is {}".format(ordered_file_set))
+        self.log.debug("ordered file set is {}".format(self.ordered_file_set))
 
     def __getitem__(self, index):
         # get data
