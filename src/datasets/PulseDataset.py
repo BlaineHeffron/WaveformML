@@ -189,18 +189,30 @@ class PulseDataset(HDF5Dataset):
         else:
             return coords, features
 
+    def _select_chunk_size(self, shape):
+        if 10000 > shape[0]:
+            return shape[0]
+        else:
+            if shape[0]/10000. < 1.5:
+                return shape[0]
+            return 10000
+
     def _to_hdf(self, data, labels, fname, dataset_name, columns, event_counter):
         coords, features = data
         with h5py.File(fname, mode='w') as h5f:
             if dataset_name not in h5f.keys():
+                csize = self._select_chunk_size(coords.shape)
+                fsize = self._select_chunk_size(features.shape)
+                lsize = self._select_chunk_size(labels.shape)
+
                 dc = h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,
-                                        data=coords, chunks=(10000,coords.shape[1]))
+                                        data=coords, chunks=(csize,coords.shape[1]))
                 dc.flush()
                 df = h5f.create_dataset(dataset_name + "/" + columns[1], compression="gzip", compression_opts=6,
-                                   data=features, chunks=(10000,features.shape[1]))
+                                   data=features, chunks=(fsize,features.shape[1]))
                 df.flush()
                 dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
-                                        data=labels, chunks=(10000,), dtype=int8)
+                                        data=labels, chunks=(lsize,), dtype=int8)
                 dl.flush()
                 h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
                 h5f.flush()
