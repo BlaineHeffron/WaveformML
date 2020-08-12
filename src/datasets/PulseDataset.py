@@ -336,7 +336,7 @@ class PulseDataset(HDF5Dataset):
             for cat in data_info.keys():
                 if last_data[cat]:
                     self.log.debug("shape to add: {}".format(last_data[cat][0].shape))
-                    self.log.debug("shape existing: {}".format(out_df[0].shape)
+                    self.log.debug("shape existing: {}".format(out_df[0].shape))
                     out_df[0][current_row_index:current_row_index+last_data[cat][0].shape[0]] = last_data[cat][0]
                     out_df[1][current_row_index:current_row_index+last_data[cat][0].shape[0]] = last_data[cat][1]
                     current_row_index += last_data[cat][0].shape[0]
