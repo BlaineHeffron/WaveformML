@@ -103,7 +103,6 @@ class HDF5Dataset(data.Dataset):
                     continue
                 self.ordered_file_set.append(str(h5dataset_fp.resolve()))
                 self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
-
         else:
             # reorder according to events in each dir
             tally = [0] * len(all_files)  # event tally for each directory
@@ -123,13 +122,13 @@ class HDF5Dataset(data.Dataset):
             # print("file excludes ",file_excludes)
             # print(ordered_file_set)
             self.ordered_file_set = []
-            self.log.debug("ordered file set is {}".format(ordered_file_set))
             for h5dataset_fp in ordered_file_set:
                 dir_index = self.file_paths.index(dirname(h5dataset_fp))
                 if self.n_events[dir_index] >= self.info['events_per_dir']:
                     continue
                 self.ordered_file_set.append(str(h5dataset_fp.resolve()))
                 self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
+        self.log.debug("ordered file set is {}".format(ordered_file_set))
 
     def __getitem__(self, index):
         # get data
