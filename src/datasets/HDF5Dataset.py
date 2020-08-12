@@ -83,6 +83,7 @@ class HDF5Dataset(data.Dataset):
         self.info["feat_name"] = feature_name
         self.info["label_name"] = label_name
         self.info["events_per_dir"] = events_per_dir
+        self.group_mode = False
         # Search for all h5 files
         all_files = []
         for i, file_path in enumerate(file_paths):
@@ -133,9 +134,16 @@ class HDF5Dataset(data.Dataset):
 
     def __getitem__(self, index):
         # get data
-        coords, vals = self.get_data(self.info['data_name'], index)
+        if self.group_mode:
+            coords = self.get_data(self.info['coord_name'], index)
+            vals = self.get_data(self.info['feat_name'], index)
+        else:
+            coords, vals = self.get_data(self.info['data_name'], index)
         ind = 0
-        di = self.get_data_infos(self.info['data_name'])[index]
+        if self.group_mode:
+            di = self.get_data_infos(self.info['coord_name'])[index]
+        else:
+            di = self.get_data_infos(self.info['data_name'])[index]
         if di['event_range'][1] + 1 < di['n_events']:
             ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
@@ -199,9 +207,11 @@ class HDF5Dataset(data.Dataset):
             # Walk through all groups, extracting datasets
             for gname, group in h5_file.items():
                 if hasattr(group, "items"):
+                    self.group_mode = True
                     for dname, ds in group.items():
                         self._add_data_block(ds, dname, file_path, load_data, n, dir_index, n_file_events, modified)
                 else:
+                    self.group_mode = False
                     self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
 
     def _get_dir_index(self, file_path):
@@ -248,9 +258,15 @@ class HDF5Dataset(data.Dataset):
         list for every file_path, containing all datasets in that file.
         """
         if file_path not in self.data_cache:
-            self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
+            if self.group_mode:
+                self.data_cache[file_path] = [data[()]]
+            else:
+                self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
         else:
-            self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
+            if self.group_mode:
+                self.data_cache[file_path].append(data[()])
+            else:
+                self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
         return len(self.data_cache[file_path]) - 1
 
     def get_path_info(self, file_path):
