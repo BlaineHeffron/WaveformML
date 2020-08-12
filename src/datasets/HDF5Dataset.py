@@ -74,7 +74,7 @@ class HDF5Dataset(data.Dataset):
         self.data_cache_map = {}
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
         self.device = device
-        self.file_paths = file_paths
+        self.file_paths = [normpath(abspath(f)) for f in file_paths]
         self.info["file_paths"] = self.file_paths
         self.info["data_info"] = []
         self.info["data_cache_size"] = data_cache_size
@@ -86,7 +86,7 @@ class HDF5Dataset(data.Dataset):
         # Search for all h5 files
         all_files = []
         for i, file_path in enumerate(file_paths):
-            p = Path(abspath(file_path))
+            p = Path(normpath(abspath(file_path)))
             assert (p.is_dir())
             if recursive:
                 files = sorted(p.glob('**/{0}'.format(file_pattern)), key=lambda e: _sort_pattern(e))
@@ -96,31 +96,40 @@ class HDF5Dataset(data.Dataset):
                 raise RuntimeError('No hdf5 datasets found')
             all_files.append(files)
 
-        # reorder according to events in each dir
-        tally = [0] * len(all_files)  # event tally for each directory
-        ordered_file_set = []
-        while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 \
-                and _needs_more_data(tally, events_per_dir, all_files):
-            for i, file_set in enumerate(all_files):
-                while len(file_set) > 0 and tally[i] < events_per_dir:
-                    if file_excludes and str(file_set[0].resolve()) in file_excludes:
-                        file_set.pop(0)
-                    else:
-                        ordered_file_set.append(file_set.pop(0))
-                        tally[i] += self._get_event_num(ordered_file_set[-1])
-                        if not tally[i] < max(tally):
-                            break
+        if len(all_files) == 1:
+            for h5dataset_fp in all_files[0]:
+                dir_index = 0
+                if self.n_events[dir_index] >= self.info['events_per_dir']:
+                    continue
+                self.ordered_file_set.append(str(h5dataset_fp.resolve()))
+                self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
 
-        # print("file excludes ",file_excludes)
-        # print(ordered_file_set)
-        self.ordered_file_set = []
-        self.log.debug("ordered file set is {}".format(ordered_file_set))
-        for h5dataset_fp in ordered_file_set:
-            dir_index = self.file_paths.index(dirname(h5dataset_fp))
-            if self.n_events[dir_index] >= self.info['events_per_dir']:
-                continue
-            self.ordered_file_set.append(str(h5dataset_fp.resolve()))
-            self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
+        else:
+            # reorder according to events in each dir
+            tally = [0] * len(all_files)  # event tally for each directory
+            ordered_file_set = []
+            while sum([len(all_files[i]) for i in range(len(all_files))]) > 0 \
+                    and _needs_more_data(tally, events_per_dir, all_files):
+                for i, file_set in enumerate(all_files):
+                    while len(file_set) > 0 and tally[i] < events_per_dir:
+                        if file_excludes and str(file_set[0].resolve()) in file_excludes:
+                            file_set.pop(0)
+                        else:
+                            ordered_file_set.append(file_set.pop(0))
+                            tally[i] += self._get_event_num(ordered_file_set[-1])
+                            if not tally[i] < max(tally):
+                                break
+
+            # print("file excludes ",file_excludes)
+            # print(ordered_file_set)
+            self.ordered_file_set = []
+            self.log.debug("ordered file set is {}".format(ordered_file_set))
+            for h5dataset_fp in ordered_file_set:
+                dir_index = self.file_paths.index(dirname(h5dataset_fp))
+                if self.n_events[dir_index] >= self.info['events_per_dir']:
+                    continue
+                self.ordered_file_set.append(str(h5dataset_fp.resolve()))
+                self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
 
     def __getitem__(self, index):
         # get data
