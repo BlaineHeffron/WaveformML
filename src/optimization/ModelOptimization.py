@@ -81,12 +81,15 @@ class ModelOptimization:
     def parse_config(self):
         if not hasattr(self.optuna_config, "hyperparameters"):
             raise IOError(
-                "No hyperparameters found in optuna config. You must set the hyperparameters to a dictionary of key: value where key is hte path to the hyperparameter in the config file, and value is an array of two elements bounding the range of the parameter")
+                "No hyperparameters found in optuna config. You must set the hyperparameters to a dictionary of key: "
+                "value where key is hte path to the hyperparameter in the config file, and value is an array of two "
+                "elements bounding the range of the parameter")
         for h in self.hyperparameters_bounds.keys():
             i = 0
             path_list = h.split("/")
             path_list = [p for p in path_list if p]
             plen = len(path_list)
+            myobj = None
             for j, name in enumerate(path_list):
                 if not name:
                     continue
@@ -97,7 +100,8 @@ class ModelOptimization:
                 else:
                     myobj = get_from_path(self.config, name)
                 i += 1
-            self.hyperparameters[h] = myobj
+            if myobj:
+                self.hyperparameters[h] = myobj
 
     def modify_config(self, trial):
         for hp in self.hyperparameters.keys():
@@ -125,8 +129,7 @@ class ModelOptimization:
         log_folder = logger.log_dir
         if not os.path.exists(log_folder):
             os.makedirs(log_folder, exist_ok=True)
-        psd_callbacks = PSDCallbacks(self.config)
-        trainer_args = psd_callbacks.set_args(self.trainer_args)
+        trainer_args = self.trainer_args
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
                 os.path.join(self.study_dir, "trial_{}".format(trial.number), "{epoch}"),
@@ -142,8 +145,7 @@ class ModelOptimization:
         # save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        "trial_{}".format(trial.number), "train_args")
         metrics_callback = MetricsCallback()
-        cbs = psd_callbacks.callbacks
-        cbs.append(metrics_callback)
+        cbs = [metrics_callback]
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config)

@@ -69,9 +69,9 @@ class LitPSD(pl.LightningModule):
         #self.log.debug("Shape of labels: {}".format(targets.shape))
         for c, f, target in zip(coo, feat, targets):
             c, f, target = self.convert_to_tensors(c, f, target)
-            self.log.debug("type of coords: {}".format(c.storage_type()))
-            self.log.debug("type of features: {}".format(f.storage_type()))
-            self.log.debug("type of labels: {}".format(target.storage_type()))
+            #self.log.debug("type of coords: {}".format(c.storage_type()))
+            #self.log.debug("type of features: {}".format(f.storage_type()))
+            #self.log.debug("type of labels: {}".format(target.storage_type()))
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
