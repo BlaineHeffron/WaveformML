@@ -146,7 +146,7 @@ class HDF5Dataset(data.Dataset):
         if di['event_range'][1] + 1 < di['n_events']:
             ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         #coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
-        #vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
+        vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
         # print("coords size is ", coords.size())
         # print("vals size is ", vals.size())
         if ind > 0:
@@ -155,12 +155,12 @@ class HDF5Dataset(data.Dataset):
 
         # get label
         if self.info['label_name'] is None:
-        #    y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1, ), (di['event_range'][1] + 1,),
-        #                             di['dir_index'], dtype=torch.int64, device=self.device)
-            y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
+            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1, ), (di['event_range'][1] + 1,),
+                                     di['dir_index'], dtype=torch.int64, device=self.device)
+            #y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
         else:
-            y = self.get_data(self.info['label_name'], index)
-            #y = torch.tensor(y, device=self.device, dtype=torch.int64)
+            #y = self.get_data(self.info['label_name'], index)
+            y = torch.tensor(y, device=self.device, dtype=torch.int64)
         # print("now coords size is ", coords.size())
         # print("now vals size is ", vals.size())
         # print("y size is ", y.size())
