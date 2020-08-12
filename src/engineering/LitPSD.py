@@ -26,7 +26,6 @@ class LitPSD(pl.LightningModule):
     def forward(self, x, *args, **kwargs):
         return self.model(x)
 
-    """
     def prepare_data(self):
         self.data_module.prepare_data()
 
@@ -35,7 +34,6 @@ class LitPSD(pl.LightningModule):
 
     def val_dataloader(self):
         return self.data_module.val_dataloader()
-    """
 
     def configure_optimizers(self):
         optimizer = \
