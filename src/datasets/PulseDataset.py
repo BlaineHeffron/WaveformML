@@ -339,17 +339,18 @@ class PulseDataset(HDF5Dataset):
             else:
                 fname = "Combined_{0}_{1}".format(shuffle_length - 1, self.file_mask)
             self._write_shuffled(self.shuffle_queue.pop(), os.path.join(self.data_dir, fname))
-        if not get_worker_info():
-            self.log.info("Shuffling dataset finished. Setting the dataset to the new directory")
-            super().__init__([self.data_dir],
-                             self.file_mask, self.info['data_name'],
-                             self.info['coord_name'], self.info['feat_name'],
-                             self.info['events_per_dir'],
-                             self.device,
-                             label_name='labels',
-                             data_cache_size=self.info['data_cache_size'])
-            self.log.info("Writing shuffled dataset information to {}.".format(self.file_path))
-            self.save_info_to_file()
+        worker_info = get_worker_info()
+        self.log.debug("Worker info: {}".format(worker_info))
+        self.log.info("Shuffling dataset finished. Setting the dataset to the new directory")
+        super().__init__([self.data_dir],
+                         self.file_mask, self.info['data_name'],
+                         self.info['coord_name'], self.info['feat_name'],
+                         self.info['events_per_dir'],
+                         self.device,
+                         label_name='labels',
+                         data_cache_size=self.info['data_cache_size'])
+        self.log.info("Writing shuffled dataset information to {}.".format(self.file_path))
+        self.save_info_to_file()
 
 
 class PulseDataset2D(PulseDataset):
