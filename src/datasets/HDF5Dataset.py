@@ -138,7 +138,7 @@ class HDF5Dataset(data.Dataset):
             di = self.get_data_infos(self.info['data_name'])[index]
         # get data
         if self.group_mode:
-            self.log.debug("getting coord and feat in group mode for index {}".format(index))
+            #self.log.debug("getting coord and feat in group mode for index {}".format(index))
             coords = self.get_data(self.info['coord_name'], index)
             vals = self.get_data(self.info['feat_name'], index)
         else:
@@ -147,12 +147,12 @@ class HDF5Dataset(data.Dataset):
 
         #coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         #vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
-        self.log.debug("now coords size is {}".format(coords.size))
-        self.log.debug("now vals size is {}".format(vals.size))
-        self.log.debug("y size is {}".format(y.size))
-        self.log.debug("shape of coords: {}".format(coords.shape))
-        self.log.debug("shape of features: {} ".format(vals.shape))
-        self.log.debug("shape of labels: {} ".format(y.shape))
+        #self.log.debug("now coords size is {}".format(coords.size))
+        #self.log.debug("now vals size is {}".format(vals.size))
+        #self.log.debug("y size is {}".format(y.size))
+        #self.log.debug("shape of coords: {}".format(coords.shape))
+        #self.log.debug("shape of features: {} ".format(vals.shape))
+        #self.log.debug("shape of labels: {} ".format(y.shape))
         return [coords, vals], y
 
     def __len__(self):
@@ -247,9 +247,9 @@ class HDF5Dataset(data.Dataset):
                     for dname, ds in group.items():
                         # add data to the data cache and retrieve
                         # the cache index
-                        self.log.debug("adding {0} to cache from file {1}".format(dname,file_path))
-                        if ds:
-                            self.log.debug("size of dataset: {}".format(ds.size))
+                        #self.log.debug("adding {0} to cache from file {1}".format(dname,file_path))
+                        #if ds:
+                        #    self.log.debug("size of dataset: {}".format(ds.size))
                         idx = self._add_to_cache(ds, file_path)
 
                         # find the beginning index of the hdf5 file we are looking for
@@ -315,7 +315,7 @@ class HDF5Dataset(data.Dataset):
             not part of the data cache.
         """
         fp = self.get_data_infos(data_type)[i]['file_path']
-        self.log.debug("file path is {}".format(fp))
+        #self.log.debug("file path is {}".format(fp))
         if fp not in self.data_cache:
             self._load_data(fp)
 

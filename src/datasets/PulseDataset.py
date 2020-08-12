@@ -133,7 +133,7 @@ class PulseDataset(HDF5Dataset):
         current_total = [0] * n_categories
         category_map = {os.path.normpath(os.path.join(self.config.base_path, p)): i for i, p in
                         enumerate(self.config.paths)}
-        self.log.debug("category map: {}".format(category_map))
+        #self.log.debug("category map: {}".format(category_map))
         for fp in self.ordered_file_set:
             ordered_paths_by_dir[category_map[os.path.normpath(os.path.dirname(fp))]].append(fp)
         for cat in ordered_paths_by_dir.keys():
@@ -259,11 +259,11 @@ class PulseDataset(HDF5Dataset):
         length = 0
         with h5py.File(file_info[0], 'r', ) as h5_file:
             coords = h5_file[self.info['data_name']][self.info['coord_name']]
+            #self.log.debug("coords shape is {}".format(coords.shape))
             info = self.get_path_info(file_info[0])
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
-                    length = self._npwhere((coords[:, self.batch_index] >= file_info[1][0]) &
-                                       coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
+                    length = self._npwhere((file_info[1][0] <= coords[:, self.batch_index]) & (coords[:, self.batch_index] <= file_info[1][1]))[0].shape[0]
                 else:
                     length = self._npwhere(coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
             else:
@@ -271,9 +271,9 @@ class PulseDataset(HDF5Dataset):
                     length = self._npwhere(coords[:, self.batch_index] >= file_info[1][0])[0].shape[0]
                 else:
                     length = coords.shape[0]
-        self.log.debug("found a length of {0} for file {1} using range {2} - {3}".format(length,file_info[0],
-                                                                                         file_info[1][0],
-                                                                                         file_info[1][1]))
+        #self.log.debug("found a length of {0} for file {1} using range {2} - {3}".format(length,file_info[0],
+        #                                                                                 file_info[1][0],
+        #                                                                                 file_info[1][1]))
         return length
 
     def _init_shuffled_dataset(self, data_info):
@@ -292,10 +292,10 @@ class PulseDataset(HDF5Dataset):
 
     def _write_shuffled(self, data_info, fname):
         self.log.info("Working on shuffling the following data into file {0}: {1}".format(fname, data_info))
-        if os.path.exists(fname[0:-3] + ".json"):
-            if config_equals(fname[0:-3] + ".json", data_info):
-                self.log.info("Already found a valid combined file: {}, skipping.".format(fname))
-                return
+        #if os.path.exists(fname[0:-3] + ".json"):
+        #    if config_equals(fname[0:-3] + ".json", data_info):
+        #        self.log.info("Already found a valid combined file: {}, skipping.".format(fname))
+        #        return
         labels = []
         out_df = self._init_shuffled_dataset(data_info)
         n_categories = len(data_info.keys())
@@ -312,9 +312,9 @@ class PulseDataset(HDF5Dataset):
                 if not data_info[cat]:
                     continue
                 if not data_queue[cat] and current_file_indices[cat] < len(data_info[cat]):
-                    self.log.debug(
-                        "attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
-                    self.log.debug("using dataset name {}".format(self.info['data_name']))
+                    #self.log.debug(
+                    #    "attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
+                    #self.log.debug("using dataset name {}".format(self.info['data_name']))
                     chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'],
                                              columns)
                     if self._not_empty(chunk):
