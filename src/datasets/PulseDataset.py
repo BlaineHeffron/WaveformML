@@ -191,7 +191,7 @@ class PulseDataset(HDF5Dataset):
 
     def _to_hdf(self, data, labels, fname, dataset_name, columns, event_counter):
         coords, features = data
-        with h5py.File(fname, mode='a') as h5f:
+        with h5py.File(fname, mode='w') as h5f:
             if dataset_name not in h5f.keys():
                 dc = h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,
                                         data=coords, chunks=(10000,coords.shape[1]))
