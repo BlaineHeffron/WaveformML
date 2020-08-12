@@ -18,6 +18,7 @@ class LitPSD(pl.LightningModule):
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
+        self.data_module = PSDDataModule(config,self.device)
         self.model = self.model_class(config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
