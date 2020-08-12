@@ -77,7 +77,10 @@ class PulseDataset(HDF5Dataset):
 
         model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
         self.data_dir = os.path.join(os.path.abspath(os.path.dirname(config.system_config.model_base_path)), "data")
-        self.data_dir = os.path.join(self.data_dir, unique_path_combine(self.config.paths))
+        if hasattr(self.config, "name"):
+            self.data_dir = os.path.join(self.data_dir, self.config.name)
+        else:
+            self.data_dir = os.path.join(self.data_dir, unique_path_combine(self.config.paths))
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
         self.dataset_dir = os.path.join(model_dir, "datasets")

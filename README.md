@@ -75,7 +75,7 @@ A full example config file is found in config/examples
     --limit_test_batches n // if int, limits number of batches used for testing to n batches. If float < 1, uses that fraction of the test batches.
     --limit_val_batches n
     --limit_train_batches n
-    --log_gpu_memory true // logs the gpu usage
+    --log_gpu_memory all | min_max // logs the gpu usage, set to min_max for only max and min usage logging
     --terminate_on_nan true // terminates when nan loss is returned
 
 Here are some that aren't currently working for some reason but look quite useful:
