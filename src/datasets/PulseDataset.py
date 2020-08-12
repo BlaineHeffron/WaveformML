@@ -203,7 +203,7 @@ class PulseDataset(HDF5Dataset):
             if dataset_name not in h5f.keys():
                 csize = self._select_chunk_size(coords.shape)
                 fsize = self._select_chunk_size(features.shape)
-                lsize = self._select_chunk_size(labels.shape)
+                lsize = self._select_chunk_size([len(labels)])
 
                 dc = h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,
                                         data=coords, chunks=(csize,coords.shape[1]))
