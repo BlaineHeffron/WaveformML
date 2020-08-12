@@ -200,7 +200,7 @@ class PulseDataset(HDF5Dataset):
                                    data=features, chunks=(10000,features.shape[1]))
                 df.flush()
                 dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
-                                        data=labels, chunks=(10000,1), dtype=int8)
+                                        data=labels, chunks=(10000,), dtype=int8)
                 dl.flush()
                 h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
                 h5f.flush()
