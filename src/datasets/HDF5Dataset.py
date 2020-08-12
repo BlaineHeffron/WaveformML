@@ -168,7 +168,10 @@ class HDF5Dataset(data.Dataset):
         return [coords, vals], y
 
     def __len__(self):
-        return len(self.get_data_infos(self.info['data_name']))
+        if self.group_mode:
+            return len(self.get_data_infos(self.info['coord_name']))
+        else:
+            return len(self.get_data_infos(self.info['data_name']))
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
                         modified):
