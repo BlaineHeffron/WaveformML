@@ -3,7 +3,7 @@ from copy import copy
 from torch.utils.data import get_worker_info
 from src.utils.util import config_equals
 import logging
-from numpy import int8, where as npwhere, concatenate, empty, int16, int32
+from numpy import where as npwhere, concatenate, empty, array, int8
 
 from src.datasets.HDF5Dataset import *
 from src.utils.util import DictionaryUtility, save_object_to_file, read_object_from_file
@@ -29,6 +29,8 @@ def _has_files(fset):
 
 def _needs_ids(data_info, last_id_retrieved, current_file_indices):
     for cat in data_info.keys():
+        if current_file_indices[cat] >= len(data_info[cat]):
+            continue
         if last_id_retrieved[cat] < data_info[cat][current_file_indices[cat]][1][1]:
             return True
     return False
@@ -139,7 +141,7 @@ class PulseDataset(HDF5Dataset):
                 if n_events <= n_per_category - current_total[cat]:
                     # self.log.debug("appending ({0}, {1}) to file {2} for category {3}".format(fp, di['event_range'],
                     #                                                                          cur_file, cat))
-                    self.shuffle_queue[cur_file][cat].append((fp, copy(di['event_range']), di['modified']))
+                    self.shuffle_queue[cur_file][cat].append([fp, copy(di['event_range']), di['modified']])
                     current_total[cat] += n_events
                 else:
                     subrange = [di['event_range'][0], n_per_category - 1 - current_total[cat]]
@@ -148,7 +150,7 @@ class PulseDataset(HDF5Dataset):
                             self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         # self.log.debug(
                         #    "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
-                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange), di['modified']))
+                        self.shuffle_queue[cur_file][cat].append([fp, copy(subrange), di['modified']])
                         cur_file += 1
                         subrange[0] = subrange[1] + 1
                         subrange[1] = di['event_range'][1] if di['event_range'][1] - subrange[0] + 1 <= n_per_category \
@@ -160,7 +162,7 @@ class PulseDataset(HDF5Dataset):
                             self.shuffle_queue.append({c: [] for c in ordered_paths_by_dir.keys()})
                         # self.log.debug(
                         #    "appending ({0}, {1}) to file {2} for category {3}".format(fp, subrange, cur_file, cat))
-                        self.shuffle_queue[cur_file][cat].append((fp, copy(subrange), di['modified']))
+                        self.shuffle_queue[cur_file][cat].append([fp, copy(subrange), di['modified']])
                         current_total[cat] = subrange[1] - subrange[0] + 1
 
     def _read_chunk(self, file_info, dataset, columns):
@@ -185,22 +187,30 @@ class PulseDataset(HDF5Dataset):
         else:
             return coords, features
 
-    def _to_hdf(self, data, fname, dataset_name, columns, event_counter):
+    def _to_hdf(self, data, labels, fname, dataset_name, columns, event_counter):
         coords, features = data
-        with h5py.File(fname, 'a') as h5f:
+        with h5py.File(fname, mode='a') as h5f:
             if dataset_name not in h5f.keys():
-                h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6, data=coords,
-                                   maxshape=(None, coords.shape[1]), chunks=True)
-                h5f.create_dataset(dataset_name + "/" + columns[1], compression="gzip", compression_opts=6,
-                                   data=features, maxshape=(None, features.shape[1]), chunks=True)
-                h5f[dataset_name].attrs["nevents"] = event_counter
+                dc = h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,
+                                        data=coords, chunks=True)
+                dc.flush()
+                df = h5f.create_dataset(dataset_name + "/" + columns[1], compression="gzip", compression_opts=6,
+                                   data=features, chunks=True)
+                df.flush()
+                dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
+                                        data=labels, chunks=True, dtype=int8)
+                dl.flush()
+                h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
+                h5f.flush()
             else:
                 h5f[dataset_name][columns[0]].resize((h5f[dataset_name][columns[0]].shape[0] + coords.shape[0]), axis=0)
                 h5f[dataset_name][columns[0]][-coords.shape[0]:, :] = coords
                 h5f[dataset_name][columns[1]].resize((h5f[dataset_name][columns[1]].shape[0] + features.shape[0]),
                                                      axis=0)
                 h5f[dataset_name][columns[1]][-features.shape[0]:, :] = features
-                h5f[dataset_name].attrs["nevents"] = event_counter
+                h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
+                h5f.flush()
+        self.log.debug("File {} written".format(fname))
 
     def _get_index(self, data, idx, offset):
         if not data:
@@ -267,88 +277,56 @@ class PulseDataset(HDF5Dataset):
         last_id_grabbed = [-1] * n_categories
         current_file_indices = [0] * n_categories
         current_row_index = 0
-        chunksize = int(self.chunk_size / n_categories)
-        current_file_chunk = [0] * n_categories
-        prepend_last_data = [False] * n_categories
-        last_data = [0] * n_categories
         columns = [self.info['coord_name'], self.info['feat_name']]
         event_counter = -1
+        ignore_cats = [False]*n_categories
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
             for cat in data_info.keys():
-                if isinstance(data_queue[cat], int):
-                    continue
                 if not data_info[cat]:
                     continue
-                self.log.debug(
-                    "attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
-                self.log.debug("using dataset name {}".format(self.info['data_name']))
-
-                chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'],
-                                         columns)
-                if self._not_empty(chunk):
-                    data_queue[cat] = chunk
-                    data_queue_offsets[cat] = data_info[cat][current_file_indices[cat]][1][0]
-                    current_file_chunk[cat] += 1
-                else:
-                    current_file_indices[cat] += 1
-                    current_file_chunk[cat] = 0
+                if not data_queue[cat] and current_file_indices[cat] < len(data_info[cat]):
+                    self.log.debug(
+                        "attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
+                    self.log.debug("using dataset name {}".format(self.info['data_name']))
                     chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'],
                                              columns)
-                    if not self._not_empty(chunk):
-                        self.log.warning("no chunk for category {0} found")
+                    if self._not_empty(chunk):
+                        data_queue[cat] = chunk
+                        ignore_cats[cat] = False
+                        data_queue_offsets[cat] = data_info[cat][current_file_indices[cat]][1][0]
+                    else:
+                        self.log.warning("Unable to retrieve data from file {}".format(data_info[cat][current_file_indices[cat]][0]))
+                        ignore_cats[cat] = True
                         data_queue[cat] = 0
                         data_queue_offsets[cat] = 0
-                    else:
-                        data_queue[cat] = chunk
-                        data_queue_offsets[cat] = data_info[cat][current_file_indices[cat]][1][0]
-                        current_file_chunk[cat] += 1
+                        current_file_indices[cat] += 1
+                else:
+                    if current_file_indices[cat] >= len(data_info[cat]):
+                        ignore_cats[cat] = True
 
             all_chunks_have_data = True
             while all_chunks_have_data:
                 for cat in data_info.keys():
-                    if prepend_last_data[cat]:
-                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat], data_queue_offsets[cat])
-                    else:
-                        tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat] + 1, data_queue_offsets[cat])
+                    tempdf = self._get_index(data_queue[cat], last_id_grabbed[cat] + 1, data_queue_offsets[cat])
                     if self._not_empty(tempdf):
-                        if prepend_last_data[cat]:
-                            tempdf[0][:, self.batch_index] = event_counter
-                            tempdf = self._concat(last_data[cat], tempdf)
-                            last_data[cat] = 0
-                            prepend_last_data[cat] = False
-                        else:
-                            last_id_grabbed[cat] += 1
-                            event_counter += 1
-                            tempdf[0][:, self.batch_index] = event_counter
-                        if last_data[cat]:
-                            out_df[0][current_row_index:current_row_index + last_data[cat][0].shape[0]] = \
-                                last_data[cat][0]
-                            out_df[1][current_row_index:current_row_index + last_data[cat][0].shape[0]] = \
-                                last_data[cat][1]
-                            current_row_index += last_data[cat][0].shape[0]
-                            labels.append(cat)
-                        last_data[cat] = tempdf
+                        last_id_grabbed[cat] += 1
+                        event_counter += 1
+                        tempdf[0][:, self.batch_index] = event_counter
+                        out_df[0][current_row_index:current_row_index + tempdf[0].shape[0]] = \
+                            tempdf[0]
+                        out_df[1][current_row_index:current_row_index + tempdf[0].shape[0]] = \
+                            tempdf[1]
+                        current_row_index += tempdf[0].shape[0]
+                        labels.append(cat)
                     else:
                         data_queue[cat] = 0
                         data_queue_offsets[cat] = 0
-                        prepend_last_data[cat] = True
-                        all_chunks_have_data = False
-            for cat in data_info.keys():
-                if last_data[cat]:
-                    self.log.debug("shape to add: {}".format(last_data[cat][0].shape))
-                    self.log.debug("shape existing: {}".format(out_df[0].shape))
-                    out_df[0][current_row_index:current_row_index+last_data[cat][0].shape[0]] = last_data[cat][0]
-                    out_df[1][current_row_index:current_row_index+last_data[cat][0].shape[0]] = last_data[cat][1]
-                    current_row_index += last_data[cat][0].shape[0]
-                    labels.append(cat)
-        self._to_hdf(out_df, fname, self.info['data_name'], columns, event_counter)
-        out_df = []
-        if event_counter != len(labels):
+                        current_file_indices[cat] += 1
+                        if not ignore_cats[cat]:
+                            all_chunks_have_data = False
+        self._to_hdf(out_df, labels, fname, self.info['data_name'], columns, event_counter)
+        if event_counter != len(labels) - 1:
             self.log.error("Labels length is not the same as event counter")
-        with h5py.File(fname, 'a') as h5f:
-            ds = h5f.create_dataset('labels', data=labels, compression="gzip", compression_opts=6, dtype=int8,
-                                    chunks=True)
-            ds.attrs["nevents"] = event_counter
         # save metadata regarding the events in the combined file
         save_object_to_file(data_info, fname[0:-3] + ".json")
         self.log.debug("finished shuffling data into file {}".format(fname))

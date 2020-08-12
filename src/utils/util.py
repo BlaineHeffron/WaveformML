@@ -296,5 +296,8 @@ def write_run_info(mydir):
 def config_equals(path, config):
     with open(path,'r') as f:
         data = json.load(f)
-        return config == data
+        for key in data.keys():
+            if data[key] != config[int(key)]:
+                return False
+        return True
 
