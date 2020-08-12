@@ -164,6 +164,9 @@ class HDF5Dataset(data.Dataset):
         # print("now coords size is ", coords.size())
         # print("now vals size is ", vals.size())
         # print("y size is ", y.size())
+        self.log.debug("shape of coords: ".format(coords.shape))
+        self.log.debug("shape of features: ".format(vals.shape))
+        self.log.debug("shape of labels: ".format(y.shape))
         return [coords, vals], y
 
     def __len__(self):

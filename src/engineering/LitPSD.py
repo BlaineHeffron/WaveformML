@@ -67,10 +67,10 @@ class LitPSD(pl.LightningModule):
         self.log.debug("Shape of features: {}".format(feat.shape))
         self.log.debug("Shape of labels: {}".format(targets.shape))
         for c, f, target in zip(coo, feat, targets):
-            c, f, target = self.convert_to_tensors(c, f, target)
-            self.log.debug("Shape of coords: {}".format(c.shape))
-            self.log.debug("Shape of features: {}".format(f.shape))
-            self.log.debug("Shape of labels: {}".format(target.shape))
+            #c, f, target = self.convert_to_tensors(c, f, target)
+            #self.log.debug("Shape of coords: {}".format(c.shape))
+            #self.log.debug("Shape of features: {}".format(f.shape))
+            #self.log.debug("Shape of labels: {}".format(target.shape))
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
@@ -82,7 +82,7 @@ class LitPSD(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         (coo, feat), targets = batch
-        for c, f, target in zip(*self.convert_to_tensors(coo, feat, targets)):
+        for c, f, target in zip(coo, feat, targets):
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             result = pl.EvalResult(checkpoint_on=loss)
