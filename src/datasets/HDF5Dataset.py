@@ -65,7 +65,7 @@ class HDF5Dataset(data.Dataset):
                  load_data=False,
                  file_excludes=None,
                  label_name=None,
-                 data_cache_size=3):
+                 data_cache_size=1):
         super().__init__()
         self.info = {}
         self.log = logging.getLogger(__name__)
@@ -132,7 +132,6 @@ class HDF5Dataset(data.Dataset):
         #self.log.debug("ordered file set is {}".format(self.ordered_file_set))
 
     def __getitem__(self, index):
-        ind = 0
         if self.group_mode:
             di = self.get_data_infos(self.info['coord_name'])[index]
         else:
@@ -143,7 +142,7 @@ class HDF5Dataset(data.Dataset):
             vals = self.get_data(self.info['feat_name'], index)
         else:
             coords, vals = self.get_data(self.info['data_name'], index)
-        coords, vals, y = self._concat_range(index, coords, vals, di, ind)
+        coords, vals, y = self._concat_range(index, coords, vals, di)
 
         #coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
@@ -162,28 +161,23 @@ class HDF5Dataset(data.Dataset):
             return len(self.get_data_infos(self.info['data_name']))
 
 
-    def _concat_range(self, index, coords, vals,  di, ind):
+    def _concat_range(self, index, coords, vals,  di):
         # this is only meant to be called in __getitem__ because it accesses file here
+        ind = 0
         if di['event_range'][1] + 1 < di['n_events']:
             ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         if ind > 0:
             coords = coords[0:ind, :]
             vals = vals[0:ind, :]
-        elif self.group_mode:
-            coords = coords[()]
-            vals = vals[()]
         if self.info['label_name'] is None:
             y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
                                       (di['event_range'][1] + 1 - di['event_range'][0],),
                                       di['dir_index'], dtype=torch.int64, device=self.device)
             # y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
         else:
-            if self.group_mode:
-                y = self.get_data(self.info['label_name'], index)[()]
-            else:
-                y = self.get_data(self.info['label_name'], index)
+            y = self.get_data(self.info['label_name'], index)
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
-            return coords, vals, y
+        return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
                         modified):
@@ -209,7 +203,8 @@ class HDF5Dataset(data.Dataset):
 
     def _get_event_num(self, file_path):
         with h5py.File(file_path, 'r') as h5_file:
-            return h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+            event_num = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+        return event_num
             # return h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
@@ -287,12 +282,12 @@ class HDF5Dataset(data.Dataset):
         """
         if file_path not in self.data_cache:
             if self.group_mode:
-                self.data_cache[file_path] = [data]
+                self.data_cache[file_path] = [data[()]]
             else:
                 self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
         else:
             if self.group_mode:
-                self.data_cache[file_path].append(data)
+                self.data_cache[file_path].append(data[()])
             else:
                 self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
         return len(self.data_cache[file_path]) - 1
