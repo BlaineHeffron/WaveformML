@@ -45,18 +45,19 @@ class PSDDataModule(pl.LightningDataModule):
                                                    file_excludes=self.train_dataset.get_file_list() + self.val_dataset.get_file_list(),
                                                    **DictionaryUtility.to_dict(self.config.dataset_config.dataset_params))
             self.log.info("Test dataset generated.")
+        worker_info = get_worker_info()
+        if hasattr(self.config.dataset_config, "data_prep"):
+            if self.config.dataset_config.data_prep == "shuffle":
+                if worker_info is None:
+                    self.log.info("Main process beginning to shuffle dataset.")
+                else:
+                    self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
+                self.train_dataset.write_shuffled()  # might need to make this call configurable
 
     def setup(self, stage=None):
         # called on every GPU
-        if stage == 'fit' or stage is None:
-            worker_info = get_worker_info()
-            if hasattr(self.config.dataset_config, "data_prep"):
-                if self.config.dataset_config.data_prep == "shuffle":
-                    if worker_info is None:
-                        self.log.info("Main process beginning to shuffle dataset.")
-                    else:
-                        self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
-                    self.train_dataset.write_shuffled()  # might need to make this call configurable
+        pass
+
 
     def train_dataloader(self):
         if not hasattr(self, "train_dataset"):
