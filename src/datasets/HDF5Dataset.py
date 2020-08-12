@@ -97,6 +97,7 @@ class HDF5Dataset(data.Dataset):
             all_files.append(files)
 
         if len(all_files) == 1:
+            self.log.debug("all files length is 1")
             for h5dataset_fp in all_files[0]:
                 dir_index = 0
                 if self.n_events[dir_index] >= self.info['events_per_dir']:
@@ -150,6 +151,7 @@ class HDF5Dataset(data.Dataset):
             y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1, ), (di['event_range'][1] + 1,),
                                       di['dir_index'], dtype=torch.int64, device=self.device)
         else:
+            self.log.debug("Getting label name from table")
             y = self.get_data(self.info['label_name'], index)
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
         # print("now coords size is ", coords.size())

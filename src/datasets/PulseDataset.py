@@ -75,7 +75,7 @@ class PulseDataset(HDF5Dataset):
                          data_cache_size=data_cache_size)
 
         model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
-        self.data_dir = os.path.join(os.path.dirname(config.system_config.model_base_path), "data")
+        self.data_dir = os.path.join(os.path.abspath(os.path.dirname(config.system_config.model_base_path)), "data")
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
         self.dataset_dir = os.path.join(model_dir, "datasets")
@@ -341,16 +341,17 @@ class PulseDataset(HDF5Dataset):
             self._write_shuffled(self.shuffle_queue.pop(), os.path.join(self.data_dir, fname))
         worker_info = get_worker_info()
         self.log.debug("Worker info: {}".format(worker_info))
-        self.log.info("Shuffling dataset finished. Setting the dataset to the new directory")
-        super().__init__([self.data_dir],
-                         self.file_mask, self.info['data_name'],
-                         self.info['coord_name'], self.info['feat_name'],
-                         self.info['events_per_dir'],
-                         self.device,
-                         label_name='labels',
-                         data_cache_size=self.info['data_cache_size'])
-        self.log.info("Writing shuffled dataset information to {}.".format(self.file_path))
-        self.save_info_to_file()
+        if not worker_info:
+            self.log.info("Shuffling dataset finished. Setting the dataset to the new directory: {}".format(self.data_dir))
+            super().__init__([self.data_dir],
+                             self.file_mask, self.info['data_name'],
+                             self.info['coord_name'], self.info['feat_name'],
+                             self.info['events_per_dir'],
+                             self.device,
+                             label_name='labels',
+                             data_cache_size=self.info['data_cache_size'])
+            self.log.info("Writing shuffled dataset information to {}.".format(self.file_path))
+            self.save_info_to_file()
 
 
 class PulseDataset2D(PulseDataset):
