@@ -19,6 +19,10 @@ class PSDDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # called only on 1 GPU
+        pass
+
+
+    def setup(self, stage=None):
         if not hasattr(self, "train_dataset"):
             self.train_dataset = self.dataset_class(self.config, "train",
                                                     self.config.dataset_config.n_train,
@@ -45,8 +49,6 @@ class PSDDataModule(pl.LightningDataModule):
                                                    file_excludes=self.train_dataset.get_file_list() + self.val_dataset.get_file_list(),
                                                    **DictionaryUtility.to_dict(self.config.dataset_config.dataset_params))
             self.log.info("Test dataset generated.")
-
-    def setup(self, stage=None):
         # called on every GPU
         if stage == 'fit' or stage is None:
             worker_info = get_worker_info()
