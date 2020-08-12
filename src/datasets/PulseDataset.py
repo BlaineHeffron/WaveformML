@@ -282,7 +282,7 @@ class PulseDataset(HDF5Dataset):
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
     def _write_shuffled(self, data_info, fname):
-        self.log.debug("working on shuffling the following data into file {0}: {1}".format(fname, data_info))
+        self.log.info("Working on shuffling the following data into file {0}: {1}".format(fname, data_info))
         if os.path.exists(fname[0:-3] + ".json"):
             if config_equals(fname[0:-3] + ".json", data_info):
                 self.log.info("Already found a valid combined file: {}, skipping.".format(fname))
