@@ -85,8 +85,8 @@ class HDF5Dataset(data.Dataset):
         self.info["events_per_dir"] = events_per_dir
         # Search for all h5 files
         all_files = []
-        for i, abspath(file_path) in enumerate(file_paths):
-            p = Path(file_path)
+        for i, file_path in enumerate(file_paths):
+            p = Path(abspath(file_path))
             assert (p.is_dir())
             if recursive:
                 files = sorted(p.glob('**/{0}'.format(file_pattern)), key=lambda e: _sort_pattern(e))
