@@ -291,3 +291,10 @@ def write_run_info(mydir):
     info = {"args": sys.argv,
             "github_hexsha": sha}
     save_config(info, mydir, "run", "info", True)
+
+
+def config_equals(path, config):
+    with open(path,'r') as f:
+        data = json.load(f)
+        return config == data
+
