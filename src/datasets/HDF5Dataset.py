@@ -129,7 +129,7 @@ class HDF5Dataset(data.Dataset):
                     continue
                 self.ordered_file_set.append(str(h5dataset_fp.resolve()))
                 self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
-        self.log.debug("ordered file set is {}".format(self.ordered_file_set))
+        #self.log.debug("ordered file set is {}".format(self.ordered_file_set))
 
     def __getitem__(self, index):
         # get data
@@ -164,9 +164,9 @@ class HDF5Dataset(data.Dataset):
         # print("now coords size is ", coords.size())
         # print("now vals size is ", vals.size())
         # print("y size is ", y.size())
-        self.log.debug("shape of coords: {}".format(coords.shape))
-        self.log.debug("shape of features: {} ".format(vals.shape))
-        self.log.debug("shape of labels: {} ".format(y.shape))
+        #self.log.debug("shape of coords: {}".format(coords.shape))
+        #self.log.debug("shape of features: {} ".format(vals.shape))
+        #self.log.debug("shape of labels: {} ".format(y.shape))
         return [coords, vals], y
 
     def __len__(self):
