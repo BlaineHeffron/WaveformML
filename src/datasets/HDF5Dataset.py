@@ -132,38 +132,24 @@ class HDF5Dataset(data.Dataset):
         #self.log.debug("ordered file set is {}".format(self.ordered_file_set))
 
     def __getitem__(self, index):
+        ind = 0
+        if self.group_mode:
+            di = self.get_data_infos(self.info['coord_name'])[index]
+        else:
+            di = self.get_data_infos(self.info['data_name'])[index]
         # get data
         if self.group_mode:
             coords = self.get_data(self.info['coord_name'], index)
             vals = self.get_data(self.info['feat_name'], index)
         else:
             coords, vals = self.get_data(self.info['data_name'], index)
-        ind = 0
-        if self.group_mode:
-            di = self.get_data_infos(self.info['coord_name'])[index]
-        else:
-            di = self.get_data_infos(self.info['data_name'])[index]
-        if di['event_range'][1] + 1 < di['n_events']:
-            ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
-        #coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
-        vals = torch.tensor(vals, device=self.device, dtype=torch.float32)
-        # print("coords size is ", coords.size())
-        # print("vals size is ", vals.size())
-        if ind > 0:
-            coords = coords[0:ind, :]
-            vals = vals[0:ind, :]
+        coords, vals, y = self._concat_range(index, coords, vals, di, ind)
 
-        # get label
-        if self.info['label_name'] is None:
-            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ), (di['event_range'][1] + 1 - di['event_range'][0],),
-                                     di['dir_index'], dtype=torch.int64, device=self.device)
-            #y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
-        else:
-            y = self.get_data(self.info['label_name'], index)
-            y = torch.tensor(y, device=self.device, dtype=torch.int64)
-        # print("now coords size is ", coords.size())
-        # print("now vals size is ", vals.size())
-        # print("y size is ", y.size())
+        #coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
+        vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
+        #self.log.debug("now coords size is ", coords.size())
+        #self.log.debug("now vals size is ", vals.size())
+        #self.log.debug("y size is ", y.size())
         #self.log.debug("shape of coords: {}".format(coords.shape))
         #self.log.debug("shape of features: {} ".format(vals.shape))
         #self.log.debug("shape of labels: {} ".format(y.shape))
@@ -174,6 +160,30 @@ class HDF5Dataset(data.Dataset):
             return len(self.get_data_infos(self.info['coord_name']))
         else:
             return len(self.get_data_infos(self.info['data_name']))
+
+
+    def _concat_range(self, index, coords, vals,  di, ind):
+        # this is only meant to be called in __getitem__ because it accesses file here
+        if di['event_range'][1] + 1 < di['n_events']:
+            ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
+        if ind > 0:
+            coords = coords[0:ind, :]
+            vals = vals[0:ind, :]
+        elif self.group_mode:
+            coords = coords[()]
+            vals = vals[()]
+        if self.info['label_name'] is None:
+            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
+                                      (di['event_range'][1] + 1 - di['event_range'][0],),
+                                      di['dir_index'], dtype=torch.int64, device=self.device)
+            # y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
+        else:
+            if self.group_mode:
+                y = self.get_data(self.info['label_name'], index)[()]
+            else:
+                y = self.get_data(self.info['label_name'], index)
+            y = torch.tensor(y, device=self.device, dtype=torch.int64)
+            return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
                         modified):
@@ -277,12 +287,12 @@ class HDF5Dataset(data.Dataset):
         """
         if file_path not in self.data_cache:
             if self.group_mode:
-                self.data_cache[file_path] = [data[()]]
+                self.data_cache[file_path] = [data]
             else:
                 self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
         else:
             if self.group_mode:
-                self.data_cache[file_path].append(data[()])
+                self.data_cache[file_path].append(data)
             else:
                 self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
         return len(self.data_cache[file_path]) - 1
