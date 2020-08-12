@@ -285,8 +285,8 @@ class PulseDataset(HDF5Dataset):
                 if last_data[cat]:
                     out_df = self._concat(out_df, last_data[cat])
                     labels.append(cat)
-            self._to_hdf(out_df, fname, self.info['data_name'], columns, event_counter)
-            out_df = []
+        self._to_hdf(out_df, fname, self.info['data_name'], columns, event_counter)
+        out_df = []
         if event_counter != len(labels):
             self.log.error("Labels length is not the same as event counter")
         with h5py.File(fname, 'a') as h5f:
