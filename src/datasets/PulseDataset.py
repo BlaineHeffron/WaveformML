@@ -93,7 +93,7 @@ class PulseDataset(HDF5Dataset):
             self.file_path = os.path.join(self.dataset_dir,
                                           "{0}_{1}_{2}_dataset.json".format(dataset_type, dataset_name, str(n_per_dir)))
         if not hasattr(self.config, "chunk_size"):
-            self.chunk_size = 16384
+            self.chunk_size = 1024
         else:
             self.chunk_size = self.config.chunk_size
         if not hasattr(self.config, "shuffled_size"):
@@ -193,12 +193,12 @@ class PulseDataset(HDF5Dataset):
             return coords, features
 
     def _select_chunk_size(self, shape):
-        if 10000 > shape[0]:
+        if self.chunk_size > shape[0]:
             return shape[0]
         else:
-            if shape[0]/10000. < 1.5:
-                return shape[0]
-            return 10000
+            #if shape[0]/self.chunk_size < 1.5:
+            #   return shape[0]
+            return self.chunk_size
 
     def _to_hdf(self, data, labels, fname, dataset_name, columns, event_counter):
         coords, features = data
