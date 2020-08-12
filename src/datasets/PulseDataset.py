@@ -1,7 +1,8 @@
 import os
 from copy import copy
 from torch.utils.data import get_worker_info
-from src.utils.util import config_equals
+from src.utils.util import config_equals, unique_path_combine
+
 import logging
 from numpy import where as npwhere, concatenate, empty, array, int8
 
@@ -76,6 +77,7 @@ class PulseDataset(HDF5Dataset):
 
         model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
         self.data_dir = os.path.join(os.path.abspath(os.path.dirname(config.system_config.model_base_path)), "data")
+        self.data_dir = os.path.join(self.data_dir, unique_path_combine(self.config.paths))
         if not os.path.exists(self.data_dir):
             os.mkdir(self.data_dir)
         self.dataset_dir = os.path.join(model_dir, "datasets")
@@ -192,13 +194,13 @@ class PulseDataset(HDF5Dataset):
         with h5py.File(fname, mode='a') as h5f:
             if dataset_name not in h5f.keys():
                 dc = h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,
-                                        data=coords, chunks=True)
+                                        data=coords, chunks=False)
                 dc.flush()
                 df = h5f.create_dataset(dataset_name + "/" + columns[1], compression="gzip", compression_opts=6,
-                                   data=features, chunks=True)
+                                   data=features, chunks=False)
                 df.flush()
                 dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
-                                        data=labels, chunks=True, dtype=int8)
+                                        data=labels, chunks=False, dtype=int8)
                 dl.flush()
                 h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
                 h5f.flush()
