@@ -253,20 +253,25 @@ class PulseDataset(HDF5Dataset):
             return coords.shape[1], feats.shape[1], coords.dtype, feats.dtype
 
     def _get_length(self, file_info):
+        length = 0
         with h5py.File(file_info[0], 'r', ) as h5_file:
             coords = h5_file[self.info['data_name']][self.info['coord_name']]
             info = self.get_path_info(file_info[0])
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
-                    return npwhere((coords[:, self.batch_index] >= file_info[1][0]) &
+                    length = npwhere((coords[:, self.batch_index] >= file_info[1][0]) &
                                        coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
                 else:
-                    return npwhere(coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
+                    length = npwhere(coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
             else:
                 if file_info[1][0] > 0:
-                    return npwhere(coords[:, self.batch_index] >= file_info[1][0])[0].shape[0]
+                    length = npwhere(coords[:, self.batch_index] >= file_info[1][0])[0].shape[0]
                 else:
-                    return coords.shape[0]
+                    length = coords.shape[0]
+        self.log.debug("found a length of {0} for file {1} using range {2} - {3}".format(length,file_info[0],
+                                                                                         file_info[1][0],
+                                                                                         file_info[1][1]))
+        return length
 
     def _init_shuffled_dataset(self, data_info):
         total_rows = 0
