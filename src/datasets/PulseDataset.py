@@ -1,3 +1,4 @@
+import json
 import os
 from copy import copy
 from torch.utils.data import get_worker_info
@@ -35,6 +36,29 @@ def _needs_ids(data_info, last_id_retrieved, current_file_indices):
         if last_id_retrieved[cat] < data_info[cat][current_file_indices[cat]][1][1]:
             return True
     return False
+
+
+def _is_superset(super_info, info):
+    return int(super_info[1]) >= int(info[1]) and int(super_info[0]) <= int(info[0])
+
+
+def _file_config_superset(data_info, fname):
+    with open(fname[0:-3] + ".json", 'r') as f:
+        o = json.load(f)
+    for key in data_info.keys():
+        if key in o.keys():
+            for i, this_info in enumerate(data_info[key]):
+                for j, disk_info in enumerate(o[key]):
+                    if this_info[0] == disk_info[0]:
+                        if this_info[2] == disk_info[2]:
+                            if not _is_superset(disk_info[1], this_info[1]):
+                                return False
+                        else:
+                            return False
+                        break
+        else:
+            return False
+    return True
 
 
 class PulseDataset(HDF5Dataset):
@@ -119,10 +143,13 @@ class PulseDataset(HDF5Dataset):
     def __getitem__(self, idx):
         return super().__getitem__(idx)
 
-    def save_info_to_file(self):
+    def save_info_to_file(self, fpath=None):
         info_dict = self.info
         info_dict["dataset_config"] = DictionaryUtility.to_dict(self.config)
-        save_object_to_file(info_dict, self.file_path)
+        if not fpath:
+            save_object_to_file(info_dict, self.file_path)
+        else:
+            save_object_to_file(info_dict, fpath)
 
     def _gen_shuffle_map(self):
         self.shuffle_queue = []
@@ -133,7 +160,7 @@ class PulseDataset(HDF5Dataset):
         current_total = [0] * n_categories
         category_map = {os.path.normpath(os.path.join(self.config.base_path, p)): i for i, p in
                         enumerate(self.config.paths)}
-        #self.log.debug("category map: {}".format(category_map))
+        # self.log.debug("category map: {}".format(category_map))
         for fp in self.ordered_file_set:
             ordered_paths_by_dir[category_map[os.path.normpath(os.path.dirname(fp))]].append(fp)
         for cat in ordered_paths_by_dir.keys():
@@ -180,7 +207,7 @@ class PulseDataset(HDF5Dataset):
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
                     inds = self._npwhere((coords[:, self.batch_index] >= file_info[1][0]) & (
-                                coords[:, self.batch_index] <= file_info[1][1]))
+                            coords[:, self.batch_index] <= file_info[1][1]))
                 else:
                     inds = self._npwhere(coords[:, self.batch_index] <= file_info[1][1])
             else:
@@ -197,7 +224,7 @@ class PulseDataset(HDF5Dataset):
         if self.chunk_size > shape[0]:
             return shape[0]
         else:
-            #if shape[0]/self.chunk_size < 1.5:
+            # if shape[0]/self.chunk_size < 1.5:
             #   return shape[0]
             return self.chunk_size
 
@@ -210,10 +237,10 @@ class PulseDataset(HDF5Dataset):
                 lsize = self._select_chunk_size([len(labels)])
 
                 dc = h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,
-                                        data=coords, chunks=(csize,coords.shape[1]))
+                                        data=coords, chunks=(csize, coords.shape[1]))
                 dc.flush()
                 df = h5f.create_dataset(dataset_name + "/" + columns[1], compression="gzip", compression_opts=6,
-                                   data=features, chunks=(fsize,features.shape[1]))
+                                        data=features, chunks=(fsize, features.shape[1]))
                 df.flush()
                 dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
                                         data=labels, chunks=(lsize,), dtype=int8)
@@ -252,18 +279,19 @@ class PulseDataset(HDF5Dataset):
             feats = h5_file[self.info['data_name']][self.info['feat_name']]
             return coords.shape[1], feats.shape[1], coords.dtype, feats.dtype
 
-    def _npwhere(self,cond):
+    def _npwhere(self, cond):
         return asarray(cond).nonzero()
 
     def _get_length(self, file_info):
         length = 0
         with h5py.File(file_info[0], 'r', ) as h5_file:
             coords = h5_file[self.info['data_name']][self.info['coord_name']]
-            #self.log.debug("coords shape is {}".format(coords.shape))
+            # self.log.debug("coords shape is {}".format(coords.shape))
             info = self.get_path_info(file_info[0])
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
-                    length = self._npwhere((file_info[1][0] <= coords[:, self.batch_index]) & (coords[:, self.batch_index] <= file_info[1][1]))[0].shape[0]
+                    length = self._npwhere((file_info[1][0] <= coords[:, self.batch_index]) & (
+                                coords[:, self.batch_index] <= file_info[1][1]))[0].shape[0]
                 else:
                     length = self._npwhere(coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
             else:
@@ -271,7 +299,7 @@ class PulseDataset(HDF5Dataset):
                     length = self._npwhere(coords[:, self.batch_index] >= file_info[1][0])[0].shape[0]
                 else:
                     length = coords.shape[0]
-        #self.log.debug("found a length of {0} for file {1} using range {2} - {3}".format(length,file_info[0],
+        # self.log.debug("found a length of {0} for file {1} using range {2} - {3}".format(length,file_info[0],
         #                                                                                 file_info[1][0],
         #                                                                                 file_info[1][1]))
         return length
@@ -296,6 +324,11 @@ class PulseDataset(HDF5Dataset):
             if config_equals(fname[0:-3] + ".json", data_info):
                 self.log.info("Already found a valid combined file: {}, skipping.".format(fname))
                 return
+            else:
+                # check if superset
+                if _file_config_superset(data_info, fname[0:-3] + ".json"):
+                    return
+
         labels = []
         out_df = self._init_shuffled_dataset(data_info)
         n_categories = len(data_info.keys())
@@ -306,15 +339,15 @@ class PulseDataset(HDF5Dataset):
         current_row_index = 0
         columns = [self.info['coord_name'], self.info['feat_name']]
         event_counter = -1
-        ignore_cats = [False]*n_categories
+        ignore_cats = [False] * n_categories
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
             for cat in data_info.keys():
                 if not data_info[cat]:
                     continue
                 if not data_queue[cat] and current_file_indices[cat] < len(data_info[cat]):
-                    #self.log.debug(
+                    # self.log.debug(
                     #    "attempting to read chunk from file {}".format(data_info[cat][current_file_indices[cat]][0]))
-                    #self.log.debug("using dataset name {}".format(self.info['data_name']))
+                    # self.log.debug("using dataset name {}".format(self.info['data_name']))
                     chunk = self._read_chunk(data_info[cat][current_file_indices[cat]], "/" + self.info['data_name'],
                                              columns)
                     if self._not_empty(chunk):
@@ -322,9 +355,10 @@ class PulseDataset(HDF5Dataset):
                         ignore_cats[cat] = False
                         data_queue_offsets[cat] = data_info[cat][current_file_indices[cat]][1][0]
                     else:
-                        self.log.warning("Unable to retrieve data from file {}".format(data_info[cat][current_file_indices[cat]][0]))
+                        self.log.warning(
+                            "Unable to retrieve data from file {}".format(data_info[cat][current_file_indices[cat]][0]))
                         ignore_cats[cat] = True
-                        data_queue[cat] = 0
+                        data_queue[cat] = []
                         data_queue_offsets[cat] = 0
                         current_file_indices[cat] += 1
                 else:
@@ -346,7 +380,7 @@ class PulseDataset(HDF5Dataset):
                         current_row_index += tempdf[0].shape[0]
                         labels.append(cat)
                     else:
-                        data_queue[cat] = 0
+                        data_queue[cat] = []
                         data_queue_offsets[cat] = 0
                         current_file_indices[cat] += 1
                         if not ignore_cats[cat]:
@@ -369,7 +403,8 @@ class PulseDataset(HDF5Dataset):
         worker_info = get_worker_info()
         self.log.debug("Worker info: {}".format(worker_info))
         if not worker_info:
-            self.log.info("Shuffling dataset finished. Setting the dataset to the new directory: {}".format(self.data_dir))
+            self.log.info(
+                "Shuffling dataset finished. Setting the dataset to the new directory: {}".format(self.data_dir))
             super().__init__([self.data_dir],
                              self.file_mask, self.info['data_name'],
                              self.info['coord_name'], self.info['feat_name'],
