@@ -5,10 +5,12 @@ import json
 from numpy import asarray
 import numba as nb
 
+
 def json_load(path):
     with open(path, 'r') as f:
         data = json.load(f)
     return data
+
 
 @nb.jit(nopython=True)
 def arrays_equal(a, b):
