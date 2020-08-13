@@ -69,9 +69,9 @@ class LitPSD(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (coo, feat), targets = batch
-        #self.log.debug("Shape of coords: {}".format(coo.shape))
-        #self.log.debug("Shape of features: {}".format(feat.shape))
-        #self.log.debug("Shape of labels: {}".format(targets.shape))
+        self.log.debug("Shape of coords: {}".format(coo.shape))
+        self.log.debug("Shape of features: {}".format(feat.shape))
+        self.log.debug("Shape of labels: {}".format(targets.shape))
         for c, f, target in zip(coo, feat, targets):
             c, f, target = self.convert_to_tensors(c, f, target)
             #self.log.debug("type of coords: {}".format(c.storage_type()))
