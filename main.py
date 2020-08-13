@@ -172,6 +172,9 @@ def main():
     if args.validate:
         ModelValidation.validate(config)
 
+    if args.auto_lr_find:
+        setattr(config, "auto_lr_find", True)
+
     if args.optimize_config or hasattr(config, "optuna_config"):
         set_pruning = args.pruning
         opt_config = args.optimize_config
