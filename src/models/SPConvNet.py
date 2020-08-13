@@ -2,7 +2,8 @@ import spconv
 from torch import nn, LongTensor
 from src.utils.util import *
 
-class SpConvNet(nn.Module):
+
+class SPConvNet(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.system_config = config.system_config
@@ -44,12 +45,13 @@ class SpConvNet(nn.Module):
         self.sparseModel = self.sequence_class(*self.modules.create_class_instances(sparse_funcs))
         self.linear = nn.Sequential(*self.modules.create_class_instances(linear_funcs))
         self.n_linear = linear_funcs[1][0]
+        # TODO: make this work with 3d tensors as well
         self.spatial_size = LongTensor([14, 11])
-        self.permute_tensor = LongTensor([2,0,1])
+        self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
-        batch_size = x[0][-1,2] + 1
-        x = spconv.SparseConvTensor(x[1], x[0][:,self.permute_tensor], self.spatial_size, batch_size)
+        batch_size = x[0][-1, 2] + 1
+        x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
         x = self.sparseModel(x)
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
