@@ -129,7 +129,7 @@ class HDF5Dataset(data.Dataset):
                     continue
                 self.ordered_file_set.append(str(h5dataset_fp.resolve()))
                 self._add_data_infos(str(h5dataset_fp.resolve()), dir_index, load_data)
-        #self.log.debug("ordered file set is {}".format(self.ordered_file_set))
+        # self.log.debug("ordered file set is {}".format(self.ordered_file_set))
 
     def __getitem__(self, index):
         if self.group_mode:
@@ -138,21 +138,21 @@ class HDF5Dataset(data.Dataset):
             di = self.get_data_infos(self.info['data_name'])[index]
         # get data
         if self.group_mode:
-            #self.log.debug("getting coord and feat in group mode for index {}".format(index))
+            # self.log.debug("getting coord and feat in group mode for index {}".format(index))
             coords = self.get_data(self.info['coord_name'], index)
             vals = self.get_data(self.info['feat_name'], index)
         else:
             coords, vals = self.get_data(self.info['data_name'], index)
         coords, vals, y = self._concat_range(index, coords, vals, di)
 
-        #coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
-        #vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
-        #self.log.debug("now coords size is {}".format(coords.size))
-        #self.log.debug("now vals size is {}".format(vals.size))
-        #self.log.debug("y size is {}".format(y.size))
-        #self.log.debug("shape of coords: {}".format(coords.shape))
-        #self.log.debug("shape of features: {} ".format(vals.shape))
-        #self.log.debug("shape of labels: {} ".format(y.shape))
+        # coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
+        # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
+        # self.log.debug("now coords size is {}".format(coords.size))
+        # self.log.debug("now vals size is {}".format(vals.size))
+        # self.log.debug("y size is {}".format(y.size))
+        # self.log.debug("shape of coords: {}".format(coords.shape))
+        # self.log.debug("shape of features: {} ".format(vals.shape))
+        # self.log.debug("shape of labels: {} ".format(y.shape))
         return [coords, vals], y
 
     def __len__(self):
@@ -161,8 +161,7 @@ class HDF5Dataset(data.Dataset):
         else:
             return len(self.get_data_infos(self.info['data_name']))
 
-
-    def _concat_range(self, index, coords, vals,  di):
+    def _concat_range(self, index, coords, vals, di):
         # this is only meant to be called in __getitem__ because it accesses file here
         ind = 0
         if di['event_range'][1] + 1 < di['n_events']:
@@ -171,15 +170,15 @@ class HDF5Dataset(data.Dataset):
             coords = coords[0:ind, :]
             vals = vals[0:ind, :]
         if self.info['label_name'] is None:
-            #y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
+            # y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
             #                          (di['event_range'][1] + 1 - di['event_range'][0],),
             #                          di['dir_index'], dtype=torch.int64, device=self.device)
-            y = full((di['event_range'][1] + 1, ), fill_value=di['dir_index'], dtype=int8)
+            y = full((di['event_range'][1] + 1,), fill_value=di['dir_index'], dtype=int8)
         else:
             y = self.get_data(self.info['label_name'], index)
-            #y = torch.tensor(y, device=self.device, dtype=torch.int64)
-            #vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
-            #self.log.debug("now coords size is ", coords.size())
+            # y = torch.tensor(y, device=self.device, dtype=torch.int64)
+            # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
+            # self.log.debug("now coords size is ", coords.size())
         return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
@@ -192,7 +191,7 @@ class HDF5Dataset(data.Dataset):
 
         if self.group_mode:
             if not file_path in self.data_cache_map:
-                self.data_cache_map[file_path] = {dataset_name:idx}
+                self.data_cache_map[file_path] = {dataset_name: idx}
             else:
                 self.data_cache_map[file_path][dataset_name] = idx
         else:
@@ -208,7 +207,7 @@ class HDF5Dataset(data.Dataset):
         with h5py.File(file_path, 'r') as h5_file:
             event_num = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
         return event_num
-            # return h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1
+        # return h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
         with h5py.File(file_path, 'r') as h5_file:
@@ -247,14 +246,14 @@ class HDF5Dataset(data.Dataset):
                     for dname, ds in group.items():
                         # add data to the data cache and retrieve
                         # the cache index
-                        #self.log.debug("adding {0} to cache from file {1}".format(dname,file_path))
-                        #if ds:
+                        # self.log.debug("adding {0} to cache from file {1}".format(dname,file_path))
+                        # if ds:
                         #    self.log.debug("size of dataset: {}".format(ds.size))
                         idx = self._add_to_cache(ds, file_path)
 
                         # find the beginning index of the hdf5 file we are looking for
                         file_idx = next(i for i, v in enumerate(self.info['data_info'])
-                                        if v['file_path'] == file_path and v['name'] == dname)
+                                        if v['file_path'] == file_path)
 
                         # the data info should have the same index since we loaded it in the same way
                         if not file_path in self.data_cache_map:
@@ -315,7 +314,7 @@ class HDF5Dataset(data.Dataset):
             not part of the data cache.
         """
         fp = self.get_data_infos(data_type)[i]['file_path']
-        #self.log.debug("file path is {}".format(fp))
+        # self.log.debug("file path is {}".format(fp))
         if fp not in self.data_cache:
             self._load_data(fp)
 
