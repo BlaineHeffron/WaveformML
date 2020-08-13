@@ -114,8 +114,8 @@ def main():
              "trials at the early stages of training.",
     )
     non_trainer_args = ["config", "name", "verbosity",
-                        "logfile", "validation", "optimize_config",
-                        "pruning"]
+                        "logfile", "config_validation", "optimize_config",
+                        "pruning", "validate"]
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     verbosity = args.verbosity
