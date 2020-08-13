@@ -54,6 +54,8 @@ class SPConvNet(nn.Module):
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
+        if hasattr(self,"waveformLayer"):
+            x[1] = self.waveformLayer(x[1])
         batch_size = x[0][-1, 2] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
         x = self.sparseModel(x)
