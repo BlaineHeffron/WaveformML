@@ -75,11 +75,8 @@ A full example config file is found in config/examples
     --limit_train_batches n
     --log_gpu_memory all | min_max // logs the gpu usage, set to min_max for only max and min usage logging
     --terminate_on_nan true // terminates when nan loss is returned
-
-Here are some that aren't currently working for some reason but look quite useful:
-
     --auto_lr_find true // starts the training session with a learning rate finder algorithm, prints results / saves to log folder
-    --auto_scale_batchsize binsearch // automatically scales batch size until it finds the largest that fits in memory
+
 
 see https://pytorch-lightning.readthedocs.io/en/latest/trainer.html#trainer-flags
 for a complete list of arguments
