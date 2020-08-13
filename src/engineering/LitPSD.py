@@ -78,6 +78,7 @@ class LitPSD(pl.LightningModule):
             #self.log.debug("type of features: {}".format(f.storage_type()))
             #self.log.debug("type of labels: {}".format(target.storage_type()))
             predictions = self.model([c, f])
+            self.log.debug("predictions shape is {}".format(predictions.shape))
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
