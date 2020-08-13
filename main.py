@@ -100,7 +100,7 @@ def main():
                         help="Set the filename or path to the filename for the program log this run."
                              " Set --verbosity to control the amount of information logged.",
                         type=str)
-    parser.add_argument("--validate", "-va", type=bool, action="store_true",
+    parser.add_argument("--validate", "-va", action="store_true",
                         help="If set, will validate the input algorithm before running")
     parser.add_argument("--optimize_config", "-oc", type=str,
                         help="Set the path to the optuna optimization config file.")
