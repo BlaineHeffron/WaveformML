@@ -26,16 +26,17 @@ def _read_chunk(file_info):
     with h5py.File(file_info[0], 'r', ) as h5_file:
         ds = h5_file["WaveformPairs"]
         coords = ds["coord"]
+        feats = ds["waveform"]
         inds = _npwhere((coords[:, 2] >= file_info[1][0]) & (
                 coords[:, 2] <= file_info[1][1]))
-    return coords[inds]
+    return coords[inds], feats[inds]
 
 
 def _npwhere(cond):
     return asarray(cond).nonzero()
 
 
-def check_file(j, merged_coords, y, n, f):
+def check_file(j, merged_coords, merged_feats, y, n, f):
     ind = 0
     event_ind = 0
     skip_current = False
@@ -43,8 +44,8 @@ def check_file(j, merged_coords, y, n, f):
     batch_to_skip = []
     ylen = y.shape[0]
     for fdat in j[str(n)]:
-        coords = _read_chunk(fdat)
-        for coord in coords:
+        coords, feats = _read_chunk(fdat)
+        for coord, feat in zip(coords,feats):
             prev_batch_coord = current_batch_coord
             current_batch_coord = coord[2]
             if skip_current:
@@ -65,9 +66,13 @@ def check_file(j, merged_coords, y, n, f):
                 batch_to_skip = [coord[2] + i for i in range(traverse_next)]
                 continue
             if not (arrays_equal(coord[0:2], merged_coords[ind, 0:2])):
-                raise ValueError("File {0} contained incorrect value at index {1}: \n"
+                raise ValueError("File {0} contained incorrect coords at index {1}: \n"
                                  "Value: {2}\nExpected: {3}".format(str(f.resolve()), ind, merged_coords[ind, 0:2],
                                                                     coord[0:2]))
+            if not (arrays_equal(feat, merged_feats[ind, :])):
+                raise ValueError("File {0} contained incorrect waveform at index {1}: \n"
+                                 "Value: {2}\nExpected: {3}".format(str(f.resolve()), ind, merged_feats[ind,:],
+                                                                    feat))
             ind += 1
         if event_ind >= ylen:
             break
@@ -86,10 +91,11 @@ def main():
         print("checking file {}".format(f))
         with h5py.File(str(f.resolve()), 'r') as h5f:
             merged_coords = h5f["WaveformPairs"]["coord"]
+            merged_feats = h5f["WaveformPairs"]["waveform"]
             y = h5f["WaveformPairs"]["labels"]
             j = json_load(str(f.resolve())[0:-3] + ".json")
             for n in j.keys():
-                check_file(j, merged_coords, y, int(n), f)
+                check_file(j, merged_coords, merged_feats, y, int(n), f)
 
 
 if __name__ == "__main__":
