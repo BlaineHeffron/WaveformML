@@ -6,6 +6,7 @@ from src.utils.util import *
 class SPConvNet(nn.Module):
     def __init__(self, config):
         super().__init__()
+        self.log = logging.getLogger(__name__)
         self.system_config = config.system_config
         self.net_config = config.net_config
         self.nsamples = self.system_config.n_samples
