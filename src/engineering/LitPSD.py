@@ -19,9 +19,6 @@ class LitPSD(pl.LightningModule):
         self.hparams = DictionaryUtility.to_dict(config)
         self.n_type = config.system_config.n_type
         self.lr = config.optimize_config.lr
-        self.hparams["lr"] = config.optimize_config.lr
-        if hasattr(config,"auto_lr_find"):
-            self.log.debug("auto lr finder set to {}".format(self.hparams["auto_lr_find"]))
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)

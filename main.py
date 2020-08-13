@@ -174,7 +174,6 @@ def main():
 
     if args.auto_lr_find:
         setattr(args, "auto_lr_find", True)
-        setattr(config, "auto_lr_find", True)
 
     if args.optimize_config or hasattr(config, "optuna_config"):
         set_pruning = args.pruning
