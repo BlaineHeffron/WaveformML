@@ -62,9 +62,16 @@ class LitPSD(pl.LightningModule):
         return optimizer
 
     def convert_to_tensors(self, coord, feat, label):
-        #if self.needs_float:
-        #    feat = feat.type(float32).device(self.device)
-        #label = label.type(int64).device(self.device)
+        if self.needs_float:
+            if self.on_gpu:
+                feat = feat.type(float32).cuda(self.device)
+            else:
+                feat = feat.type(float32)
+        if self.on_gpu:
+            label = label.type(int64).cuda(self.device)
+            coord = coord.cuda(self.device)
+        else:
+            label = label.type(int64)
         return coord, feat, label
 
     def training_step(self, batch, batch_idx):
