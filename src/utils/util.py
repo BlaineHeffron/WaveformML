@@ -173,7 +173,7 @@ def save_config(config, log_folder, exp_name, postfix, is_dict=False):
 def set_default_trainer_args(trainer_args, config):
     if hasattr(config.system_config, "half_precision"):
         if config.system_config.half_precision:
-            log.info("Trainer is rsing 16 bit precision.")
+            log.info("Trainer is using 16 bit precision.")
             trainer_args["precision"] = 16
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:

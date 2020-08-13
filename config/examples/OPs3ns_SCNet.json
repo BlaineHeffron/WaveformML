@@ -7,13 +7,15 @@
   "system_config":{
     "_comment": "set half_precision to true to utilize 16 bit training mode.",
     "_comment2": "set model_base_path to write model output to a directory of your choosing. Defaults to ./model",
+    "_comment3": "sparseconvnet requires floats for the features, so set requires_float to true. spconv and others do not need this, do not set it",
     "model_name": "Positron_OrthoPositronium",
     "model_base_path": "./model",
     "n_type":2,
     "type_names": ["Positron","OrthoPositronium"],
     "n_samples": 150,
     "gpu_enabled": true,
-    "half_precision": true
+    "half_precision": true,
+    "requires_float": true
   },
   "net_config":{
     "_comment": "convolution args: dimension, nIn, nOut, filter_size, filter_stride, bias, groups=1",

@@ -12,6 +12,10 @@ class LitPSD(pl.LightningModule):
         self.log = logging.getLogger(__name__)
         logging.getLogger("lightning").setLevel(self.log.level)
         self.config = config
+        if hasattr(config.system_config,"requires_float"):
+            self.needs_float = config.system_config.requires_float
+        else:
+            self.needs_float = False
         self.hparams = DictionaryUtility.to_dict(config)
         self.n_type = config.system_config.n_type
         self.lr = config.optimize_config.lr
@@ -58,7 +62,8 @@ class LitPSD(pl.LightningModule):
         return optimizer
 
     def convert_to_tensors(self, coord, feat, label):
-        feat = feat.type(float32)
+        if self.needs_float:
+            feat = feat.type(float32)
         label = label.type(int64)
         return coord, feat, label
 

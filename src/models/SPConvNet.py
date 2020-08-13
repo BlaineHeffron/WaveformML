@@ -1,5 +1,6 @@
 import spconv
 from torch import nn, LongTensor
+from numpy import array
 from src.utils.util import *
 
 
@@ -47,7 +48,7 @@ class SPConvNet(nn.Module):
         self.linear = nn.Sequential(*self.modules.create_class_instances(linear_funcs))
         self.n_linear = linear_funcs[1][0]
         # TODO: make this work with 3d tensors as well
-        self.spatial_size = LongTensor([14, 11])
+        self.spatial_size = array([14, 11])
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
