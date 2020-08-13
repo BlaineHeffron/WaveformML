@@ -182,8 +182,8 @@ class ModelValidation(object):
     @staticmethod
     def _get_conv_dim(alg, inputs):
         name = alg.split(".")[1].lower()
-        if NIN in alg_map[alg]:
-            return inputs[alg_map[alg].index(NIN)]
+        if DIM in alg_map[alg]:
+            return inputs[alg_map[alg].index(DIM)]
         else:
             if "1d" in name:
                 return 1
