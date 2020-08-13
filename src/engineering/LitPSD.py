@@ -19,7 +19,7 @@ class LitPSD(pl.LightningModule):
         self.hparams = DictionaryUtility.to_dict(config)
         self.n_type = config.system_config.n_type
         self.lr = config.optimize_config.lr
-        self.hparams["lr"] = self.lr
+        self.hparams["lr"] = config.optimize_config.lr
         if hasattr(config,"auto_lr_find"):
             self.log.debug("auto lr finder set to {}".format(self.hparams["auto_lr_find"]))
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
@@ -47,6 +47,8 @@ class LitPSD(pl.LightningModule):
     """
 
     def configure_optimizers(self):
+        self.log.debug("self.lr is set to {}".format(self.lr))
+        self.log.debug("self.hparams.lr is set to {}".format(self.hparams["lr"]))
         optimizer = \
             self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
                                                                                      lr=(self.lr or self.learning_rate),
