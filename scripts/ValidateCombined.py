@@ -3,9 +3,12 @@ import argparse
 from pathlib import Path
 import json
 from numpy import asarray
-from src.utils.util import json_load
 import numba as nb
 
+def json_load(path):
+    with open(path, 'r') as f:
+        data = json.load(f)
+    return data
 
 @nb.jit(nopython=True)
 def arrays_equal(a, b):
