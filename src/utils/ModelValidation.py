@@ -19,7 +19,11 @@ alg_map = {
     "nn.Conv1d": [NIN, NOUT, FS, STR, PAD, DIL],
     "nn.Conv2d": [NIN, NOUT, FS, STR, PAD, DIL],
     "nn.Conv3d": [NIN, NOUT, FS, STR, PAD, DIL],
-    "nn.Conv4d": [NIN, NOUT, FS, STR, PAD, DIL]
+    "nn.Conv4d": [NIN, NOUT, FS, STR, PAD, DIL],
+    "spconv.SparseConv1d": [NIN, NOUT, FS, STR, PAD, DIL],
+    "spconv.SparseConv2d": [NIN, NOUT, FS, STR, PAD, DIL],
+    "spconv.SparseConv3d": [NIN, NOUT, FS, STR, PAD, DIL],
+    "spconv.SparseConv4d": [NIN, NOUT, FS, STR, PAD, DIL]
 }
 type_map = {
     "convolution": [DIM, NIN, NOUT, FS, STR, PAD, DIL],
