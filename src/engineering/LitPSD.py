@@ -63,8 +63,8 @@ class LitPSD(pl.LightningModule):
 
     def convert_to_tensors(self, coord, feat, label):
         if self.needs_float:
-            feat = feat.type(float32)
-        label = label.type(int64)
+            feat = feat.type(float32).device(self.device)
+        label = label.type(int64).device(self.device)
         return coord, feat, label
 
     def training_step(self, batch, batch_idx):
