@@ -2,6 +2,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import AdvancedProfiler
 from os.path import abspath, exists, join
 from src.optimization.ModelOptimization import *
+from src.utils.ModelValidation import *
 
 import sys
 import json
@@ -99,10 +100,12 @@ def main():
                         help="Set the filename or path to the filename for the program log this run."
                              " Set --verbosity to control the amount of information logged.",
                         type=str)
-    parser.add_argument("--validation", "-cv", type=str,
-                        help="Set the path to the config validation file.")
+    parser.add_argument("--validate", "-va", type=bool, action="store_true",
+                        help="If set, will validate the input algorithm before running")
     parser.add_argument("--optimize_config", "-oc", type=str,
                         help="Set the path to the optuna optimization config file.")
+    parser.add_argument("--config_validation", "-cv", type=str,
+                        help="Set the path to the config validation file.")
     parser.add_argument(
         "--pruning",
         "-p",
@@ -118,8 +121,8 @@ def main():
     verbosity = args.verbosity
     config_file = args.config
     config_file = check_config(config_file)
-    if args.validation:
-        valid_file = args.validation
+    if args.config_validation:
+        valid_file = args.config_validation
     else:
         valid_file = CONFIG_VALIDATION
     # read config
@@ -165,6 +168,9 @@ def main():
     logging.info('=======================================================')
     logging.info('Using system from %s' % config_file)
     logging.info('=======================================================')
+
+    if args.validate:
+        ModelValidation.validate(config)
 
     if args.optimize_config or hasattr(config, "optuna_config"):
         set_pruning = args.pruning
