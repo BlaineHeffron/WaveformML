@@ -46,7 +46,9 @@ class SPConvNet(nn.Module):
             self.waveformLayer = nn.Sequential(*self.modules.create_class_instances(waveform_funcs))
         self.sparseModel = self.sequence_class(*self.modules.create_class_instances(sparse_funcs))
         self.linear = nn.Sequential(*self.modules.create_class_instances(linear_funcs))
+        self.log.debug("linear functions: {}".format(linear_funcs))
         self.n_linear = linear_funcs[1][0]
+        self.log.debug("n_linear: {}".format(self.n_linear))
         # TODO: make this work with 3d tensors as well
         self.spatial_size = array([14, 11])
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
@@ -55,6 +57,7 @@ class SPConvNet(nn.Module):
         batch_size = x[0][-1, 2] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
         x = self.sparseModel(x)
+        self.log.debug("output shape from sparse model : {}".format(x.shape))
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
         return x
