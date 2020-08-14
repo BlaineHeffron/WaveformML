@@ -45,9 +45,14 @@ def check_file(j, merged_coords, merged_feats, y, n, f):
     ylen = y.shape[0]
     for fdat in j[str(n)]:
         coords, feats = _read_chunk(fdat)
+        print("checking against file {}".format(fdat))
         for coord, feat in zip(coords,feats):
+            #print("sanity check: y =  {0}, n = {1}, y==n : {2}".format(y[event_ind], n,
+            #    y[event_ind]==n))
             prev_batch_coord = current_batch_coord
-            current_batch_coord = coord[2]
+            current_batch_coord = merged_coords[ind,2]
+            #print("prev batch: {0}, current batch:"
+            #      " {1}".format(prev_batch_coord,current_batch_coord))
             if skip_current:
                 if current_batch_coord in batch_to_skip:
                     continue
@@ -55,16 +60,23 @@ def check_file(j, merged_coords, merged_feats, y, n, f):
                     skip_current = False
             prev_event_ind = event_ind
             if prev_batch_coord != current_batch_coord:
+                #print("prev batch: {0}, current batch:"
+                #      " {1}".format(prev_batch_coord,current_batch_coord))
                 event_ind += 1
-            while (ylen > event_ind and y[event_ind] != n):
+            while ylen > event_ind and y[event_ind] != n:
+                #print("ylen: {0}, event_ind: {1}, y: {2}".format(ylen, event_ind, y[event_ind]))
                 event_ind += 1
             if event_ind >= ylen:
                 break
             traverse_next = event_ind - prev_event_ind
+            #print("traverse next: {}".format(traverse_next))
             if traverse_next > 0:
                 skip_current = True
                 batch_to_skip = [coord[2] + i for i in range(traverse_next)]
+                #print("batch to skip: {0}".format(batch_to_skip))
                 continue
+            #print("checking for row {0} event {1}".format(ind,event_ind))
+            #print("orig coords: {0} merged coords: {1}".format(coord[0:2],merged_coords[ind,0:2]))
             if not (arrays_equal(coord[0:2], merged_coords[ind, 0:2])):
                 raise ValueError("File {0} contained incorrect coords at index {1}: \n"
                                  "Value: {2}\nExpected: {3}".format(str(f.resolve()), ind, merged_coords[ind, 0:2],
