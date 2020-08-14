@@ -70,7 +70,7 @@ class PSDDataModule(pl.LightningDataModule):
                     self.log.info("Validation dataset generated.")
 
             if not hasattr(self, "test_dataset"):
-                if hasattr(self.config.dataset_config, "n_validate"):
+                if hasattr(self.config.dataset_config, "val_config"):
                     self.test_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.test_config,
                                                                            self.device)
                     self.log.info("Using test dataset from {}.".format(self.config.dataset_config.test_config))
