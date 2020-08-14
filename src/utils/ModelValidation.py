@@ -25,7 +25,9 @@ alg_map = {
     "spconv.SparseConv3d": [NIN, NOUT, FS, STR, PAD, DIL],
     "spconv.SparseConv4d": [NIN, NOUT, FS, STR, PAD, DIL],
     "spconv.SubMConv2d": [NIN, NOUT, FS, STR, PAD, DIL],
-    "spconv.SubMConv3d": [NIN, NOUT, FS, STR, PAD, DIL]
+    "spconv.SubMConv3d": [NIN, NOUT, FS, STR, PAD, DIL],
+    "spconv.SparseConvTranspose2d": [NIN, NOUT, FS, STR, PAD, DIL],
+    "spconv.SparseConvTranspose3d": [NIN, NOUT, FS, STR, PAD, DIL]
 }
 type_map = {
     "convolution": [DIM, NIN, NOUT, FS, STR, PAD, DIL],
