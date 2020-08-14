@@ -47,7 +47,17 @@ class SCNet(nn.Module):
             self.log.info("Adding an initial waveform processing layer: {0}".format(str(waveform_funcs)))
             self.waveformLayer = nn.Sequential(*self.modules.create_class_instances(waveform_funcs))
         self.sparseModel = self.sequence_class(*self.modules.create_class_instances(sparse_funcs))
-        self.spatial_size = LongTensor([14, 11])
+        if self.net_config.net_type == "2DConvolution":
+            self.ndim = 2
+        elif self.net_config.net_type == "3DConvolution":
+            self.ndim = 3
+        else:
+            self.log.warning("Warning: unknown net_type in net_config: {}".format(self.net_config.net_type))
+            self.ndim = 2
+        if self.ndim == 3:
+            self.spatial_size = LongTensor([14, 11, self.nsamp])
+        else:
+            self.spatial_size = LongTensor([14, 11])
         self.inputLayer = scn.InputLayer(2, self.spatial_size, mode=0)
         self.linear = nn.Sequential(*self.modules.create_class_instances(linear_funcs))
         self.n_linear = linear_funcs[1][0]

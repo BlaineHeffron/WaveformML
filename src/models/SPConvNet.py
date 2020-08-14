@@ -51,15 +51,26 @@ class SPConvNet(nn.Module):
         self.n_linear = linear_funcs[1][0]
         self.log.debug("n_linear: {}".format(self.n_linear))
         # TODO: make this work with 3d tensors as well
-        self.spatial_size = array([14, 11])
-        self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
+        if self.net_config.net_type == "2DConvolution":
+            self.ndim = 2
+        elif self.net_config.net_type == "3DConvolution":
+            self.ndim = 3
+        else:
+            self.log.warning("Warning: unknown net_type in net_config: {}".format(self.net_config.net_type))
+            self.ndim = 2
+        if self.ndim == 3:
+            self.spatial_size = array([14, 11, self.nsamp])
+            self.permute_tensor = LongTensor([3, 0, 1, 2])  # needed because spconv requires batch index first
+        else:
+            self.spatial_size = array([14, 11])
+            self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
         if hasattr(self,"waveformLayer"):
             x[1].unsqueeze_(1) # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
             x[1] = self.waveformLayer(x[1])
             x[1].squeeze_(1)
-        batch_size = x[0][-1, 2] + 1
+        batch_size = x[0][-1, -1] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
         x = self.sparseModel(x)
         self.log.debug("output shape from sparse model : {}".format(x.shape))
