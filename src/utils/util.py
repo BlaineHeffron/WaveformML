@@ -1,4 +1,5 @@
 import importlib
+import time
 import os
 import json
 import pickle
@@ -288,7 +289,9 @@ class OrderlyJSONEncoder(json.JSONEncoder):
 def write_run_info(mydir):
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha
-    info = {"args": sys.argv,
+    timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+    info = {"datetime": timestr,
+                "args": sys.argv,
             "github_hexsha": sha}
     save_config(info, mydir, "run", "info", True)
 
