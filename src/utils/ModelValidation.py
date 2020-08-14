@@ -133,7 +133,7 @@ class ModelValidation(object):
         # p is the padding
         if len(current_dim) > 1:
             if len(current_dim) != ndim+1:
-                if ndim == 1 and len(current_dim) == 4:
+                if ndim == 1 and len(current_dim) == 3:
                     # special case, the 1d convolution is on the channel data
                     f = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 3)
                     return [current_dim[0], current_dim[1], current_dim[2], f]
