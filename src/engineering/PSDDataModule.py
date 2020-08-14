@@ -21,49 +21,67 @@ class PSDDataModule(pl.LightningDataModule):
         # called only on 1 GPU
         pass
 
-
     def setup(self, stage=None):
         # called on every GPU
         if stage == 'fit' or stage is None:
             if not hasattr(self, "train_dataset"):
-                self.train_dataset = self.dataset_class(self.config, "train",
-                                                        self.config.dataset_config.n_train,
-                                                        self.device,
-                                                        **DictionaryUtility.to_dict(
-                                                            self.config.dataset_config.dataset_params))
+                if hasattr(self.config.dataset_config, "train_config"):
+                    self.train_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.train_config,
+                                                                            self.device)
+                    self.log.info("Using train dataset from {}.".format(self.config.dataset_config.train_config))
+                else:
+                    self.train_dataset = self.dataset_class(self.config, "train",
+                                                            self.config.dataset_config.n_train,
+                                                            self.device,
+                                                            **DictionaryUtility.to_dict(
+                                                                self.config.dataset_config.dataset_params))
+                    self.log.info("Training dataset generated.")
                 self.train_excludes = self.train_dataset.get_file_list()
-                self.log.info("Training dataset generated.")
             worker_info = get_worker_info()
             if hasattr(self.config.dataset_config, "data_prep"):
                 if self.config.dataset_config.data_prep == "shuffle":
-                    if worker_info is None:
-                        self.log.info("Main process beginning to shuffle dataset.")
+                    if hasattr(self.config.dataset_config, "train_config"):
+                        self.log.warning("You specified a training dataset and shuffling data prep. Data shuffling is "
+                                         "only supported when specifying a dataset via a directory list. Skipping "
+                                         "shuffle.")
                     else:
-                        self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
-                    self.train_dataset.write_shuffled()  # might need to make this call configurable
-
+                        if worker_info is None:
+                            self.log.info("Main process beginning to shuffle dataset.")
+                        else:
+                            self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
+                        self.train_dataset.write_shuffled()  # might need to make this call configurable
         if stage == 'test' or stage is None:
             if not hasattr(self, "val_dataset"):
-                if hasattr(self.config.dataset_config, "n_validate"):
-                    n_validate = self.config.dataset_config.n_validate
+                if hasattr(self.config.dataset_config, "val_config"):
+                    self.val_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.val_config,
+                                                                          self.device)
+                    self.log.info("Using validation dataset from {}.".format(self.config.dataset_config.val_config))
                 else:
-                    n_validate = self.config.dataset_config.n_test
-                self.val_dataset = self.dataset_class(self.config, "validate",
-                                                      n_validate,
-                                                      self.device,
-                                                      file_excludes=self.train_excludes,
-                                                      **DictionaryUtility.to_dict(
-                                                          self.config.dataset_config.dataset_params))
-                self.log.info("Validation dataset generated.")
+                    if hasattr(self.config.dataset_config, "n_validate"):
+                        n_validate = self.config.dataset_config.n_validate
+                    else:
+                        n_validate = self.config.dataset_config.n_test
+                    self.val_dataset = self.dataset_class(self.config, "validate",
+                                                          n_validate,
+                                                          self.device,
+                                                          file_excludes=self.train_excludes,
+                                                          **DictionaryUtility.to_dict(
+                                                              self.config.dataset_config.dataset_params))
+                    self.log.info("Validation dataset generated.")
 
             if not hasattr(self, "test_dataset"):
-                self.test_dataset = self.dataset_class(self.config, "test",
-                                                       self.config.dataset_config.n_test,
-                                                       self.device,
-                                                       file_excludes=self.train_excludes + self.val_dataset.get_file_list(),
-                                                       **DictionaryUtility.to_dict(
-                                                           self.config.dataset_config.dataset_params))
-                self.log.info("Test dataset generated.")
+                if hasattr(self.config.dataset_config, "n_validate"):
+                    self.test_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.test_config,
+                                                                           self.device)
+                    self.log.info("Using test dataset from {}.".format(self.config.dataset_config.test_config))
+                else:
+                    self.test_dataset = self.dataset_class(self.config, "test",
+                                                           self.config.dataset_config.n_test,
+                                                           self.device,
+                                                           file_excludes=self.train_excludes + self.val_dataset.get_file_list(),
+                                                           **DictionaryUtility.to_dict(
+                                                               self.config.dataset_config.dataset_params))
+                    self.log.info("Test dataset generated.")
 
     def train_dataloader(self):
         if not hasattr(self, "train_dataset"):

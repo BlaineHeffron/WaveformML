@@ -2,7 +2,7 @@ import h5py
 import argparse
 from pathlib import Path
 import json
-from numpy import asarray
+from numpy import asarray, array, isin
 import numba as nb
 
 
@@ -29,7 +29,7 @@ def _read_chunk(file_info):
         feats = ds["waveform"]
         inds = _npwhere((coords[:, 2] >= file_info[1][0]) & (
                 coords[:, 2] <= file_info[1][1]))
-    return coords[inds], feats[inds]
+    return array(coords[inds]), array(feats[inds])
 
 
 def _npwhere(cond):
@@ -37,15 +37,29 @@ def _npwhere(cond):
 
 
 def check_file(j, merged_coords, merged_feats, y, n, f):
+    """
     ind = 0
     event_ind = 0
     skip_current = False
     current_batch_coord = 0
     batch_to_skip = []
     ylen = y.shape[0]
+    """
+    y = array(y)
+    merged_coords = array(merged_coords)
+    merged_feats = array(merged_feats)
     for fdat in j[str(n)]:
         coords, feats = _read_chunk(fdat)
-        print("checking against file {}".format(fdat))
+        #print("checking against file {}".format(fdat))
+        compare_inds = _npwhere(y == n)[0]
+        #print("batch indices to select: {}".format(compare_inds))
+        inds = _npwhere(isin(merged_coords[:,2], compare_inds))[0]
+        #print("indices in merged with those batch indices: {0}".format(inds))
+        if not (arrays_equal(coords[:,0:2], merged_coords[inds, 0:2])):
+            raise ValueError("File {0} contained incorrect coords".format(str(f.resolve())))
+        if not (arrays_equal(feats, merged_feats[inds])):
+            raise ValueError("File {0} contained incorrect waveforms".format(str(f.resolve())))
+        """
         for coord, feat in zip(coords,feats):
             #print("sanity check: y =  {0}, n = {1}, y==n : {2}".format(y[event_ind], n,
             #    y[event_ind]==n))
@@ -88,6 +102,7 @@ def check_file(j, merged_coords, merged_feats, y, n, f):
             ind += 1
         if event_ind >= ylen:
             break
+        """
 
 
 def main():

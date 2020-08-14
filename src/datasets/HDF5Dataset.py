@@ -7,7 +7,7 @@ import torch
 from torch.utils import data
 from numpy import where, full, int64, int8
 from os.path import dirname, abspath
-from src.utils.util import read_object_from_file, save_object_to_file
+from src.utils.util import read_object_from_file, save_object_to_file, json_load
 import logging
 
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
@@ -53,6 +53,28 @@ class HDF5Dataset(data.Dataset):
         label_name: string indicating the name of the labels dataset if applicable
         data_cache_size: Number of HDF5 files that can be cached in the cache (default=3).
     """
+
+    @classmethod
+    def retrieve_config(cls, config_path, device):
+        """
+        @param config_path: path to dataset configuration json file
+        @param device: device upon which to map tensors
+        @return: returns an object of type HDF5Dataset initialized with the dataset configuration
+        """
+        conf = json_load(config_path)
+        cls.log = logging.getLogger(__name__)
+        cls.data_cache = {}
+        cls.data_cache_map = {}
+        cls.device = device
+        cls.file_paths = conf["file_paths"]
+        cls.num_dirs = len(cls.file_paths)
+        cls.info = {"file_paths": conf["file_paths"], "data_info": conf["data_info"],
+                     "data_cache_size": conf["data_cache_size"], "data_name": conf["data_name"],
+                     "coord_name": conf["coord_name"], "feat_name": conf["feat_name"],
+                     "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"]}
+        cls.group_mode = False
+        cls.ordered_file_set = [fp["file_path"] for fp in cls.info["data_info"]]
+        return cls
 
     def __init__(self, file_paths,
                  file_pattern,
@@ -170,13 +192,13 @@ class HDF5Dataset(data.Dataset):
             coords = coords[0:ind, :]
             vals = vals[0:ind, :]
         if self.info['label_name'] is None:
-            #y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
+            # y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
             #                          (di['event_range'][1] + 1 - di['event_range'][0],),
             #                          di['dir_index'], dtype=torch.int64, device=self.device)
             y = full((di['event_range'][1] + 1,), fill_value=di['dir_index'], dtype=int8)
         else:
             y = self.get_data(self.info['label_name'], index)
-            #y = torch.tensor(y, device=self.device, dtype=torch.int64)
+            # y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
         return coords, vals, y

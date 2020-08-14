@@ -63,6 +63,10 @@ def _file_config_superset(data_info, fname):
 
 class PulseDataset(HDF5Dataset):
 
+    @classmethod
+    def retrieve_config(cls, config_path, device):
+        return super().retrieve_config(config_path, device)
+
     def __init__(self, config, dataset_type,
                  n_per_dir, device,
                  file_mask, dataset_name,
@@ -90,6 +94,7 @@ class PulseDataset(HDF5Dataset):
         self.config = config.dataset_config
         self.batch_index = batch_index
         paths = [os.path.join(self.config.base_path, path) for path in self.config.paths]
+        self.n_paths = len(paths)
         super().__init__(paths,
                          file_mask, dataset_name,
                          coord_name, feat_name,
@@ -408,7 +413,7 @@ class PulseDataset(HDF5Dataset):
             super().__init__([self.data_dir],
                              self.file_mask, self.info['data_name'],
                              self.info['coord_name'], self.info['feat_name'],
-                             self.info['events_per_dir'],
+                             self.info['events_per_dir']*self.n_paths,
                              self.device,
                              label_name='labels',
                              data_cache_size=self.info['data_cache_size'])
@@ -419,6 +424,9 @@ class PulseDataset(HDF5Dataset):
 class PulseDataset2D(PulseDataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2],
     where N is the number of PMTs fired for the M = batch size events"""
+    @classmethod
+    def retrieve_config(cls, config_path, device):
+        return super().retrieve_config(config_path, device)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
@@ -448,6 +456,9 @@ class PulseDataset2D(PulseDataset):
 class PulseDataset3D(PulseDataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2]
     where N is the number of PMTs fired for the M = batch size events"""
+    @classmethod
+    def retrieve_config(cls, config_path, device):
+        return super().retrieve_config(config_path, device)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
