@@ -54,7 +54,9 @@ class SCNet(nn.Module):
 
     def forward(self, x):
         if hasattr(self,"waveformLayer"):
+            x[1].unsqueeze_(1) # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
             x[1] = self.waveformLayer(x[1])
+            x[1].squeeze_(1)
         x = self.inputLayer(x)
         x = self.sparseModel(x)
         x = x.view(-1, self.n_linear)

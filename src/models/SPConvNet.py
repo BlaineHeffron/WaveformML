@@ -56,7 +56,9 @@ class SPConvNet(nn.Module):
 
     def forward(self, x):
         if hasattr(self,"waveformLayer"):
+            x[1].unsqueeze_(1) # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
             x[1] = self.waveformLayer(x[1])
+            x[1].squeeze_(1)
         batch_size = x[0][-1, 2] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
         x = self.sparseModel(x)
