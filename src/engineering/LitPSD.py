@@ -76,20 +76,20 @@ class LitPSD(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (coo, feat), targets = batch
-        self.log.debug("Shape of coords: {}".format(coo.shape))
-        self.log.debug("Shape of features: {}".format(feat.shape))
-        self.log.debug("Shape of labels: {}".format(targets.shape))
+        #self.log.debug("Shape of coords: {}".format(coo.shape))
+        #self.log.debug("Shape of features: {}".format(feat.shape))
+        #self.log.debug("Shape of labels: {}".format(targets.shape))
         for c, f, target in zip(coo, feat, targets):
             c, f, target = self.convert_to_tensors(c, f, target)
             #self.log.debug("type of coords: {}".format(c.storage_type()))
             #self.log.debug("type of features: {}".format(f.storage_type()))
             #self.log.debug("type of labels: {}".format(target.storage_type()))
             predictions = self.model([c, f])
-            self.log.debug("predictions shape is {}".format(predictions.shape))
+            #self.log.debug("predictions shape is {}".format(predictions.shape))
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
-            if self.log.level > 4:
+            if self.log.level == logging.DEBUG:
                 self.log.debug("batch id: {0}, train_loss: {1}"
                                .format(batch_idx, str(loss.item())))
         return result
@@ -104,7 +104,7 @@ class LitPSD(pl.LightningModule):
             pred = argmax(self.softmax(predictions), dim=1)
             acc = accuracy(pred, target, num_classes=self.n_type)
             result.log_dict({'val_loss': loss, 'val_acc': acc}, on_epoch=True)
-            if self.log.level > 4:
+            if self.log.level == logging.DEBUG:
                 self.log.debug("batch id: {0}, val_loss: {1}, val_acc: {2}"
                                .format(batch_idx, str(loss.item()), str(acc.item())))
         return result
