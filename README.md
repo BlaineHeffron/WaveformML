@@ -77,6 +77,8 @@ A full example config file is found in config/examples
     --log_gpu_memory all | min_max // logs the gpu usage, set to min_max for only max and min usage logging
     --terminate_on_nan true // terminates when nan loss is returned
     --auto_lr_find true // starts the training session with a learning rate finder algorithm, prints results / saves to log folder
+    --row_log_interval n // records tensorboard logs every n batches (default 1)
+    --log_save_interval n // only writes out tensorboard logs every n batches
 
 
 see https://pytorch-lightning.readthedocs.io/en/latest/trainer.html#trainer-flags

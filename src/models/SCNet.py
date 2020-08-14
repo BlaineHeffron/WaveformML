@@ -33,6 +33,7 @@ class SCNet(nn.Module):
                         waveform_funcs.append(f)
                     else:
                         has_wf = False
+                        sparse_funcs.append(f)
                 else:
                     waveform_funcs.append(f)
                 continue
