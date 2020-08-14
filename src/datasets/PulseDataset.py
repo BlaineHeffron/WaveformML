@@ -111,10 +111,10 @@ class PulseDataset(HDF5Dataset):
         else:
             self.data_dir = os.path.join(self.data_dir, unique_path_combine(self.config.paths))
         if not os.path.exists(self.data_dir):
-            os.mkdir(self.data_dir)
+            os.makedirs(self.data_dir, exist_ok=True)
         self.dataset_dir = os.path.join(model_dir, "datasets")
         if not os.path.exists(self.dataset_dir):
-            os.mkdir(self.dataset_dir)
+            os.makedirs(self.dataset_dir, exist_ok=True)
         self.dataset_type = dataset_type
         if hasattr(self.config, "name"):
             self.file_path = os.path.join(self.dataset_dir, self.config.name + "_{0}_dataset.json".format(dataset_type))

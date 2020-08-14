@@ -111,6 +111,8 @@ class HDF5Dataset(data.Dataset):
         all_files = []
         for i, file_path in enumerate(file_paths):
             p = Path(file_path)
+            if not p.is_dir():
+                raise RuntimeError("{0} is not a valid directory.".format(str(p.resolve())))
             assert (p.is_dir())
             if recursive:
                 files = sorted(p.glob('**/{0}'.format(file_pattern)), key=lambda e: _sort_pattern(e))
