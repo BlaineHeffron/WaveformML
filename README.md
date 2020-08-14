@@ -53,15 +53,16 @@ n_train, n_validate, and n_test.
 
 Metadata of events selected will be logged to 
 
-    {model folder}/datasets/<dataset name>_config.json
-
+    {model folder}/datasets/<dataset name>_<dataset type>_config.json
+Where `<dataset name>` is constructed from the directory names or can be specified via
+`dataset_config.name`. The `<dataset type>` is one of `train`, `val`, or `test`.
 Constructed datasets will be saved on disk to 
     
     ./data/<model_name>/<dataset name>.json
 
-
-   
-To train with a spe
+To set the training, test, or validation data sets to use a specific metadata file, use
+`dataset_config.train_config`, `.test_config`, and `.val_config` - point these to
+the json metadata file.
 
 Requirements for the config file are shown in config_requirements.json. This can be used as a template.
 A full example config file is found in config/examples

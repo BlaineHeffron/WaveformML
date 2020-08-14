@@ -2,8 +2,8 @@
   "_comment" : "This file specifies required parameters in the config file. If a value is given, it is used as a default when the parameter is absent.",
   "run_config": {
     "exp_name": "unnamed_experiment",
-    "imports": ["PSDRun"],
-    "run_class": "PSDRun"
+    "imports": ["src.engineering.LitPSD"],
+    "run_class": "LitPSD"
   },
   "system_config":{
     "model_name": "unnamed_model",

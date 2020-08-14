@@ -291,7 +291,7 @@ def write_run_info(mydir):
     sha = repo.head.object.hexsha
     timestr = time.strftime("%Y-%m-%d %H:%M:%S")
     info = {"datetime": timestr,
-                "args": sys.argv,
+            "args": sys.argv,
             "github_hexsha": sha}
     save_config(info, mydir, "run", "info", True)
 
@@ -309,4 +309,3 @@ def json_load(path):
     with open(path, 'r') as f:
         data = json.load(f)
     return data
-
