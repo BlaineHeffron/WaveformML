@@ -6,6 +6,7 @@ Recommended to use conda installation manager. https://docs.conda.io/projects/co
 
 First, install prerequisites:
 
+    conda install numpy
     conda install gitpython
     conda install json
     conda install yaml
@@ -28,6 +29,35 @@ Then, install pytorch-lightning and optuna
 Pytorch lightning requires version 0.9 or higher:
     
     pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
+    
+To run the sparse convolutional network code, install spconv or SparseConvNet
+
+##### spconv: https://github.com/traveller59/spconv
+
+install boost:
+    
+    sudo apt-get install libboost-all-dev
+make sure cmake >= 3.13.2 is installed then install spconv:
+
+    git clone https://github.com/traveller59/spconv --recursive
+    cd spconv
+    python setup.py bdist_wheel
+    cd ./dist
+    pip install <name of .whl file>
+    
+##### SparseConvNet 
+
+follow instructions here: https://github.com/facebookresearch/SparseConvNet
+
+##### install things with pip:
+Using pip (example is for linux, see pytorch install guide for your system)
+
+    pip install numpy
+    pip install h5py
+    pip install gitpython
+    pip install torch==1.6.0+cpu torchvision==0.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+    pip install optuna
+    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
 
 
 ## Usage
@@ -42,7 +72,7 @@ where {model folder} defaults to
 
     ./model/<model name>
     
-and \<n> is the run number of the experiment starting from 0
+and `<n>` is the run number of the experiment starting from 0
 
 ### Selecting data
 

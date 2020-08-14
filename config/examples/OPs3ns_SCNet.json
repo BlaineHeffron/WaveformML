@@ -112,7 +112,7 @@
     },
     "optimize_args": {
       "n_trials": 100,
-      "timeout": 600
+      "timeout": 6000
     }
   }
 }

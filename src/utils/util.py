@@ -181,6 +181,8 @@ def set_default_trainer_args(trainer_args, config):
             trainer_args["gpus"] = 1  # TODO add config option for multiple gpus
             if trainer_args["num_nodes"] > 1:
                 trainer_args["distributed_backend"] = 'ddp'
+        else:
+            trainer_args["gpus"] = False
     trainer_args["max_epochs"] = config.optimize_config.total_epoch
     if hasattr(config.optimize_config, "validation_freq"):
         trainer_args["check_val_every_n_epoch"] = config.optimize_config.validation_freq
