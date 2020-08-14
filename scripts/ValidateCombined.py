@@ -55,8 +55,19 @@ def check_file(j, merged_coords, merged_feats, y, n, f):
         #print("batch indices to select: {}".format(compare_inds))
         inds = _npwhere(isin(merged_coords[:,2], compare_inds))[0]
         #print("indices in merged with those batch indices: {0}".format(inds))
-        if not (arrays_equal(coords[:,0:2], merged_coords[inds, 0:2])):
+        ind = 0
+        #for ce, cm in zip(coords, merged_coords[inds]):
+        #    if not arrays_equal(ce[0:2], cm[0:2]):
+        #        print("Mismatch at {0} in merged file, expected {1} at index {2}".format(cm,ce, ind))
+        #    ind += 1
+        if not (arrays_equal(coords[:, 0:2], merged_coords[inds, 0:2])):
             raise ValueError("File {0} contained incorrect coords".format(str(f.resolve())))
+
+        ind = 0
+        #for ve, vm in zip(feats, merged_feats[inds]):
+        #    if not arrays_equal(ve[0:2], vm[0:2]):
+        #        print("Mismatch at {0} in merged file, expected {1} at index {2}".format(vm, ve))
+        #    ind += 1
         if not (arrays_equal(feats, merged_feats[inds])):
             raise ValueError("File {0} contained incorrect waveforms".format(str(f.resolve())))
         """

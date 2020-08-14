@@ -43,7 +43,7 @@ def _is_superset(super_info, info):
 
 
 def _file_config_superset(data_info, fname):
-    with open(fname[0:-3] + ".json", 'r') as f:
+    with open(fname, 'r') as f:
         o = json.load(f)
     for key in data_info.keys():
         if key in o.keys():
@@ -358,7 +358,7 @@ class PulseDataset(HDF5Dataset):
                     if self._not_empty(chunk):
                         data_queue[cat] = chunk
                         ignore_cats[cat] = False
-                        data_queue_offsets[cat] = data_info[cat][current_file_indices[cat]][1][0]
+                        data_queue_offsets[cat] = copy(data_info[cat][current_file_indices[cat]][1][0])
                     else:
                         self.log.warning(
                             "Unable to retrieve data from file {}".format(data_info[cat][current_file_indices[cat]][0]))
@@ -388,6 +388,7 @@ class PulseDataset(HDF5Dataset):
                         data_queue[cat] = []
                         data_queue_offsets[cat] = 0
                         current_file_indices[cat] += 1
+                        last_id_grabbed[cat] = -1
                         if not ignore_cats[cat]:
                             all_chunks_have_data = False
         self._to_hdf(out_df, labels, fname, self.info['data_name'], columns, event_counter)
