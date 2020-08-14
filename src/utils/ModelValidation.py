@@ -135,8 +135,8 @@ class ModelValidation(object):
             if len(current_dim) != ndim+1:
                 if ndim == 1 and len(current_dim) == 3:
                     # special case, the 1d convolution is on the channel data
-                    f = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 3)
-                    return [current_dim[0], current_dim[1], current_dim[2], f]
+                    f = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 2)
+                    return [current_dim[0], current_dim[1], f]
                 else:
                     raise IOError("Dimensionality of the dataset is {0}, network layer is for {1} dimensional inputs.".format(len(current_dim)-1,ndim))
         if current_dim[-1] != arg_dict[NIN]:
