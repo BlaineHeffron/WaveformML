@@ -34,13 +34,13 @@ def setup_logger(args):
     logargs = {}
     if args.logfile:
         logargs["filename"] = args.logfile
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=debug_level,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
                         filemode='a', **logargs)
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    console.setLevel(debug_level)
     # set a format which is simpler for console use
     formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
     # tell the handler to use this format
