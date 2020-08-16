@@ -59,7 +59,7 @@ class SPConvNet(nn.Module):
             self.log.warning("Warning: unknown net_type in net_config: {}".format(self.net_config.net_type))
             self.ndim = 2
         if self.ndim == 3:
-            self.spatial_size = array([14, 11, self.nsamp])
+            self.spatial_size = array([14, 11, self.nsamples])
             self.permute_tensor = LongTensor([3, 0, 1, 2])  # needed because spconv requires batch index first
         else:
             self.spatial_size = array([14, 11])

@@ -55,7 +55,7 @@ class SCNet(nn.Module):
             self.log.warning("Warning: unknown net_type in net_config: {}".format(self.net_config.net_type))
             self.ndim = 2
         if self.ndim == 3:
-            self.spatial_size = LongTensor([14, 11, self.nsamp])
+            self.spatial_size = LongTensor([14, 11, self.nsamples])
         else:
             self.spatial_size = LongTensor([14, 11])
         self.inputLayer = scn.InputLayer(2, self.spatial_size, mode=0)
