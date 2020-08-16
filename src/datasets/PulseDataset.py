@@ -475,7 +475,7 @@ class PulseDataset3D(PulseDataset):
             use_pinned: whether to use pinned memory (for GPU loading)
         """
 
-        super().__init__(config, n_per_dir, device, dataset_type,
+        super().__init__(config, dataset_type, n_per_dir, device,
                          "*Waveform3DPairSim.h5", "Waveform3DPairs",
                          "coord", "waveform",
                          batch_index=3,
