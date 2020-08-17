@@ -144,7 +144,7 @@ class ModelValidation(object):
                     # calculate the output size for nsamples, then double
                     tempdim = copy(current_dim)
                     tempdim[2] = tempdim[2]/2
-                    f = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 2)
+                    f = ModelValidation._calc_output_size_1d(tempdim, arg_dict, 2)
                     return [current_dim[0], current_dim[1], f*2]
                 else:
                     raise IOError("Dimensionality of the dataset is {0}, network layer is for {1} dimensional inputs.".format(len(current_dim)-1,ndim))
