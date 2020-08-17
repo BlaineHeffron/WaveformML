@@ -1,4 +1,4 @@
-from pytorch_lightning.metrics.functional import accuracy
+from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
 from src.engineering.PSDDataModule import *
 from torch.nn import Softmax
 from torch import argmax, max, int32, float32, int64, tensor
@@ -12,7 +12,7 @@ class LitPSD(pl.LightningModule):
         self.log = logging.getLogger(__name__)
         logging.getLogger("lightning").setLevel(self.log.level)
         self.config = config
-        if hasattr(config.system_config,"half_precision"):
+        if hasattr(config.system_config, "half_precision"):
             self.needs_float = not config.system_config.half_precision
         else:
             self.needs_float = True
@@ -22,11 +22,14 @@ class LitPSD(pl.LightningModule):
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
         self.model_class = self.modules.retrieve_class(config.net_config.net_class)
-        #self.data_module = PSDDataModule(config,self.device)
+        # self.data_module = PSDDataModule(config,self.device)
         self.model = self.model_class(config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.softmax = Softmax(dim=1)
+        self.accuracy = Accuracy(num_classes=self.n_type)
+        if self.n_type > 2:
+            self.confusion = ConfusionMatrix()
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -76,16 +79,16 @@ class LitPSD(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (coo, feat), targets = batch
-        #self.log.debug("Shape of coords: {}".format(coo.shape))
-        #self.log.debug("Shape of features: {}".format(feat.shape))
-        #self.log.debug("Shape of labels: {}".format(targets.shape))
+        # self.log.debug("Shape of coords: {}".format(coo.shape))
+        # self.log.debug("Shape of features: {}".format(feat.shape))
+        # self.log.debug("Shape of labels: {}".format(targets.shape))
         for c, f, target in zip(coo, feat, targets):
             c, f, target = self.convert_to_tensors(c, f, target)
-            #self.log.debug("type of coords: {}".format(c.storage_type()))
-            #self.log.debug("type of features: {}".format(f.storage_type()))
-            #self.log.debug("type of labels: {}".format(target.storage_type()))
+            # self.log.debug("type of coords: {}".format(c.storage_type()))
+            # self.log.debug("type of features: {}".format(f.storage_type()))
+            # self.log.debug("type of labels: {}".format(target.storage_type()))
             predictions = self.model([c, f])
-            #self.log.debug("predictions shape is {}".format(predictions.shape))
+            # self.log.debug("predictions shape is {}".format(predictions.shape))
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
@@ -99,8 +102,11 @@ class LitPSD(pl.LightningModule):
             loss = self.criterion.forward(predictions, target)
             result = pl.EvalResult(checkpoint_on=loss)
             pred = argmax(self.softmax(predictions), dim=1)
-            acc = accuracy(pred, target, num_classes=self.n_type)
-            result.log_dict({'val_loss': loss, 'val_acc': acc}, on_epoch=True)
+            acc = self.accuracy(pred, target)
+            results_dict = {'val_loss': loss, 'val_acc': acc}
+            if self.n_type > 2:
+                results_dict['val_confusion_matrix'] = self.confusion(pred, target)
+            result.log_dict(results_dict, on_epoch=True)
         return result
 
     def validation_epoch_end(self, val_result):
