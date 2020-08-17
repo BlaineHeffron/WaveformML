@@ -46,6 +46,7 @@ class SCNet(nn.Module):
         if len(waveform_funcs):
             self.log.info("Adding an initial waveform processing layer: {0}".format(str(waveform_funcs)))
             self.waveformLayer = nn.Sequential(*self.modules.create_class_instances(waveform_funcs))
+            self.waveformOutputLength = sparse_funcs[1][0]
         self.sparseModel = self.sequence_class(*self.modules.create_class_instances(sparse_funcs))
         if self.net_config.net_type == "2DConvolution":
             self.ndim = 2
@@ -63,10 +64,12 @@ class SCNet(nn.Module):
         self.n_linear = linear_funcs[1][0]
 
     def forward(self, x):
-        if hasattr(self,"waveformLayer"):
-            x[1].unsqueeze_(1) # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
+        xlen = x[1].shape[0]
+        if hasattr(self, "waveformLayer"):
+            # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
+            x[1] = x[1].reshape(xlen, 2, self.nsamples)
             x[1] = self.waveformLayer(x[1])
-            x[1].squeeze_(1)
+            x[1] = x[1].reshape(xlen, self.waveformOutputLength)
         x = self.inputLayer(x)
         x = self.sparseModel(x)
         x = x.view(-1, self.n_linear)

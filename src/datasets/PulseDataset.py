@@ -455,8 +455,8 @@ class PulseDataset2D(PulseDataset):
 
 
 class PulseDataset3D(PulseDataset):
-    """Pulse data in the form of ChannelData of size [N,nsamples*2]
-    where N is the number of PMTs fired for the M = batch size events"""
+    """Pulse data in the form of ChannelData of size [N,2]
+    where N is the number of cells active * active samples for the M = batch size events"""
     @classmethod
     def retrieve_config(cls, config_path, device):
         return super().retrieve_config(config_path, device)
