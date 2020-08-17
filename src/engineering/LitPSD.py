@@ -89,9 +89,6 @@ class LitPSD(pl.LightningModule):
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log('train_loss', loss)
-            if self.log.level == logging.DEBUG:
-                self.log.debug("batch id: {0}, train_loss: {1}"
-                               .format(batch_idx, str(loss.item())))
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -104,10 +101,15 @@ class LitPSD(pl.LightningModule):
             pred = argmax(self.softmax(predictions), dim=1)
             acc = accuracy(pred, target, num_classes=self.n_type)
             result.log_dict({'val_loss': loss, 'val_acc': acc}, on_epoch=True)
-            if self.log.level == logging.DEBUG:
-                self.log.debug("batch id: {0}, val_loss: {1}, val_acc: {2}"
-                               .format(batch_idx, str(loss.item()), str(acc.item())))
         return result
+
+    def validation_epoch_end(self, val_result):
+        self.logger.experiment.log_metrics({"val_loss": val_result.val_loss, "val_acc": val_result.val_acc})
+        return val_result
+
+    def training_epoch_end(self, train_result):
+        self.logger.experiment.log_metrics({'train_loss': train_result.train_loss})
+        return train_result
 
     """
     def validation_epoch_end(self, outputs):
