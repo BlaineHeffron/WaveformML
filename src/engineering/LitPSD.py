@@ -110,11 +110,11 @@ class LitPSD(pl.LightningModule):
         return result
 
     def validation_epoch_end(self, val_result):
-        self.logger.experiment.log_metrics({"val_loss": val_result.val_loss, "val_acc": val_result.val_acc})
+        self.logger.log_metrics({"val_loss": val_result.val_loss, "val_acc": val_result.val_acc})
         return val_result
 
     def training_epoch_end(self, train_result):
-        self.logger.experiment.log_metrics({'train_loss': train_result.train_loss})
+        self.logger.log_metrics({'train_loss': train_result.train_loss})
         return train_result
 
     """
