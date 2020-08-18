@@ -1,9 +1,11 @@
 from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
 from src.engineering.PSDDataModule import *
 from torch.nn import Softmax
-from torch import argmax, max, int32, float32, int64, tensor
+from torch import argmax, max, int32, float32, int64, mean, sum
 import logging
 
+def weight_avg(t,n):
+    return sum(t*n/sum(n))
 
 class LitPSD(pl.LightningModule):
 
@@ -91,7 +93,7 @@ class LitPSD(pl.LightningModule):
             # self.log.debug("predictions shape is {}".format(predictions.shape))
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
-            result.log('train_loss', loss)
+            result.log_dict({'train_loss': loss, 'n_batch': target.size[0]})
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -100,21 +102,21 @@ class LitPSD(pl.LightningModule):
             c, f, target = self.convert_to_tensors(c, f, target)
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
-            result = pl.EvalResult(checkpoint_on=loss)
+            result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
             pred = argmax(self.softmax(predictions), dim=1)
             acc = self.accuracy(pred, target)
-            results_dict = {'val_loss': loss, 'val_acc': acc}
+            results_dict = {'val_loss': loss, 'val_acc': acc, 'n_batch': target.size[0]}
             if self.n_type > 2:
                 results_dict['val_confusion_matrix'] = self.confusion(pred, target)
             result.log_dict(results_dict, on_epoch=True)
         return result
 
     def validation_epoch_end(self, val_result):
-        self.logger.log_metrics({"val_loss": val_result.val_loss, "val_acc": val_result.val_acc})
+        self.logger.log_metrics({"val_loss": weight_avg(val_result.val_loss,val_result.n_batch), "val_acc": weight_avg(val_result.val_acc,val_result.n_batch)})
         return val_result
 
     def training_epoch_end(self, train_result):
-        self.logger.log_metrics({'train_loss': train_result.train_loss})
+        self.logger.log_metrics({'train_loss': weight_avg(train_result.train_loss,train_result.n_batch)})
         return train_result
 
     """
