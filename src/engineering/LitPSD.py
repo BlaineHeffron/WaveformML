@@ -6,7 +6,7 @@ import logging
 
 
 def weight_avg(t, n):
-    return sum(t * n / sum(n)).item()
+    return sum(t * n / sum(n))
 
 
 class LitPSD(pl.LightningModule):
@@ -115,16 +115,6 @@ class LitPSD(pl.LightningModule):
             result.log_dict(results_dict, on_epoch=True)
         return result
 
-    def validation_epoch_end(self, val_result):
-        #TODO it seems we cant use EvalResult object because it doesnt compute weighted average
-        # this is a problem when the batches for one class are much larger than another
-        self.logger.log_metrics({"val_loss": weight_avg(val_result.val_loss, val_result.n_batch),
-                                 "val_acc": weight_avg(val_result.val_acc, val_result.n_batch)})
-        return val_result
-
-    def training_epoch_end(self, train_result):
-        self.logger.log_metrics({'train_loss': weight_avg(train_result.train_loss, train_result.n_batch)})
-        return train_result
 
     """
     def validation_epoch_end(self, outputs):
