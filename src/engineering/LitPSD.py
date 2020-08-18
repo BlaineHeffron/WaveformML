@@ -4,8 +4,10 @@ from torch.nn import Softmax
 from torch import argmax, max, int32, float32, int64, mean, sum, tensor
 import logging
 
-def weight_avg(t,n):
-    return sum(t*n/sum(n))
+
+def weight_avg(t, n):
+    return sum(t * n / sum(n)).item()
+
 
 class LitPSD(pl.LightningModule):
 
@@ -94,7 +96,7 @@ class LitPSD(pl.LightningModule):
             loss = self.criterion.forward(predictions, target)
             result = pl.TrainResult(loss)
             result.log_dict({'train_loss': loss, 'n_batch':
-                tensor(target.shape[0],device=self.device)})
+                tensor(target.shape[0], device=self.device)})
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -103,22 +105,25 @@ class LitPSD(pl.LightningModule):
             c, f, target = self.convert_to_tensors(c, f, target)
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
-            result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
             pred = argmax(self.softmax(predictions), dim=1)
+            result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
             acc = self.accuracy(pred, target)
             results_dict = {'val_loss': loss, 'val_acc': acc, 'n_batch':
-                    tensor(target.shape[0],device=self.device)}
+                tensor(target.shape[0], device=self.device)}
             if self.n_type > 2:
                 results_dict['val_confusion_matrix'] = self.confusion(pred, target)
             result.log_dict(results_dict, on_epoch=True)
         return result
 
     def validation_epoch_end(self, val_result):
-        self.logger.log_metrics({"val_loss": weight_avg(val_result.val_loss,val_result.n_batch), "val_acc": weight_avg(val_result.val_acc,val_result.n_batch)})
+        #TODO it seems we cant use EvalResult object because it doesnt compute weighted average
+        # this is a problem when the batches for one class are much larger than another
+        self.logger.log_metrics({"val_loss": weight_avg(val_result.val_loss, val_result.n_batch),
+                                 "val_acc": weight_avg(val_result.val_acc, val_result.n_batch)})
         return val_result
 
     def training_epoch_end(self, train_result):
-        self.logger.log_metrics({'train_loss': weight_avg(train_result.train_loss,train_result.n_batch)})
+        self.logger.log_metrics({'train_loss': weight_avg(train_result.train_loss, train_result.n_batch)})
         return train_result
 
     """
