@@ -50,7 +50,7 @@ def _file_config_superset(data_info, fname):
             for i, this_info in enumerate(data_info[key]):
                 for j, disk_info in enumerate(o[key]):
                     if this_info[0] == disk_info[0]:
-                        if this_info[2] == disk_info[2]:
+                        if float(this_info[2]) == float(disk_info[2]):
                             if not _is_superset(disk_info[1], this_info[1]):
                                 return False
                         else:
@@ -74,7 +74,7 @@ class PulseDataset(HDF5Dataset):
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3,
-                 batch_index=2):
+                 batch_index=2, model_dir=None, data_dir=None, dataset_dir=None):
         """
         Args:
             config: configuration file object
@@ -104,15 +104,22 @@ class PulseDataset(HDF5Dataset):
                          label_name=label_name,
                          data_cache_size=data_cache_size)
 
-        model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
-        self.data_dir = os.path.join(os.path.abspath(os.path.dirname(config.system_config.model_base_path)), "data")
-        if hasattr(self.config, "name"):
-            self.data_dir = os.path.join(self.data_dir, self.config.name)
+        if not model_dir:
+            model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
+        if not data_dir:
+            self.data_dir = os.path.join(os.path.abspath(os.path.dirname(config.system_config.model_base_path)), "data")
+            if hasattr(self.config, "name"):
+                self.data_dir = os.path.join(self.data_dir, self.config.name)
+            else:
+                self.data_dir = os.path.join(self.data_dir, unique_path_combine(self.config.paths))
         else:
-            self.data_dir = os.path.join(self.data_dir, unique_path_combine(self.config.paths))
+            self.data_dir = data_dir
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir, exist_ok=True)
-        self.dataset_dir = os.path.join(model_dir, "datasets")
+        if not dataset_dir:
+            self.dataset_dir = os.path.join(model_dir, "datasets")
+        else:
+            self.dataset_dir = dataset_dir
         if not os.path.exists(self.dataset_dir):
             os.makedirs(self.dataset_dir, exist_ok=True)
         self.dataset_type = dataset_type
@@ -296,7 +303,7 @@ class PulseDataset(HDF5Dataset):
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
                     length = self._npwhere((file_info[1][0] <= coords[:, self.batch_index]) & (
-                                coords[:, self.batch_index] <= file_info[1][1]))[0].shape[0]
+                            coords[:, self.batch_index] <= file_info[1][1]))[0].shape[0]
                 else:
                     length = self._npwhere(coords[:, self.batch_index] <= file_info[1][1])[0].shape[0]
             else:
@@ -316,10 +323,11 @@ class PulseDataset(HDF5Dataset):
             for data in data_info[key]:
                 total_rows += self._get_length(data)
         for key in data_info.keys():
-            for data in data_info[key]:
-                coord_len, feat_len, dtypecoord, dtypefeat = self._get_coord_feat_len(data)
+            if len(data_info[key]) > 0:
+                for data in data_info[key]:
+                    coord_len, feat_len, dtypecoord, dtypefeat = self._get_coord_feat_len(data)
+                    break
                 break
-            break
         self.log.debug("Initializing a length {0} dataset for {1}".format(total_rows, data_info))
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
@@ -414,7 +422,7 @@ class PulseDataset(HDF5Dataset):
             super().__init__([self.data_dir],
                              self.file_mask, self.info['data_name'],
                              self.info['coord_name'], self.info['feat_name'],
-                             self.info['events_per_dir']*self.n_paths,
+                             self.info['events_per_dir'] * self.n_paths,
                              self.device,
                              label_name='labels',
                              data_cache_size=self.info['data_cache_size'])
@@ -425,6 +433,7 @@ class PulseDataset(HDF5Dataset):
 class PulseDataset2D(PulseDataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2],
     where N is the number of PMTs fired for the M = batch size events"""
+
     @classmethod
     def retrieve_config(cls, config_path, device):
         return super().retrieve_config(config_path, device)
@@ -432,7 +441,10 @@ class PulseDataset2D(PulseDataset):
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
                  label_name=None,
-                 data_cache_size=3):
+                 data_cache_size=3,
+                 model_dir=None,
+                 data_dir=None,
+                 dataset_dir=None):
         """
         Args:
             config: configuration file object
@@ -448,7 +460,10 @@ class PulseDataset2D(PulseDataset):
                          "coord", "waveform",
                          file_excludes=file_excludes,
                          label_name=label_name,
-                         data_cache_size=data_cache_size)
+                         data_cache_size=data_cache_size,
+                         model_dir=model_dir,
+                         data_dir=data_dir,
+                         dataset_dir=dataset_dir)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
@@ -457,6 +472,7 @@ class PulseDataset2D(PulseDataset):
 class PulseDataset3D(PulseDataset):
     """Pulse data in the form of ChannelData of size [N,2]
     where N is the number of cells active * active samples for the M = batch size events"""
+
     @classmethod
     def retrieve_config(cls, config_path, device):
         return super().retrieve_config(config_path, device)
@@ -464,7 +480,10 @@ class PulseDataset3D(PulseDataset):
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
                  label_name=None,
-                 data_cache_size=3):
+                 data_cache_size=3,
+                 model_dir=None,
+                 data_dir=None,
+                 dataset_dir=None):
         """
         Args:
             config: configuration file object
@@ -481,7 +500,10 @@ class PulseDataset3D(PulseDataset):
                          batch_index=3,
                          file_excludes=file_excludes,
                          label_name=label_name,
-                         data_cache_size=data_cache_size)
+                         data_cache_size=data_cache_size,
+                         model_dir=model_dir,
+                         data_dir=data_dir,
+                         dataset_dir=dataset_dir)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)

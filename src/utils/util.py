@@ -5,6 +5,7 @@ import json
 import pickle
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
+from os.path import abspath, normpath
 import git
 import sys
 import logging
@@ -189,6 +190,7 @@ def set_default_trainer_args(trainer_args, config):
 def unique_path_combine(pathlist):
     common = []
     i = 1
+    pathlist = [abspath(normpath(p)) for p in pathlist]
     for path in pathlist:
         path_array = path_split(path)
         if common:
@@ -202,7 +204,7 @@ def unique_path_combine(pathlist):
         for path in pathlist:
             path_array = path_split(path)
             i = 0
-            while path_array[i] == common[i]:
+            while i < len(common) and path_array[i] == common[i]:
                 i += 1
             if output_string != "":
                 output_string += "__{0}".format('_'.join(path_array[i:]))
