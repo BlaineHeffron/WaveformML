@@ -69,6 +69,7 @@ def main():
                            dataset_dir=outdir)
     else:
         raise IOError("Unknown dataset type {}".format(type))
+    print("Writing combined files to {}".format(outdir))
     d.write_shuffled()
 
 
