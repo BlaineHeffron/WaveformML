@@ -96,18 +96,20 @@ class LitPSD(pl.LightningModule):
             # self.log.debug("predictions shape is {}".format(predictions.shape))
             loss = self.criterion.forward(predictions, target)
             if not result:
-                result = pl.TrainResult(loss)
+                result = pl.TrainResult(loss, checkpoint_on=loss, early_stop_on=loss)
             result.log('train_loss', loss)
         return result
 
     def validation_step(self, batch, batch_idx):
         (coo, feat), targets = batch
+        result = None
         for c, f, target in zip(coo, feat, targets):
             c, f, target = self.convert_to_tensors(c, f, target)
             predictions = self.model([c, f])
             loss = self.criterion.forward(predictions, target)
             pred = argmax(self.softmax(predictions), dim=1)
-            result = pl.EvalResult(checkpoint_on=loss)
+            if not result:
+                result = pl.EvalResult()
             acc = self.accuracy(pred, target)
             results_dict = {'val_loss': loss, 'val_acc': acc}
             results_dict['val_confusion_matrix'] = self.confusion(pred, target)
