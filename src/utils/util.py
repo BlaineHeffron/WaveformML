@@ -140,7 +140,7 @@ def path_create(a_path):
 def save_path(model_folder, model_name, exp_name):
     if exp_name:
         if model_name:
-            return os.path.join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_loss:.2f}")
+            return os.path.join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
         else:
             raise IOError("No model name given. Set model_name property in net_config.")
     else:
