@@ -96,7 +96,7 @@ class LitPSD(pl.LightningModule):
             # self.log.debug("predictions shape is {}".format(predictions.shape))
             loss = self.criterion.forward(predictions, target)
             if not result:
-                result = pl.TrainResult(loss, checkpoint_on=loss, early_stop_on=loss)
+                result = pl.TrainResult(loss)
             result.log('train_loss', loss)
         return result
 
@@ -109,13 +109,12 @@ class LitPSD(pl.LightningModule):
             loss = self.criterion.forward(predictions, target)
             pred = argmax(self.softmax(predictions), dim=1)
             if not result:
-                result = pl.EvalResult()
+                result = pl.EvalResult(early_stop_on=loss, checkpoint_on=loss)
             acc = self.accuracy(pred, target)
             results_dict = {'val_loss': loss, 'val_acc': acc}
             results_dict['val_confusion_matrix'] = self.confusion(pred, target)
             result.log_dict(results_dict)
         return result
-
 
     """
     def validation_epoch_end(self, outputs):
