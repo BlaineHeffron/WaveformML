@@ -96,7 +96,7 @@ class LitPSD(pl.LightningModule):
             loss = self.criterion.forward(predictions, target)
             if not result:
                 result = pl.TrainResult(loss)
-            result.log('train_loss', loss)
+            result.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -112,7 +112,7 @@ class LitPSD(pl.LightningModule):
             acc = self.accuracy(pred, target)
             results_dict = {'val_loss': loss, 'val_acc': acc}
             results_dict['val_confusion_matrix'] = self.confusion(pred, target)
-            result.log_dict(results_dict)
+            result.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return result
 
     """
