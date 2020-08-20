@@ -105,6 +105,7 @@ class HDF5Dataset(data.Dataset):
         self.info["feat_name"] = feature_name
         self.info["label_name"] = label_name
         self.info["events_per_dir"] = events_per_dir
+        self.log.debug("file excludes is {}".format(file_excludes))
         self.group_mode = False
         self.ordered_file_set = []
         # Search for all h5 files
@@ -137,6 +138,7 @@ class HDF5Dataset(data.Dataset):
                     and _needs_more_data(tally, events_per_dir, all_files):
                 for i, file_set in enumerate(all_files):
                     while len(file_set) > 0 and tally[i] < events_per_dir:
+                        self.log.debug("about to add {} to dataset".format(str(file_set[0].resolve())))
                         if file_excludes and str(file_set[0].resolve()) in file_excludes:
                             file_set.pop(0)
                         else:
@@ -187,19 +189,31 @@ class HDF5Dataset(data.Dataset):
 
     def _concat_range(self, index, coords, vals, di):
         # this is only meant to be called in __getitem__ because it accesses file here
-        ind = 0
+        second_ind = 0
+        first_ind = 0
         if di['event_range'][1] + 1 < di['n_events']:
-            ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
-        if ind > 0:
-            coords = coords[0:ind, :]
-            vals = vals[0:ind, :]
+            second_ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
+        if di['event_range'][0] > 0:
+            first_ind = where(coords[:,2] == di['event_range'][0])[0][0]
+        if second_ind > 0:
+            coords = coords[first_ind:second_ind, :]
+            vals = vals[first_ind:second_ind, :]
+        elif first_ind > 0:
+            coords = coords[first_ind:, :]
+            vals = vals[first_ind:, :]
+
         if self.info['label_name'] is None:
             # y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
             #                          (di['event_range'][1] + 1 - di['event_range'][0],),
             #                          di['dir_index'], dtype=torch.int64, device=self.device)
-            y = full((di['event_range'][1] + 1,), fill_value=di['dir_index'], dtype=int8)
+            y = full((di['event_range'][1] - di['event_range'][0] + 1,), fill_value=di['dir_index'], dtype=int8)
         else:
-            y = self.get_data(self.info['label_name'], index)
+            if second_ind > 0:
+                y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:di['event_range'][1]+1]
+            elif first_ind > 0:
+                y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:]
+            else:
+                y = self.get_data(self.info['label_name'], index)
             # y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
