@@ -17,56 +17,43 @@ CONFIG_VALIDATION = "./config_requirements.json"
 
 
 def setup_logger(args):
-    debug_level = logging.ERROR
+    log_level = logging.ERROR
     if args.verbosity:
         if args.verbosity == 1:
-            debug_level = logging.CRITICAL
+            log_level = logging.CRITICAL
         elif args.verbosity == 2:
-            debug_level = logging.ERROR
+            log_level = logging.ERROR
         elif args.verbosity == 3:
-            debug_level = logging.WARNING
+            log_level = logging.WARNING
         elif args.verbosity == 4:
-            debug_level = logging.INFO
+            log_level = logging.INFO
         elif args.verbosity == 5:
-            debug_level = logging.DEBUG
+            log_level = logging.DEBUG
 
     # set up logging to file - see previous section for more details
     logargs = {}
     if args.logfile:
         logargs["filename"] = args.logfile
-    logging.basicConfig(level=debug_level,
+    logging.basicConfig(level=log_level,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
                         filemode='a', **logargs)
     # define a Handler which writes INFO messages or higher to the sys.stderr
     console = logging.StreamHandler()
-    console.setLevel(debug_level)
+    console.setLevel(log_level)
     # set a format which is simpler for console use
-    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    formatter = logging.Formatter('%(asctime)s %(name)-12s: %(levelname)-8s %(message)s')
     # tell the handler to use this format
     console.setFormatter(formatter)
     # add the handler to the root logger
-    logging.getLogger('').addHandler(console)
-
-    # create logger
     logger = logging.getLogger('WaveformML')
-    logger.setLevel(debug_level)
-
-    logger.info("logging verbosity set to {}".format(args.verbosity))
-
-    # create formatter
-    formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-
-    # create console handler and set level to  user specified level
-    # ch = logging.StreamHandler()
-    # ch.setLevel(debug_level)
-    # ch.setFormatter(formatter)
-    # logger.addHandler(ch)
+    logger.addHandler(console)
+    logger.info("Logging verbosity set to {}".format(args.verbosity))
 
     # create a file handler if specified in command args
     if args.logfile:
         fh = logging.FileHandler(args.logfile)
-        fh.setLevel(debug_level)
+        fh.setLevel(log_level)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
         logger.info("Logging to file {}".format(args.logfile))
@@ -208,7 +195,8 @@ def main():
         trainer_args = psd_callbacks.set_args(trainer_args)
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
-                filepath=save_path(model_folder, model_name, config.run_config.exp_name))
+                filepath=save_path(model_folder, model_name, config.run_config.exp_name),
+                monitor="val_checkpoint_on")
         if trainer_args["profiler"] or verbosity >= 5:
             if verbosity >= 5:
                 profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
