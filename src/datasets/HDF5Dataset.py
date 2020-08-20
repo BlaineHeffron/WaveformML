@@ -105,7 +105,7 @@ class HDF5Dataset(data.Dataset):
         self.info["feat_name"] = feature_name
         self.info["label_name"] = label_name
         self.info["events_per_dir"] = events_per_dir
-        self.log.debug("file excludes is {}".format(file_excludes))
+        #self.log.debug("file excludes is {}".format(file_excludes))
         self.group_mode = False
         self.ordered_file_set = []
         # Search for all h5 files
@@ -119,6 +119,8 @@ class HDF5Dataset(data.Dataset):
                 files = sorted(p.glob('**/{0}'.format(file_pattern)), key=lambda e: _sort_pattern(e))
             else:
                 files = sorted(p.glob(file_pattern), key=lambda e: _sort_pattern(e))
+            if file_excludes:
+                files = [f for f in files if str(f.resolve()) not in file_excludes]
             if len(files) < 1:
                 raise RuntimeError('No hdf5 datasets found')
             all_files.append(files)
@@ -138,14 +140,11 @@ class HDF5Dataset(data.Dataset):
                     and _needs_more_data(tally, events_per_dir, all_files):
                 for i, file_set in enumerate(all_files):
                     while len(file_set) > 0 and tally[i] < events_per_dir:
-                        self.log.debug("about to add {} to dataset".format(str(file_set[0].resolve())))
-                        if file_excludes and str(file_set[0].resolve()) in file_excludes:
-                            file_set.pop(0)
-                        else:
-                            ordered_file_set.append(file_set.pop(0))
-                            tally[i] += self._get_event_num(ordered_file_set[-1])
-                            if not tally[i] < max(tally):
-                                break
+                        #self.log.debug("about to add {} to dataset".format(str(file_set[0].resolve())))
+                        ordered_file_set.append(file_set.pop(0))
+                        tally[i] += self._get_event_num(ordered_file_set[-1])
+                        if not tally[i] < max(tally):
+                            break
 
             # print("file excludes ",file_excludes)
             # print(ordered_file_set)
