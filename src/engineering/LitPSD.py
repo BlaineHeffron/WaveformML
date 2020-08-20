@@ -86,6 +86,7 @@ class LitPSD(pl.LightningModule):
         # self.log.debug("Shape of coords: {}".format(coo.shape))
         # self.log.debug("Shape of features: {}".format(feat.shape))
         # self.log.debug("Shape of labels: {}".format(targets.shape))
+        result = None
         for c, f, target in zip(coo, feat, targets):
             c, f, target = self.convert_to_tensors(c, f, target)
             # self.log.debug("type of coords: {}".format(c.storage_type()))
@@ -94,7 +95,8 @@ class LitPSD(pl.LightningModule):
             predictions = self.model([c, f])
             # self.log.debug("predictions shape is {}".format(predictions.shape))
             loss = self.criterion.forward(predictions, target)
-            result = pl.TrainResult(loss)
+            if not result:
+                result = pl.TrainResult(loss)
             result.log('train_loss', loss)
         return result
 
@@ -108,9 +110,8 @@ class LitPSD(pl.LightningModule):
             result = pl.EvalResult(checkpoint_on=loss)
             acc = self.accuracy(pred, target)
             results_dict = {'val_loss': loss, 'val_acc': acc}
-            if self.n_type > 2:
-                results_dict['val_confusion_matrix'] = self.confusion(pred, target)
-            result.log_dict(results_dict, on_epoch=True)
+            results_dict['val_confusion_matrix'] = self.confusion(pred, target)
+            result.log_dict(results_dict)
         return result
 
 
