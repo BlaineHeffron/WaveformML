@@ -32,8 +32,7 @@ class LitPSD(pl.LightningModule):
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.softmax = Softmax(dim=1)
         self.accuracy = Accuracy(num_classes=self.n_type)
-        if self.n_type > 2:
-            self.confusion = ConfusionMatrix()
+        self.confusion = ConfusionMatrix()
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
