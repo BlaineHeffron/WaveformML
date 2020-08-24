@@ -3,11 +3,10 @@ import h5py
 
 class H5FileHandler:
     def __init__(self, path, *args, **kwargs):
-        self.path = path
         try:
-            self.h5f = h5py.File(self.path, *args, **kwargs)
+            self.h5f = h5py.File(path, *args, **kwargs)
         except Exception as e:
-            print("Opening {} failed:\n".format(self.path))
+            print("Opening {} failed:\n".format(path))
             if hasattr(e, "message"):
                 print(e.message)
             else:
