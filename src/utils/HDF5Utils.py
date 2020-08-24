@@ -8,7 +8,10 @@ class H5FileHandler:
             self.h5f = h5py.File(self.path, *args, **kwargs)
         except Exception as e:
             print("Opening {} failed:\n".format(self.path))
-            print(e)
+            if hasattr(e, "message"):
+                print(e.message)
+            else:
+                print(e)
 
     def __iter__(self, item):
         return self.h5f.__iter__(item)
