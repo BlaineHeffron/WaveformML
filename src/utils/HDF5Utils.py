@@ -20,6 +20,8 @@ class H5FileHandler:
         return self.h5f.__getitem__(name)
 
     def __getattr__(self, attr):
+        if attr == "h5f":
+            return self.h5f
         return self.h5f[attr]
 
     def __enter__(self, *args, **kwargs):
