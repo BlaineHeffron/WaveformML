@@ -20,7 +20,7 @@ class H5FileHandler:
         return getattr(self.h5f, attr)
 
     def __enter__(self, *args, **kwargs):
-        return self.h5f.__enter__(*args, **kwargs)
+        return self.h5f
 
     def __exit__(self, *args, **kwargs):
         self.h5f.__exit__(*args, **kwargs)
