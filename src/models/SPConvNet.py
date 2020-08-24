@@ -1,7 +1,10 @@
 import spconv
 from torch import nn, LongTensor
+from src.utils.util import DictionaryUtility
 from numpy import array
 from src.utils.util import *
+from src.models.ConvBlocks import *
+from src.models.SPConvBlocks import *
 
 
 class SPConvNet(nn.Module):
@@ -14,44 +17,7 @@ class SPConvNet(nn.Module):
         self.ntype = self.system_config.n_type
         self.modules = ModuleUtility(self.net_config.imports)
         self.sequence_class = self.modules.retrieve_class(self.net_config.sequence_class)
-        sparse_funcs = []
-        linear_funcs = []
-        waveform_funcs = []
-        has_wf = False
-        # TODO: try running 1d dilated convolution on x[1] (feature vectors) before running it through input layer
-        for i, f in enumerate(self.net_config.algorithm):
-            if i == 0:
-                if isinstance(f, str):
-                    if f == "nn.Conv1d":
-                        has_wf = True
-                        waveform_funcs.append(f)
-                        continue
-            if has_wf:
-                if isinstance(f, str):
-                    if f.startswith("nn."):
-                        waveform_funcs.append(f)
-                    else:
-                        has_wf = False
-                        sparse_funcs.append(f)
-                else:
-                    waveform_funcs.append(f)
-                continue
-            if isinstance(f, str):
-                if f == "nn.Linear":
-                    linear_funcs = self.net_config.algorithm[i:]
-                    break
-            sparse_funcs.append(f)
-        self.log.info("Sparse function list: {0}".format(str(sparse_funcs)))
-        if len(waveform_funcs):
-            self.log.info("Adding an initial waveform processing layer: {0}".format(str(waveform_funcs)))
-            self.waveformLayer = nn.Sequential(*self.modules.create_class_instances(waveform_funcs))
-            self.waveformOutputLength = sparse_funcs[1][0]
-        self.sparseModel = self.sequence_class(*self.modules.create_class_instances(sparse_funcs))
-        self.linear = nn.Sequential(*self.modules.create_class_instances(linear_funcs))
-        self.log.debug("linear functions: {}".format(linear_funcs))
-        self.n_linear = linear_funcs[1][0]
-        self.log.debug("n_linear: {}".format(self.n_linear))
-        # TODO: make this work with 3d tensors as well
+        self.get_algorithm()
         if self.net_config.net_type == "2DConvolution":
             self.ndim = 2
         elif self.net_config.net_type == "3DConvolution":
@@ -68,7 +34,7 @@ class SPConvNet(nn.Module):
 
     def forward(self, x):
         xlen = x[1].shape[0]
-        if hasattr(self,"waveformLayer"):
+        if hasattr(self, "waveformLayer"):
             # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
             x[1] = x[1].reshape(xlen, 2, self.nsamples)
             x[1] = self.waveformLayer(x[1])
@@ -80,3 +46,80 @@ class SPConvNet(nn.Module):
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
         return x
+
+        self.n_linear = linear_funcs[1][0]
+
+    def create_algorithm(self, hparams, n_classes):
+        #TODO: get this working with 3d
+        requirements = ["n_dil", "n_conv", "n_lin"]
+        extras = ["wf_params", "conv_params", "lin_params"]
+        size = [14,11,self.nsamples*2]
+        if hasattr(hparams, "n_conv"):
+            for rq in requirements:
+                if not hasattr(hparams,rq):
+                    raise IOError(rq + " is required to create the sparse conv algorithm.")
+            for p_name in extras:
+                params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams,p_name))
+                if p_name == "wf_params":
+                    self.waveformLayer = DilationBlock(2,2, hparams.n_dil, size[2]/2, **params)
+                    size[2] = self.waveformLayer.out_length*2
+                elif p_name == "conv_params":
+                    self.sparseModel = SparseConv2DBlock(2,2, hparams.n_dil, size, **params)
+                    size = self.sparseModel.out_size
+                elif p_name == "lin_params":
+                    flat_size = 1
+                    for s in size:
+                        flat_size = flat_size * s
+                    self.linear = LinearBlock(flat_size, n_classes)
+            self.n_linear = hparams.n_lin
+            self.log.debug("n_linear: {}".format(self.n_linear))
+        else:
+            raise IOError("hparams must be a dictionary containing the following minimal settings:\n"
+                          "  n_dil: int, number of dilation waveform layers\n"
+                          "  n_conv: int, number of n-d sparse convolutional layers\n"
+                          "  n_lin: int, number of linear layers")
+
+    def get_algorithm(self):
+        sparse_funcs = []
+        linear_funcs = []
+        waveform_funcs = []
+        has_wf = False
+        if not hasattr(self.net_config, "algorithm"):
+            if hasattr(self.net_config, "hparams"):
+                self.create_algorithm(self.net_config.hparams)
+            else:
+                raise IOError("net_config must contain one of either 'algorithm' or 'hparams'")
+        else:
+
+            for i, f in enumerate(self.net_config.algorithm):
+                if i == 0:
+                    if isinstance(f, str):
+                        if f == "nn.Conv1d":
+                            has_wf = True
+                            waveform_funcs.append(f)
+                            continue
+                if has_wf:
+                    if isinstance(f, str):
+                        if f.startswith("nn."):
+                            waveform_funcs.append(f)
+                        else:
+                            has_wf = False
+                            sparse_funcs.append(f)
+                    else:
+                        waveform_funcs.append(f)
+                    continue
+                if isinstance(f, str):
+                    if f == "nn.Linear":
+                        linear_funcs = self.net_config.algorithm[i:]
+                        break
+                sparse_funcs.append(f)
+            self.log.info("Sparse function list: {0}".format(str(sparse_funcs)))
+            if len(waveform_funcs):
+                self.log.info("Adding an initial waveform processing layer: {0}".format(str(waveform_funcs)))
+                self.waveformLayer = nn.Sequential(*self.modules.create_class_instances(waveform_funcs))
+                self.waveformOutputLength = sparse_funcs[1][0]
+            self.sparseModel = self.sequence_class(*self.modules.create_class_instances(sparse_funcs))
+            self.linear = nn.Sequential(*self.modules.create_class_instances(linear_funcs))
+            self.n_linear = linear_funcs[1][0]
+            self.log.debug("linear functions: {}".format(linear_funcs))
+            self.log.debug("n_linear: {}".format(self.n_linear))

@@ -66,8 +66,8 @@ class ModelValidation(object):
                 inputs = ModelValidation._parse_function_inputs(current_alg, alg, algtype)
                 if algtype == "convolution":
                     ndim = ModelValidation._get_conv_dim(current_alg, inputs)
-                    current_dim = ModelValidation._calc_output_size(inputs, current_dim,
-                                                                    current_alg, prev_alg, ndim)
+                    current_dim = ModelValidation.calc_output_size(inputs, current_dim,
+                                                                   current_alg, prev_alg, ndim)
                     # print("new current dim is {0}".format(current_dim))
                 elif algtype == "flatten":
                     newdim = 0
@@ -117,12 +117,16 @@ class ModelValidation(object):
         return output
 
     @staticmethod
-    def _calc_output_size_1d(current, arg_dict, ind):
+    def calc_output_size_1d(current, arg_dict, ind=None):
+        if not ind:
+            return (current + 2 * arg_dict[PAD] - arg_dict[FS] -
+                    (arg_dict[FS] - 1) * (arg_dict[DIL] - 1)) / arg_dict[STR] + 1
+
         return (current[ind] + 2 * arg_dict[PAD][ind] - arg_dict[FS][ind] -
                 (arg_dict[FS][ind] - 1) * (arg_dict[DIL][ind] - 1)) / arg_dict[STR][ind] + 1
 
     @staticmethod
-    def _calc_output_size(arg_dict, current_dim, ca, pa, ndim):
+    def calc_output_size(arg_dict, current_dim, ca, pa, ndim):
         """
         arglist is expected to be an array [DIM, NIN, NOUT, FS, STR, PAD, DIL]
         0 is placeholder for no parameter
@@ -144,7 +148,7 @@ class ModelValidation(object):
                     # calculate the output size for nsamples, then double
                     tempdim = copy(current_dim)
                     tempdim[2] = tempdim[2]/2
-                    f = ModelValidation._calc_output_size_1d(tempdim, arg_dict, 2)
+                    f = ModelValidation.calc_output_size_1d(tempdim, arg_dict, 2)
                     return [current_dim[0], current_dim[1], f*2]
                 else:
                     raise IOError("Dimensionality of the dataset is {0}, network layer is for {1} dimensional inputs.".format(len(current_dim)-1,ndim))
@@ -155,16 +159,16 @@ class ModelValidation(object):
         if arg_dict[STR] == 0:
             arg_dict[STR] = 1
 
-        w = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 0)
+        w = ModelValidation.calc_output_size_1d(current_dim, arg_dict, 0)
         if ndim == 1:
             return [int(w), int(arg_dict[NOUT])]
-        h = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 1)
+        h = ModelValidation.calc_output_size_1d(current_dim, arg_dict, 1)
         if ndim == 2:
             return [int(w), int(h), int(arg_dict[NOUT])]
-        z = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 2)
+        z = ModelValidation.calc_output_size_1d(current_dim, arg_dict, 2)
         if ndim == 3:
             return [int(w), int(h), int(z), int(arg_dict[NOUT])]
-        t = ModelValidation._calc_output_size_1d(current_dim, arg_dict, 3)
+        t = ModelValidation.calc_output_size_1d(current_dim, arg_dict, 3)
         if ndim == 4:
             return [int(w), int(h), int(z), int(t), int(arg_dict[FS])]
         else:

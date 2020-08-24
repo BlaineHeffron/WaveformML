@@ -1,5 +1,6 @@
 from re import compile
 
+from utils.HDF5Utils import H5FileHandler
 import h5py
 from pathlib import Path
 from os.path import getmtime, normpath
@@ -241,13 +242,13 @@ class HDF5Dataset(data.Dataset):
                                        'dir_index': dir_index})
 
     def _get_event_num(self, file_path):
-        with h5py.File(file_path, 'r') as h5_file:
+        with H5FileHandler(file_path, 'r') as h5_file:
             event_num = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
         return event_num
         # return h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
-        with h5py.File(file_path, 'r') as h5_file:
+        with H5FileHandler(file_path, 'r') as h5_file:
             modified = getmtime(file_path)
             n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
             # n = h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1  # the number of events in the file
@@ -277,7 +278,7 @@ class HDF5Dataset(data.Dataset):
         path and update the cache index in the
         data_info structure.
         """
-        with h5py.File(file_path, 'r', ) as h5_file:
+        with H5FileHandler(file_path, 'r', ) as h5_file:
             for gname, group in h5_file.items():
                 if hasattr(group, "items"):
                     for dname, ds in group.items():
