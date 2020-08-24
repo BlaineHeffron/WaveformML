@@ -1,6 +1,6 @@
 from re import compile
 
-from utils.HDF5Utils import H5FileHandler
+from src.utils.HDF5Utils import H5FileHandler
 import h5py
 from pathlib import Path
 from os.path import getmtime, normpath
