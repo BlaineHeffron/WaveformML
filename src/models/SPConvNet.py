@@ -70,7 +70,8 @@ class SPConvNet(nn.Module):
                     flat_size = 1
                     for s in size:
                         flat_size = flat_size * s
-                    self.linear = LinearBlock(flat_size, n_classes)
+                    self.log.debug("Flattened size of the SCN network output is {}".format(flat_size))
+                    self.linear = LinearBlock(flat_size, n_classes, hparams.n_lin)
             self.n_linear = hparams.n_lin
             self.log.debug("n_linear: {}".format(self.n_linear))
         else:

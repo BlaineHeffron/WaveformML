@@ -143,6 +143,13 @@ Each trial's logs and model checkpoints are saved to the
     ./studies/<experiment name>/trial_<n> 
 folder.
 
+## Viewing logs:
+
+In the console, run the command `tensorboard --logdir <log path>` 
+
+This will serve the log data to http://localhost:6006
+
+
 
 
 ## Creating your own modules
