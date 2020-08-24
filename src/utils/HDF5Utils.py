@@ -17,11 +17,10 @@ class H5FileHandler:
         return self.h5f.__getitem__(name)
 
     def __getattr__(self, attr):
-        return self.h5f.__getattr__(attr)
+        return getattr(self.h5f, attr)
 
     def __enter__(self, *args, **kwargs):
         return self.h5f.__enter__(*args, **kwargs)
 
     def __exit__(self, *args, **kwargs):
         self.h5f.__exit__(*args, **kwargs)
-
