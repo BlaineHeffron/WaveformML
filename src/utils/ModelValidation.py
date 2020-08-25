@@ -118,7 +118,7 @@ class ModelValidation(object):
 
     @staticmethod
     def calc_output_size_1d(current, arg_dict, ind=None):
-        if not ind:
+        if ind is None:
             return (current + 2 * arg_dict[PAD] - arg_dict[FS] -
                     (arg_dict[FS] - 1) * (arg_dict[DIL] - 1)) / arg_dict[STR] + 1
 
