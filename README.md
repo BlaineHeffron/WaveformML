@@ -8,7 +8,6 @@ First, install prerequisites:
 
     conda install numpy
     conda install gitpython
-    conda install json
     conda install yaml
     conda install hdf5
 

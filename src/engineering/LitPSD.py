@@ -1,6 +1,6 @@
 from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
 from src.engineering.PSDDataModule import *
-from torch.nn import Softmax
+from torch.nn import LogSoftmax
 from torch import argmax, max, int32, float32, int64, mean, sum, tensor
 import logging
 
@@ -30,7 +30,7 @@ class LitPSD(pl.LightningModule):
         self.model = self.model_class(config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
-        self.softmax = Softmax(dim=1)
+        self.softmax = LogSoftmax(dim=1)
         self.accuracy = Accuracy(num_classes=self.n_type)
         self.confusion = ConfusionMatrix()
 
