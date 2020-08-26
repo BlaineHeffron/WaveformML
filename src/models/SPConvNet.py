@@ -1,3 +1,5 @@
+from copy import copy
+
 import spconv
 from torch import nn, LongTensor
 from src.utils.util import DictionaryUtility
@@ -64,6 +66,7 @@ class SPConvNet(nn.Module):
                     if hparams.n_dil > 0:
                         self.waveformLayer = DilationBlock(2, 2, hparams.n_dil, size[2] / 2, **params)
                         size[2] = self.waveformLayer.out_length * 2
+                        self.waveformOutputLength = copy(size[2])
                 elif p_name == "conv_params":
                     self.sparseModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params)
                     size = self.sparseModel.out_size
