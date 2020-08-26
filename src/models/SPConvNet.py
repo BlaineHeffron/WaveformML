@@ -53,7 +53,7 @@ class SPConvNet(nn.Module):
         # TODO: get this working with 3d
         requirements = ["n_dil", "n_conv", "n_lin", "out_planes"]
         extras = ["wf_params", "conv_params", "lin_params"]
-        size = [14, 11, self.nsamples * 2]
+        size = [14, 11, int(self.nsamples * 2)]
         if hasattr(hparams, "n_conv"):
             for rq in requirements:
                 if not hasattr(hparams, rq):
@@ -62,9 +62,9 @@ class SPConvNet(nn.Module):
                 params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams, p_name))
                 if p_name == "wf_params":
                     if hparams.n_dil > 0:
-                        wfLayer = DilationBlock(2, 2, hparams.n_dil, size[2] / 2, **params)
+                        wfLayer = DilationBlock(2, 2, hparams.n_dil, int(size[2] / 2), **params)
                         self.waveformLayer = wfLayer.func
-                        size[2] = wfLayer.out_length * 2
+                        size[2] = int(wfLayer.out_length * 2)
                         self.waveformOutputLength = copy(size[2])
                 elif p_name == "conv_params":
                     spModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params)
