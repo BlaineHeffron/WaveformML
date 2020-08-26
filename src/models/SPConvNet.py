@@ -51,7 +51,7 @@ class SPConvNet(nn.Module):
 
     def create_algorithm(self, hparams, n_classes):
         #TODO: get this working with 3d
-        requirements = ["n_dil", "n_conv", "n_lin"]
+        requirements = ["n_dil", "n_conv", "n_lin", "out_planes"]
         extras = ["wf_params", "conv_params", "lin_params"]
         size = [14,11,self.nsamples*2]
         if hasattr(hparams, "n_conv"):
@@ -64,7 +64,7 @@ class SPConvNet(nn.Module):
                     self.waveformLayer = DilationBlock(2,2, hparams.n_dil, size[2]/2, **params)
                     size[2] = self.waveformLayer.out_length*2
                 elif p_name == "conv_params":
-                    self.sparseModel = SparseConv2DBlock(2,2, hparams.n_dil, size, **params)
+                    self.sparseModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params)
                     size = self.sparseModel.out_size
                 elif p_name == "lin_params":
                     flat_size = 1
