@@ -67,8 +67,9 @@ class SPConvNet(nn.Module):
                         size[2] = wfLayer.out_length * 2
                         self.waveformOutputLength = copy(size[2])
                 elif p_name == "conv_params":
-                    self.sparseModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params).func
-                    size = self.sparseModel.out_size
+                    spModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params)
+                    self.sparseModel = spModel.func
+                    size = spModel.out_size
                 elif p_name == "lin_params":
                     flat_size = 1
                     for s in size:
