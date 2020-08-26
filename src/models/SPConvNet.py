@@ -50,19 +50,20 @@ class SPConvNet(nn.Module):
         self.n_linear = linear_funcs[1][0]
 
     def create_algorithm(self, hparams, n_classes):
-        #TODO: get this working with 3d
+        # TODO: get this working with 3d
         requirements = ["n_dil", "n_conv", "n_lin", "out_planes"]
         extras = ["wf_params", "conv_params", "lin_params"]
-        size = [14,11,self.nsamples*2]
+        size = [14, 11, self.nsamples * 2]
         if hasattr(hparams, "n_conv"):
             for rq in requirements:
-                if not hasattr(hparams,rq):
+                if not hasattr(hparams, rq):
                     raise IOError(rq + " is required to create the sparse conv algorithm.")
             for p_name in extras:
-                params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams,p_name))
+                params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams, p_name))
                 if p_name == "wf_params":
-                    self.waveformLayer = DilationBlock(2,2, hparams.n_dil, size[2]/2, **params)
-                    size[2] = self.waveformLayer.out_length*2
+                    if hparams.n_dil > 0:
+                        self.waveformLayer = DilationBlock(2, 2, hparams.n_dil, size[2] / 2, **params)
+                        size[2] = self.waveformLayer.out_length * 2
                 elif p_name == "conv_params":
                     self.sparseModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params)
                     size = self.sparseModel.out_size
