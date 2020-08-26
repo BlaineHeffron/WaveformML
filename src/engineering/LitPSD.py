@@ -4,6 +4,8 @@ from torch.nn import LogSoftmax
 from torch import argmax, max, int32, float32, int64, mean, sum, tensor
 import logging
 
+N_CHANNELS = 14
+
 
 def weight_avg(t, n):
     return sum(t * n / sum(n))
@@ -73,6 +75,7 @@ class LitPSD(pl.LightningModule):
                 feat = feat.type(float32).cuda(self.device)
             else:
                 feat = feat.type(float32)
+            feat /= 2**N_CHANNELS-1
         if self.on_gpu:
             label = label.type(int64).cuda(self.device)
             coord = coord.cuda(self.device)
