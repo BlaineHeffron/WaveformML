@@ -15,13 +15,13 @@ class SparseConv2DBlock(Algorithm):
         super().__str__()
 
 
-    def __init__(self, nin, nout, n, spacial_size, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=1,
+    def __init__(self, nin, nout, n, size, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=1,
                  trainable_weights=False):
         self.alg = []
-        self.out_size = spacial_size + [nin]
+        self.out_size = size
         self.log = logging.getLogger(__name__)
-        self.log.debug("Initializing convolution block with size {}".format(spacial_size))
-        self.ndim = len(spacial_size)
+        self.log.debug("Initializing convolution block with size {}".format(size))
+        self.ndim = len(size) - 1
         if nin != nout:
             diff = float(nin - nout) / n
             nframes = [int(floor(nin - diff * i)) for i in range(n + 1)]
