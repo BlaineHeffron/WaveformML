@@ -43,7 +43,6 @@ class SPConvNet(nn.Module):
             x[1] = x[1].reshape(xlen, self.waveformOutputLength)
         batch_size = x[0][-1, -1] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
-        print(x)
         x = self.sparseModel(x)
         #self.log.debug("output shape from sparse model : {}".format(x.shape))
         x = x.view(-1, self.n_linear)
