@@ -17,6 +17,7 @@ class SparseConv2DBlock(Algorithm):
                  trainable_weights=False):
         self.alg = []
         self.out_size = spacial_size + [nin]
+        self.log.debug("Initializing convolution block with size {}".format(out_size))
         self.ndim = len(spacial_size)
         if nin != nout:
             diff = float(nin - nout) / n
@@ -38,6 +39,7 @@ class SparseConv2DBlock(Algorithm):
             self.alg.append(nn.ReLU())
             arg_dict = {DIM: self.ndim, NIN: nframes[i], NOUT: nframes[i+1], FS: [fs]*4, STR: [st]*4, PAD: [pd]*4, DIL: [dil]*4}
             self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
+            self.log.debug("Loop {0}, output size is {1}".format(i,self.out_size))
 
         self.func = spconv.SparseSequential(*self.alg)
 

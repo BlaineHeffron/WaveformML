@@ -1,6 +1,5 @@
 import logging
 from math import floor, pow
-
 import torch.nn as nn
 from src.models.Algorithm import *
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
@@ -17,6 +16,8 @@ class DilationBlock(Algorithm):
     def __init__(self, nin, nout, n, length, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=2,
                  trainable_weights=False):
         self.out_length = length
+        self.log = logging.getLogger(__name__)
+        self.log.debug("output lenght is {}".format(out_length))
         self.alg = []
         if nin != nout:
             diff = float(nin - nout) / n
@@ -35,6 +36,7 @@ class DilationBlock(Algorithm):
             self.alg.append(nn.Conv1d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
             arg_dict = {DIM: 2, NIN: nframes[i], NOUT: nframes[i+1], FS: fs, STR: st, PAD: pd, DIL: dil}
             self.out_length = ModelValidation.calc_output_size_1d(self.out_length, arg_dict)
+            self.log.debug("loop {0}, output length is {1}".format(i,self.out_length))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
             self.alg.append(nn.ReLU())
 
