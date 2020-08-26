@@ -15,7 +15,7 @@ class SparseConv2DBlock(Algorithm):
     def __str__(self):
         super().__str__()
 
-    def __init__(self, nin, nout, n, size, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=1,
+    def __init__(self, nin, nout, n, size, to_dense, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=1,
                  trainable_weights=False):
         assert (n > 0)
         self.alg = []
@@ -46,4 +46,6 @@ class SparseConv2DBlock(Algorithm):
             self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
             self.log.debug("Loop {0}, output size is {1}".format(i, self.out_size))
 
+        if to_dense:
+            self.alg.append(spconv.ToDense())
         self.func = spconv.SparseSequential(*self.alg)

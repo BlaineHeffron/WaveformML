@@ -38,20 +38,14 @@ class SPConvNet(nn.Module):
         xlen = x[1].shape[0]
         if hasattr(self, "waveformLayer"):
             # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
-            print("x shape is {}".format(x[1].shape))
             x[1] = x[1].reshape(xlen, 2, self.nsamples)
-            print("x shape is {}".format(x[1].shape))
             x[1] = self.waveformLayer(x[1])
-            print("x shape is {}".format(x[1].shape))
             x[1] = x[1].reshape(xlen, self.waveformOutputLength)
-        print("x shape is {}".format(x[1].shape))
         batch_size = x[0][-1, -1] + 1
-        print("coo shape is {}".format(x[0].shape))
-        print("batch size is {}".format(batch_size))
-        print("spatial size is {}".format(self.spatial_size))
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
+        print(x)
         x = self.sparseModel(x)
-        self.log.debug("output shape from sparse model : {}".format(x.shape))
+        #self.log.debug("output shape from sparse model : {}".format(x.shape))
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
         return x
@@ -74,16 +68,16 @@ class SPConvNet(nn.Module):
                         size[2] = int(wfLayer.out_length * 2)
                         self.waveformOutputLength = copy(size[2])
                 elif p_name == "conv_params":
-                    spModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params)
+                    spModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, True, **params)
                     self.sparseModel = spModel.func
                     size = spModel.out_size
                 elif p_name == "lin_params":
                     flat_size = 1
                     for s in size:
                         flat_size = flat_size * s
+                    self.n_linear = copy(flat_size)
                     self.log.debug("Flattened size of the SCN network output is {}".format(flat_size))
                     self.linear = LinearBlock(flat_size, n_classes, hparams.n_lin).func
-            self.n_linear = hparams.n_lin
             self.log.debug("n_linear: {}".format(self.n_linear))
         else:
             raise IOError("hparams must be a dictionary containing the following minimal settings:\n"
