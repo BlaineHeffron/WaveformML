@@ -2,7 +2,7 @@ class Algorithm:
     def __init__(self, func):
         self.func, self.args, self.kwargs = func
         self.alg = []
-        self.build_algorithm()
+        self.log = logging.getLogger(__)
 
     def __call__(self, *args, **kwargs):
         return self.func(*self.args, **kwargs)

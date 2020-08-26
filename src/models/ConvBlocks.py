@@ -1,6 +1,8 @@
+import logging
+from math import floor, pow
+
 import torch.nn as nn
 from src.models.Algorithm import *
-from math import floor, pow
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
 
 
@@ -49,6 +51,8 @@ class LinearBlock(Algorithm):
 
     def __init__(self, nin, nout, n):
         self.alg = []
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Creating Linear block\n    nin: {0}\n   nout:{1}\n  n:{2}".format(nin,nout,n))
         factor = pow(float(nout) / nin, 1. / n)
         for i in range(n):
             self.alg.append(nn.Linear(nin * pow(factor, i), nin * pow(factor, i + 1)))
