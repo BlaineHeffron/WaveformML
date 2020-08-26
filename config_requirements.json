@@ -16,8 +16,7 @@
     "imports": ["torch.nn","sparseconvnet","SCNet"],
     "net_class": "SCNet.SCNet",
     "sequence_class": "sparseconvnet.Sequential",
-    "net_type": "2DConvolution",
-    "algorithm": []
+    "net_type": "2DConvolution"
   },
   "optimize_config": {
     "imports": [
