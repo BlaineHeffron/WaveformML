@@ -62,18 +62,18 @@ class SPConvNet(nn.Module):
                 params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams, p_name))
                 if p_name == "wf_params":
                     if hparams.n_dil > 0:
-                        self.waveformLayer = DilationBlock(2, 2, hparams.n_dil, size[2] / 2, **params)
+                        self.waveformLayer = DilationBlock(2, 2, hparams.n_dil, size[2] / 2, **params).func
                         size[2] = self.waveformLayer.out_length * 2
                         self.waveformOutputLength = copy(size[2])
                 elif p_name == "conv_params":
-                    self.sparseModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params)
+                    self.sparseModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_dil, size, **params).func
                     size = self.sparseModel.out_size
                 elif p_name == "lin_params":
                     flat_size = 1
                     for s in size:
                         flat_size = flat_size * s
                     self.log.debug("Flattened size of the SCN network output is {}".format(flat_size))
-                    self.linear = LinearBlock(flat_size, n_classes, hparams.n_lin)
+                    self.linear = LinearBlock(flat_size, n_classes, hparams.n_lin).func
             self.n_linear = hparams.n_lin
             self.log.debug("n_linear: {}".format(self.n_linear))
         else:
