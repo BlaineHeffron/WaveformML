@@ -34,7 +34,7 @@ class DilationBlock(Algorithm):
             arg_dict = {DIM: 2, NIN: nframes[i], NOUT: nframes[i+1], FS: fs, STR: st, PAD: pd, DIL: dil}
             self.out_length = ModelValidation.calc_output_size_1d(self.out_length, arg_dict)
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
-            self.alg.append(nn.ReLU)
+            self.alg.append(nn.ReLU())
 
         self.func = nn.Sequential(*self.alg)
 

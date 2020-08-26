@@ -142,6 +142,8 @@ Each trial's logs and model checkpoints are saved to the
     ./studies/<experiment name>/trial_<n> 
 folder.
 
+You can prune unpromising trials by adding the `-p` flag to the command.
+
 ## Viewing logs:
 
 In the console, run the command `tensorboard --logdir <log path>` 

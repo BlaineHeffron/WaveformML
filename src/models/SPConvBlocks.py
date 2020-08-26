@@ -35,7 +35,7 @@ class SparseConv2DBlock(Algorithm):
             pd = round(int(floor(pad_factor * (fs - 1) * dil_factor)) * decay_factor)
             self.alg.append(spconv.SparseConv3d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
-            self.alg.append(nn.ReLU)
+            self.alg.append(nn.ReLU())
             arg_dict = {DIM: self.ndim, NIN: nframes[i], NOUT: nframes[i+1], FS: [fs]*4, STR: [st]*4, PAD: [pd]*4, DIL: [dil]*4}
             self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
 
