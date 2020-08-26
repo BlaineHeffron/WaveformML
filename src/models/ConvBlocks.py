@@ -31,7 +31,8 @@ class DilationBlock(Algorithm):
             dil = dil_factor ** i
             pd = int(floor(pad_factor * (fs - 1) * dil_factor))
             self.alg.append(nn.Conv1d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
-            self.out_length = ModelValidation.calc_output_size_1d(self.out_length, )
+            arg_dict = {DIM: 2, NIN: nframes[i], NOUT: nframes[i+1], FS: fs, STR: st, PAD: pd, DIL: dil}
+            self.out_length = ModelValidation.calc_output_size_1d(self.out_length, arg_dict)
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
             self.alg.append(nn.ReLU)
 
