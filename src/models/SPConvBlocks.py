@@ -20,7 +20,7 @@ class SparseConv2DBlock(Algorithm):
         self.alg = []
         self.out_size = spacial_size + [nin]
         self.log = logging.getLogger(__name__)
-        self.log.debug("Initializing convolution block with size {}".format(out_size))
+        self.log.debug("Initializing convolution block with size {}".format(spacial_size))
         self.ndim = len(spacial_size)
         if nin != nout:
             diff = float(nin - nout) / n

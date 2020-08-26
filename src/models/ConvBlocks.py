@@ -17,7 +17,7 @@ class DilationBlock(Algorithm):
                  trainable_weights=False):
         self.out_length = length
         self.log = logging.getLogger(__name__)
-        self.log.debug("output lenght is {}".format(out_length))
+        self.log.debug("output lenght is {}".format(self.out_length))
         self.alg = []
         if nin != nout:
             diff = float(nin - nout) / n
