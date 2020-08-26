@@ -57,5 +57,5 @@ class LinearBlock(Algorithm):
         self.log.debug("Creating Linear block\n    nin: {0}\n   nout:{1}\n  n:{2}".format(nin,nout,n))
         factor = pow(float(nout) / nin, 1. / n)
         for i in range(n):
-            self.alg.append(nn.Linear(nin * pow(factor, i), nin * pow(factor, i + 1)))
+            self.alg.append(nn.Linear(int(round(nin * pow(factor, i))), int(round(nin * pow(factor, i + 1)))))
         self.func = nn.Sequential(*self.alg)
