@@ -8,6 +8,7 @@ from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, 
 class DilationBlock(Algorithm):
 
     def __call__(self, *args, **kwargs):
+        self.log.debug("dilation block called with args {}".format(args))
         super().__call__(*args, **kwargs)
 
     def __str__(self):
@@ -34,9 +35,9 @@ class DilationBlock(Algorithm):
             dil = dil_factor ** i
             pd = int(floor(pad_factor * (fs - 1) * dil_factor))
             self.alg.append(nn.Conv1d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
-            arg_dict = {DIM: 2, NIN: nframes[i], NOUT: nframes[i+1], FS: fs, STR: st, PAD: pd, DIL: dil}
+            arg_dict = {DIM: 2, NIN: nframes[i], NOUT: nframes[i + 1], FS: fs, STR: st, PAD: pd, DIL: dil}
             self.out_length = ModelValidation.calc_output_size_1d(self.out_length, arg_dict)
-            self.log.debug("loop {0}, output length is {1}".format(i,self.out_length))
+            self.log.debug("loop {0}, output length is {1}".format(i, self.out_length))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
             self.alg.append(nn.ReLU())
 
@@ -46,6 +47,7 @@ class DilationBlock(Algorithm):
 class LinearBlock(Algorithm):
 
     def __call__(self, *args, **kwargs):
+        self.log.debug("linear block called with args {}".format(args))
         super().__call__(*args, **kwargs)
 
     def __str__(self):
@@ -54,7 +56,7 @@ class LinearBlock(Algorithm):
     def __init__(self, nin, nout, n):
         self.alg = []
         self.log = logging.getLogger(__name__)
-        self.log.debug("Creating Linear block\n    nin: {0}\n   nout:{1}\n  n:{2}".format(nin,nout,n))
+        self.log.debug("Creating Linear block\n    nin: {0}\n   nout:{1}\n  n:{2}".format(nin, nout, n))
         factor = pow(float(nout) / nin, 1. / n)
         for i in range(n):
             self.alg.append(nn.Linear(int(round(nin * pow(factor, i))), int(round(nin * pow(factor, i + 1)))))

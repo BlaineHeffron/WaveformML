@@ -49,8 +49,6 @@ class SPConvNet(nn.Module):
         x = self.linear(x)
         return x
 
-        self.n_linear = linear_funcs[1][0]
-
     def create_algorithm(self, hparams, n_classes):
         # TODO: get this working with 3d
         requirements = ["n_dil", "n_conv", "n_lin", "out_planes"]
