@@ -71,6 +71,7 @@ class ModelOptimization:
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
         self.study_dir = os.path.join(model_dir, "studies/{}".format(config.run_config.exp_name))
+        self.study_name = self.run_config.exp_name if not hasattr(optuna_config, "name") else self.optuna_config.name
         self.trainer_args = trainer_args
         if not os.path.exists(self.study_dir):
             os.mkdir(self.study_dir)
@@ -78,7 +79,6 @@ class ModelOptimization:
         write_run_info(self.study_dir)
         self.hyperparameters_bounds = DictionaryUtility.to_dict(self.optuna_config.hyperparameters)
         self.parse_config()
-
 
     def parse_config(self):
         if not hasattr(self.optuna_config, "hyperparameters"):
@@ -115,8 +115,8 @@ class ModelOptimization:
             elif isinstance(bounds[0], float):
                 t = None
                 if bounds[0] != 0 and bounds[1] != 0:
-                    if bounds[1]/bounds[0] > 100 or bounds[0]/bounds[1] > 100:
-                        t = trial.suggest_loguniform(name, bounds[0],bounds[1])
+                    if bounds[1] / bounds[0] > 100 or bounds[0] / bounds[1] > 100:
+                        t = trial.suggest_loguniform(name, bounds[0], bounds[1])
                 if t is None:
                     t = trial.suggest_float(name, bounds[0], bounds[1])
                 setattr(self.hyperparameters[hp], name, t)
@@ -165,9 +165,11 @@ class ModelOptimization:
 
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
-        study = optuna.create_study(direction="minimize", pruner=pruner, storage=self.connstr, load_if_exists=True )
+        study = optuna.create_study(study_name=self.study_name, direction="minimize", pruner=pruner,
+                                    storage=self.connstr, load_if_exists=True)
         self.log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
-        study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args), show_progress_bar=True, gc_after_trial=True)
+        study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args),
+                       show_progress_bar=True, gc_after_trial=True)
         output = {}
         self.log.info("Number of finished trials: {}".format(len(study.trials)))
         self.log.info("Best trial:")
