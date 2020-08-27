@@ -10,7 +10,7 @@ class PSDCallbacks:
         self.config = config
         self.callbacks = [EarlyStopping('val_early_stop_on', min_delta=.000, verbose=True, mode="min", patience=10)]
         self.callbacks.append(LearningRateLogger())
-        self.callbacks.append(LoggingCallback())
+        #self.callbacks.append(LoggingCallback())
 
     def set_args(self, args):
         # args["accumulate_grad_batches"] = {5: 2, 20: 3}
