@@ -45,7 +45,7 @@ class ModelValidation(object):
     @staticmethod
     def validate(config):
         if not hasattr(config.net_config, "algorithm"):
-            raise IOError("Error: config file must have an algorithm specified.")
+            return
         DIMT = config.system_config.n_samples
         if config.net_config.net_type == "2DConvolution":
             current_dim = [DIMX, DIMY, DIMT * 2]
