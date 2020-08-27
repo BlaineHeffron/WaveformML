@@ -74,7 +74,7 @@ class ModelOptimization:
         self.trainer_args = trainer_args
         if not os.path.exists(self.study_dir):
             os.mkdir(self.study_dir)
-        self.connstr = "sqlite://" + os.path.join(self.study_dir, "study.db")
+        self.connstr = "sqlite:///" + os.path.join(self.study_dir, "study.db")
         write_run_info(self.study_dir)
         self.hyperparameters_bounds = DictionaryUtility.to_dict(self.optuna_config.hyperparameters)
         self.parse_config()
