@@ -104,7 +104,7 @@ class LitPSD(pl.LightningModule):
         predictions = self.model([c, f])
         loss = self.criterion.forward(predictions, target)
         pred = argmax(self.softmax(predictions), dim=1)
-        result = pl.EvalResult(checkpoint_on=loss)
+        result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
         acc = self.accuracy(pred, target)
         results_dict = {'val_loss': loss, 'val_acc': acc}
         #results_dict['val_confusion_matrix'] = self.confusion(pred, target)
