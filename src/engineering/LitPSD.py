@@ -1,7 +1,7 @@
 from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
-from torch import argmax, max, int32, float32, int64, mean, sum, tensor
+from torch import argmax, float32, int64, sum
 import logging
 
 N_CHANNELS = 14
@@ -69,6 +69,7 @@ class LitPSD(pl.LightningModule):
                 return [optimizer], [scheduler]
         return optimizer
 
+    """
     def convert_to_tensors(self, coord, feat, label):
         if self.needs_float:
             if self.on_gpu:
@@ -82,40 +83,32 @@ class LitPSD(pl.LightningModule):
         else:
             label = label.type(int64)
         return coord, feat, label
+    """
 
     def training_step(self, batch, batch_idx):
-        (coo, feat), targets = batch
-        # self.log.debug("Shape of coords: {}".format(coo.shape))
-        # self.log.debug("Shape of features: {}".format(feat.shape))
-        # self.log.debug("Shape of labels: {}".format(targets.shape))
-        result = None
-        for c, f, target in zip(coo, feat, targets):
-            c, f, target = self.convert_to_tensors(c, f, target)
-            # self.log.debug("type of coords: {}".format(c.storage_type()))
-            # self.log.debug("type of features: {}".format(f.storage_type()))
-            # self.log.debug("type of labels: {}".format(target.storage_type()))
-            predictions = self.model([c, f])
-            # self.log.debug("predictions shape is {}".format(predictions.shape))
-            loss = self.criterion.forward(predictions, target)
-            if not result:
-                result = pl.TrainResult(loss)
-            result.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        (c, f), target = batch
+        #c, f, target = self.convert_to_tensors(c, f, target)
+        # self.log.debug("type of coords: {}".format(c.storage_type()))
+        # self.log.debug("type of features: {}".format(f.storage_type()))
+        # self.log.debug("type of labels: {}".format(target.storage_type()))
+        predictions = self.model([c, f])
+        # self.log.debug("predictions shape is {}".format(predictions.shape))
+        loss = self.criterion.forward(predictions, target)
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return result
 
     def validation_step(self, batch, batch_idx):
-        (coo, feat), targets = batch
-        result = None
-        for c, f, target in zip(coo, feat, targets):
-            c, f, target = self.convert_to_tensors(c, f, target)
-            predictions = self.model([c, f])
-            loss = self.criterion.forward(predictions, target)
-            pred = argmax(self.softmax(predictions), dim=1)
-            if not result:
-                result = pl.EvalResult(early_stop_on=loss, checkpoint_on=loss)
-            acc = self.accuracy(pred, target)
-            results_dict = {'val_loss': loss, 'val_acc': acc}
-            #results_dict['val_confusion_matrix'] = self.confusion(pred, target)
-            result.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        (c, f), target = batch
+        #c, f, target = self.convert_to_tensors(c, f, target)
+        predictions = self.model([c, f])
+        loss = self.criterion.forward(predictions, target)
+        pred = argmax(self.softmax(predictions), dim=1)
+        result = pl.EvalResult(checkpoint_on=loss)
+        acc = self.accuracy(pred, target)
+        results_dict = {'val_loss': loss, 'val_acc': acc}
+        #results_dict['val_confusion_matrix'] = self.confusion(pred, target)
+        result.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return result
 
     """

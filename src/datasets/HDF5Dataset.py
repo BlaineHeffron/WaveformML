@@ -6,12 +6,14 @@ from pathlib import Path
 from os.path import getmtime, normpath
 import torch
 from torch.utils import data
-from numpy import where, full, int64, int8
+from numpy import where, full
 from os.path import dirname, abspath
 from src.utils.util import read_object_from_file, save_object_to_file, json_load
 import logging
 
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
+N_CHANNELS = 14
+MAX_RANGE = 2**N_CHANNELS - 1
 
 
 def _sort_pattern(name):
@@ -196,17 +198,20 @@ class HDF5Dataset(data.Dataset):
         if di['event_range'][0] > 0:
             first_ind = where(coords[:,2] == di['event_range'][0])[0][0]
         if second_ind > 0:
-            coords = coords[first_ind:second_ind, :]
-            vals = vals[first_ind:second_ind, :]
+            coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
+            vals = torch.tensor(vals[first_ind:second_ind, :], dtype=torch.float32, device=self.device)
         elif first_ind > 0:
-            coords = coords[first_ind:, :]
-            vals = vals[first_ind:, :]
+            coords = torch.tensor(coords[first_ind:, :], dtype=torch.int32, device=self.device)
+            vals = torch.tensor(vals[first_ind:, :], dtype=torch.float32, device=self.device)
+        else:
+            coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
+            vals = torch.tensor(vals, dtype=torch.float32, device=self.device)
 
         if self.info['label_name'] is None:
-            # y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
-            #                          (di['event_range'][1] + 1 - di['event_range'][0],),
-            #                          di['dir_index'], dtype=torch.int64, device=self.device)
-            y = full((di['event_range'][1] - di['event_range'][0] + 1,), fill_value=di['dir_index'], dtype=int8)
+             y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
+                                      (di['event_range'][1] + 1 - di['event_range'][0],),
+                                      di['dir_index'], dtype=torch.int64, device=self.device)
+            #y = full((di['event_range'][1] - di['event_range'][0] + 1,), fill_value=di['dir_index'], dtype=int8)
         else:
             if second_ind > 0:
                 y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:di['event_range'][1]+1]
@@ -214,9 +219,10 @@ class HDF5Dataset(data.Dataset):
                 y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:]
             else:
                 y = self.get_data(self.info['label_name'], index)
-            # y = torch.tensor(y, device=self.device, dtype=torch.int64)
+            y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
+        vals /= MAX_RANGE
         return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,

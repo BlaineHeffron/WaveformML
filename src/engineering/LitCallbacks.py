@@ -19,10 +19,5 @@ class PSDCallbacks:
 
 class LoggingCallback(Callback):
 
-    def __init__(self):
-        super().__init__(self)
-        self.log = logging.getLogger(__name__)
-
     def on_sanity_check_end(self, trainer, pl_module):
-        self.log.debug("adding graph of the model")
-        pl_module.logger.experiment.log_graph(pl_module.model)
+        pl_module.logger.log_graph(pl_module.model)

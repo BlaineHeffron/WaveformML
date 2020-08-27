@@ -2,7 +2,17 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from src.utils.util import DictionaryUtility, ModuleUtility
 from torch.utils.data import get_worker_info
+from torch import cat
 import logging
+
+
+def collate_fn(batch):
+    offset = 0
+    for i, b in enumerate(batch):
+        if i > 0:
+            b[0][0][:,2] += offset
+        offset += b[1].size()[0]
+    return [cat([b[0][0] for b in batch]), cat([b[0][1] for b in batch])], cat([b[1] for b in batch])
 
 
 class PSDDataModule(pl.LightningDataModule):
@@ -87,7 +97,8 @@ class PSDDataModule(pl.LightningDataModule):
         if not hasattr(self, "train_dataset"):
             self.setup("train")
         return DataLoader(self.train_dataset,
-                          shuffle=False,
+                          shuffle=True,
+                          collate_fn=collate_fn,
                           **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
 
     def val_dataloader(self):
@@ -95,6 +106,7 @@ class PSDDataModule(pl.LightningDataModule):
             self.setup("test")
         return DataLoader(self.val_dataset,
                           shuffle=False,
+                          collate_fn=collate_fn,
                           **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
 
     def test_dataloader(self):
@@ -102,4 +114,5 @@ class PSDDataModule(pl.LightningDataModule):
             self.setup("test")
         return DataLoader(self.test_dataset,
                           shuffle=False,
+                          collate_fn=collate_fn,
                           **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
