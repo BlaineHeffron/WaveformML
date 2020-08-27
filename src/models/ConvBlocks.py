@@ -54,6 +54,8 @@ class LinearBlock(Algorithm):
         super().__str__()
 
     def __init__(self, nin, nout, n):
+        assert(n > 0)
+        assert(nin > 0)
         self.alg = []
         self.log = logging.getLogger(__name__)
         self.log.debug("Creating Linear block\n    nin: {0}\n   nout:{1}\n  n:{2}".format(nin, nout, n))
