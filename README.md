@@ -137,6 +137,7 @@ can add an optuna_config section in the config file.
 Results are in 
 
     ./studies/<experiment name>
+    
 Each trial's logs and model checkpoints are saved to the 
 
     ./studies/<experiment name>/trial_<n> 

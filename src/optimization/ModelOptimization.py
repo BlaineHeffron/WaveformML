@@ -71,7 +71,7 @@ class ModelOptimization:
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
         self.study_dir = os.path.join(model_dir, "studies/{}".format(config.run_config.exp_name))
-        self.study_name = self.run_config.exp_name if not hasattr(optuna_config, "name") else self.optuna_config.name
+        self.study_name = self.config.run_config.exp_name if not hasattr(optuna_config, "name") else self.optuna_config.name
         self.trainer_args = trainer_args
         if not os.path.exists(self.study_dir):
             os.mkdir(self.study_dir)
