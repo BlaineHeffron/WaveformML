@@ -78,7 +78,7 @@ class ModelOptimization:
         self.connstr = "sqlite:///" + os.path.join(self.study_dir, "study.db")
         write_run_info(self.study_dir)
         self.hyperparameters_bounds = DictionaryUtility.to_dict(self.optuna_config.hyperparameters)
-        self.log.debug("hyperparameters bounds set to {1}".format(self.hyperparameters_bounds))
+        self.log.debug("hyperparameters bounds set to {0}".format(self.hyperparameters_bounds))
         self.parse_config()
 
     def parse_config(self):
