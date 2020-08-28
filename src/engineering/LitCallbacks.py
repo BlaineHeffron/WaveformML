@@ -32,4 +32,4 @@ class LoggingCallback(Callback):
             pl_module.logger.experiment.add_figure("confusion_matrix", plot_confusion_matrix(pl_module.confusion_matrix.cpu().numpy(),
                                                                                         pl_module.config.system_config.type_names,
                                                                                         normalize=True))
-            pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape)
+            pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
