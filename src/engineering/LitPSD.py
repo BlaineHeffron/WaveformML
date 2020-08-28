@@ -87,7 +87,7 @@ class LitPSD(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
-        #c, f, target = self.convert_to_tensors(c, f, target)
+        # c, f, target = self.convert_to_tensors(c, f, target)
         # self.log.debug("type of coords: {}".format(c.storage_type()))
         # self.log.debug("type of features: {}".format(f.storage_type()))
         # self.log.debug("type of labels: {}".format(target.storage_type()))
@@ -100,24 +100,19 @@ class LitPSD(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
-        #c, f, target = self.convert_to_tensors(c, f, target)
+        # c, f, target = self.convert_to_tensors(c, f, target)
         predictions = self.model([c, f])
         loss = self.criterion.forward(predictions, target)
         pred = argmax(self.softmax(predictions), dim=1)
         result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
         acc = self.accuracy(pred, target)
         results_dict = {'val_loss': loss, 'val_acc': acc}
-        #results_dict['val_confusion_matrix'] = self.confusion(pred, target)
         result.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        if self.log.level <= logging.INFO:
+            if not hasattr(self, "confusion_matrix"):
+                self.confusion_matrix = self.confusion(pred, target)
+            else:
+                self.confusion_matrix += self.confusion(pred, target)
+
         return result
 
-    """
-    def validation_epoch_end(self, outputs):
-        mean_loss = outputs['batch_val_loss'].mean()
-        mean_accuracy = outputs['batch_val_acc'].mean()
-        return {
-            'log': {'val_loss': mean_loss, 'val_acc': mean_accuracy},
-            'progress_bar': {'val_loss': mean_loss},
-            'callback_metrics': {'val_loss': mean_loss, 'val_acc': mean_accuracy}
-        }
-    """

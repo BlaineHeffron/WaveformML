@@ -13,6 +13,7 @@ from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
 from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args, write_run_info
 
+
 module_log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
@@ -154,6 +155,7 @@ class ModelOptimization:
         #        "trial_{}".format(trial.number), "train_args")
         metrics_callback = MetricsCallback()
         cbs = [metrics_callback]
+        cbs.append(LoggingCallback())
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config)
