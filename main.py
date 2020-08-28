@@ -81,9 +81,9 @@ def main():
                         type=str)
     # TODO implement verbosity
     parser.add_argument("--load_best", "-lb", action="store_true",
-                        help="finds the best checkpoint matching the model and experiment names, loads it and resumes training. Does not pass config.")
+                        help="finds the best checkpoint matching the model and experiment names, loads it and resumes training.")
     parser.add_argument("--load_checkpoint", "-l", type=str,
-                        help="Set the path to the checkpoint you'd like to resume training on. Passes config to this model.")
+                        help="Set the path to the checkpoint you'd like to resume training on.")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int, default=0)
@@ -194,12 +194,10 @@ def main():
         write_run_info(log_folder)
         psd_callbacks = PSDCallbacks(config)
         load_checkpoint = None
-        use_config_with_cp = False
         if args.load_best:
             load_checkpoint = retrieve_model_checkpoint(model_folder, model_name, config.run_config.exp_name)
         if args.load_checkpoint:
             load_checkpoint = args.load_checkpoint
-            use_config_with_cp = True
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
@@ -225,10 +223,7 @@ def main():
         modules = ModuleUtility(config.run_config.imports)
         if load_checkpoint:
             print("loading model checkpoint {}".format(load_checkpoint))
-            if use_config_with_cp:
-                runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config)
-            else:
-                runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint)
+            runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config)
         else:
             runner = modules.retrieve_class(config.run_config.run_class)(config)
         data_module = PSDDataModule(config, runner.device)
