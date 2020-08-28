@@ -30,8 +30,9 @@ class SparseConv2DBlock(Algorithm):
                 diff = float(nin - nout) / n
                 if n > 1:
                     for i in range(n-1):
-                        if nframes[1] - diff > nout:
-                            nframes += [nframes[-1] - diff]
+                        val = int(floor(nframes[-1] - diff))
+                        if val > nout:
+                            nframes += [val]
                         else:
                             nframes += [nout]
             else:
@@ -55,6 +56,7 @@ class SparseConv2DBlock(Algorithm):
                 dil = 1
                 st = 1
                 self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                self.log.debug("added pointwise convolution, frames: {0} -> {1}".format(nframes[i],nframes[i+1]))
             else:
                 self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
