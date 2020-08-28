@@ -15,8 +15,9 @@ class SparseConv2DBlock(Algorithm):
     def __str__(self):
         super().__str__()
 
-    def __init__(self, nin, nout, n, size, to_dense, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=1,
-                 trainable_weights=False):
+    def __init__(self, nin, nout, n, size, to_dense,
+                 size_factor=3, pad_factor=0, stride_factor=1, dil_factor=1,
+                 pointwise_factor=0, trainable_weights=False):
         assert (n > 0)
         self.alg = []
         self.out_size = size
@@ -24,8 +25,18 @@ class SparseConv2DBlock(Algorithm):
         self.log.debug("Initializing convolution block with nin {0}, nout {1}, size {2}".format(nin, nout, size))
         self.ndim = len(size) - 1
         if nin != nout:
-            diff = float(nin - nout) / n
-            nframes = [int(floor(nin - diff * i)) for i in range(n + 1)]
+            if pointwise_factor > 0:
+                nframes = [nin, nin - int(floor((nin - nout)*pointwise_factor))]
+                diff = float(nin - nout) / n
+                if n > 1:
+                    for i in range(n-1):
+                        if nframes[1] - diff > nout:
+                            nframes += [nframes[-1] - diff]
+                        else:
+                            nframes += [nout]
+            else:
+                diff = float(nin - nout) / n
+                nframes = [int(floor(nin - diff * i)) for i in range(n + 1)]
         else:
             nframes = [nin] * (n + 1)
         for i in range(n):
@@ -38,7 +49,14 @@ class SparseConv2DBlock(Algorithm):
                 st = 1
             dil = dil_factor ** i
             pd = round(int(floor(pad_factor * (fs - 1) * dil_factor)) * decay_factor)
-            self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+            if i == 0 and pointwise_factor > 0:
+                pd = 0
+                fs = 1
+                dil = 1
+                st = 1
+                self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+            else:
+                self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
             self.alg.append(nn.ReLU())
             arg_dict = {DIM: self.ndim, NIN: nframes[i], NOUT: nframes[i + 1], FS: [fs] * 4, STR: [st] * 4,
