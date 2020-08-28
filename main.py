@@ -195,7 +195,7 @@ def main():
         psd_callbacks = PSDCallbacks(config)
         load_checkpoint = None
         if args.load_best:
-            load_checkpoint = retrieve_model_checkpoint(model_folder, model_name, config.run_config.exp_name)
+            load_checkpoint = retrieve_model_checkpoint(log_folder, model_name, config.run_config.exp_name)
         if args.load_checkpoint:
             load_checkpoint = args.load_checkpoint
         trainer_args = vars(args)
@@ -204,7 +204,7 @@ def main():
         trainer_args = psd_callbacks.set_args(trainer_args)
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
-                filepath=save_path(model_folder, model_name, config.run_config.exp_name),
+                filepath=save_path(log_folder, model_name, config.run_config.exp_name),
                 monitor="val_checkpoint_on")
 
         if trainer_args["profiler"] or verbosity >= 5:

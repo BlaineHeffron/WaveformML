@@ -139,23 +139,23 @@ def path_create(a_path):
         os.mkdir(os.path.expanduser(os.path.normpath(a_path)))
 
 
-def save_path(model_folder, model_name, exp_name, get_regex=False):
+def save_path(log_folder, model_name, exp_name, get_regex=False):
     if exp_name:
         if model_name:
             if get_regex:
-                return os.path.join(model_folder, model_name + "_" + exp_name + \
+                return os.path.join(log_folder, model_name + "_" + exp_name + \
                                     r"_epoch=(\d*)-val_checkpoint_on=(\d*\.\d*).ckpt")
             else:
-                return os.path.join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
+                return os.path.join(log_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
         else:
             raise IOError("No model name given. Set model_name property in net_config.")
     else:
         raise IOError("No experiment name given. Set exp_name property in run_config.")
 
 
-def retrieve_model_checkpoint(model_folder, model_name, exp_name):
-    files = [join(model_folder, f) for f in listdir(model_folder) if isfile(join(model_folder, f))]
-    pattern = re.compile(save_path(model_folder, model_name, exp_name, get_regex=True))
+def retrieve_model_checkpoint(log_folder, model_name, exp_name):
+    files = [join(log_folder, f) for f in listdir(log_folder) if isfile(join(log_folder, f))]
+    pattern = re.compile(save_path(log_folder, model_name, exp_name, get_regex=True))
     vals = []
     fs = []
     for f in files:
