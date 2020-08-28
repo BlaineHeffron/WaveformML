@@ -5,7 +5,8 @@ import json
 import pickle
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
-from os.path import abspath, normpath, isfile, join
+from os.path import abspath, normpath
+from pathlib import Path
 import git
 import sys
 import logging
@@ -143,8 +144,7 @@ def save_path(log_folder, model_name, exp_name, get_regex=False):
     if exp_name:
         if model_name:
             if get_regex:
-                return os.path.join(log_folder, model_name + "_" + exp_name + \
-                                    r"_epoch=(\d*)-val_checkpoint_on=(\d*\.\d*).ckpt")
+                return model_name + "_" + exp_name + r'_epoch=(\d*)-val_checkpoint_on=(\d*\.\d*).ckpt'
             else:
                 return os.path.join(log_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
         else:
@@ -153,16 +153,28 @@ def save_path(log_folder, model_name, exp_name, get_regex=False):
         raise IOError("No experiment name given. Set exp_name property in run_config.")
 
 
+def get_tb_logdir_version(log_folder):
+    pattern = re.compile(r'version_(\d*)')
+    for m in re.finditer(pattern, log_folder):
+        if m:
+            return int(m.group(1))
+    return None
+
+
 def retrieve_model_checkpoint(log_folder, model_name, exp_name):
-    files = [join(log_folder, f) for f in listdir(log_folder) if isfile(join(log_folder, f))]
+    p = Path(log_folder)
+    if not p.is_dir():
+        raise RuntimeError("{0} is not a valid directory.".format(str(p.resolve())))
+    assert (p.is_dir())
+    files = p.glob('**/*.ckpt')  # recursive search in all version folders
     pattern = re.compile(save_path(log_folder, model_name, exp_name, get_regex=True))
     vals = []
     fs = []
     for f in files:
-        for m in re.finditer(pattern, f):
+        for m in re.finditer(pattern, str(f.name)):
             if m:
                 vals.append(m.group(2))
-                fs.append(f)
+                fs.append(str(f))
     best = 1000000
     bestind = -1
     fallback = []
@@ -176,7 +188,7 @@ def retrieve_model_checkpoint(log_folder, model_name, exp_name):
                 bestind = i
     if bestind == -1:
         if fallback:
-            return fallback[0]
+            return fs[fallback[0]]
         else:
             return ""
     return fs[bestind]

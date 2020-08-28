@@ -11,7 +11,7 @@ class PSDCallbacks:
     def __init__(self, config):
         self.log = logging.getLogger(__name__)
         self.config = config
-        self.callbacks = [EarlyStopping('val_early_stop_on', min_delta=.000, verbose=True, mode="min", patience=10)]
+        self.callbacks = [EarlyStopping(min_delta=.000, verbose=True, mode="min", patience=10)]
         self.callbacks.append(LearningRateLogger())
         self.callbacks.append(LoggingCallback())
 
