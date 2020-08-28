@@ -9,7 +9,7 @@ import json
 import logging
 from src.utils import util
 import argparse
-from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args
+from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args, retrieve_model_checkpoint
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
@@ -80,10 +80,14 @@ def main():
                         help="Set the experiment name for this run. Overrides exp_name specified in the run_config.",
                         type=str)
     # TODO implement verbosity
+    parser.add_argument("--load_best", "-lb", action="store_true",
+                        help="finds the best checkpoint matching the model and experiment names, loads it and resumes training")
+    parser.add_argument("--load_checkpoint", "-l", type=str,
+                        help="Set the path to the checkpoint you'd like to resume training on.")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int, default=0)
-    parser.add_argument("--logfile", "-l",
+    parser.add_argument("--logfile", "-lf",
                         help="Set the filename or path to the filename for the program log this run."
                              " Set --verbosity to control the amount of information logged.",
                         type=str)
@@ -100,7 +104,7 @@ def main():
         help="Activate the pruning feature. `MedianPruner` stops unpromising "
              "trials at the early stages of training.",
     )
-    non_trainer_args = ["config", "name", "verbosity",
+    non_trainer_args = ["config", "load_checkpoint", "load_best", "name", "verbosity",
                         "logfile", "config_validation", "optimize_config",
                         "pruning", "validate"]
     parser = Trainer.add_argparse_args(parser)
@@ -189,6 +193,11 @@ def main():
             os.makedirs(log_folder, exist_ok=True)
         write_run_info(log_folder)
         psd_callbacks = PSDCallbacks(config)
+        load_checkpoint = None
+        if args.load_best:
+            load_checkpoint = retrieve_model_checkpoint(model_folder, model_name, config.run_config.exp_name)
+        if args.load_checkpoint:
+            load_checkpoint = args.load_checkpoint
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
             del trainer_args[non_trainer_arg]
@@ -197,6 +206,7 @@ def main():
             ModelCheckpoint(
                 filepath=save_path(model_folder, model_name, config.run_config.exp_name),
                 monitor="val_checkpoint_on")
+
         if trainer_args["profiler"] or verbosity >= 5:
             if verbosity >= 5:
                 profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
@@ -211,7 +221,10 @@ def main():
         #        config.run_config.exp_name, "train_args")
 
         modules = ModuleUtility(config.run_config.imports)
-        runner = modules.retrieve_class(config.run_config.run_class)(config)
+        if load_checkpoint:
+            runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config)
+        else:
+            runner = modules.retrieve_class(config.run_config.run_class)(config)
         data_module = PSDDataModule(config, runner.device)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         trainer.fit(runner, datamodule=data_module)

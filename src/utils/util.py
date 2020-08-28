@@ -5,10 +5,12 @@ import json
 import pickle
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
-from os.path import abspath, normpath
+from os.path import abspath, normpath, isfile, join
 import git
 import sys
 import logging
+from os import listdir
+import re
 
 log = logging.getLogger(__name__)
 
@@ -137,14 +139,47 @@ def path_create(a_path):
         os.mkdir(os.path.expanduser(os.path.normpath(a_path)))
 
 
-def save_path(model_folder, model_name, exp_name):
+def save_path(model_folder, model_name, exp_name, get_regex=False):
     if exp_name:
         if model_name:
-            return os.path.join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
+            if get_regex:
+                return os.path.join(model_folder, model_name + "_" + exp_name + \
+                                    r"_epoch=(\d*)-val_checkpoint_on=(\d*\.\d*).ckpt")
+            else:
+                return os.path.join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
         else:
             raise IOError("No model name given. Set model_name property in net_config.")
     else:
         raise IOError("No experiment name given. Set exp_name property in run_config.")
+
+
+def retrieve_model_checkpoint(model_folder, model_name, exp_name):
+    files = [join(model_folder, f) for f in listdir(model_folder) if isfile(join(model_folder, f))]
+    pattern = re.compile(save_path(model_folder, model_name, exp_name, get_regex=True))
+    vals = []
+    fs = []
+    for f in files:
+        for m in re.finditer(pattern, f):
+            if m:
+                vals.append(m.group(2))
+                fs.append(f)
+    best = 1000000
+    bestind = -1
+    fallback = []
+    for i, v in enumerate(vals):
+        v = float(v)
+        if v == 0:
+            fallback.append(i)
+        else:
+            if v < best:
+                best = v
+                bestind = i
+    if bestind == -1:
+        if fallback:
+            return fallback[0]
+        else:
+            return ""
+    return fs[bestind]
 
 
 def save_object_to_file(obj, path, fmt="json"):
