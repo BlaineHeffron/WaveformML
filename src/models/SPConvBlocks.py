@@ -55,7 +55,8 @@ class SparseConv2DBlock(Algorithm):
                 fs = 1
                 dil = 1
                 st = 1
-                self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                #self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
                 self.log.debug("added pointwise convolution, frames: {0} -> {1}".format(nframes[i],nframes[i+1]))
             else:
                 self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
