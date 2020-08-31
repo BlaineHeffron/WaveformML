@@ -16,7 +16,7 @@ class DilationBlock(Algorithm):
     def __str__(self):
         super().__str__()
 
-    def __init__(self, nin, nout, n, length, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=2,
+    def __init__(self, nin, nout, n, length, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=2.,
                  trainable_weights=False):
         self.out_length = length
         self.log = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class DilationBlock(Algorithm):
             st = stride_factor - int(floor((stride_factor - 1) / (i + 1.)))
             if st < 1:
                 st = 1
-            dil = dil_factor ** i
+            dil = int(round(dil_factor ** i))
             pd = int(floor(pad_factor * (fs - 1) * dil_factor))
             self.alg.append(nn.Conv1d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
             arg_dict = {DIM: 2, NIN: nframes[i], NOUT: nframes[i + 1], FS: fs, STR: st, PAD: pd, DIL: dil}

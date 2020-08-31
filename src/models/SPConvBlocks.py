@@ -16,7 +16,7 @@ class SparseConv2DBlock(Algorithm):
         super().__str__()
 
     def __init__(self, nin, nout, n, size, to_dense,
-                 size_factor=3, pad_factor=0, stride_factor=1, dil_factor=1,
+                 size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
                  pointwise_factor=0, trainable_weights=False):
         assert (n > 0)
         self.alg = []
@@ -48,8 +48,8 @@ class SparseConv2DBlock(Algorithm):
             st = stride_factor - int(floor((stride_factor - 1) / (i + 1.)))
             if st < 1:
                 st = 1
-            dil = dil_factor ** i
-            pd = round(int(floor(pad_factor * (fs - 1) * dil_factor)) * decay_factor)
+            dil = int(round(dil_factor ** i))
+            pd = int(round(pad_factor * (fs - 1) * dil_factor) * decay_factor)
             if i == 0 and pointwise_factor > 0:
                 pd = 0
                 fs = 1
