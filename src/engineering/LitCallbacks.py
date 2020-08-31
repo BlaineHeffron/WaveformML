@@ -34,4 +34,4 @@ class LoggingCallback(Callback):
                                                                                         normalize=True))
             pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
         if hasattr(pl_module.config.net_config, "hparams"):
-            pl_module.logger.experiment.add_hparams(pl_module.hparams["net_config"]["hparams"], {"epoch_val_acc": None, "epoch_val_loss": None})
+            pl_module.logger.experiment.add_hparams(pl_module.hparams["net_config"]["hparams"], {"epoch_val_acc": 1., "epoch_val_loss": 1.})
