@@ -31,7 +31,7 @@ class SparseConv2DBlock(Algorithm):
             st = stride_factor - int(floor((stride_factor - 1) / (i + 1.)))
             if st < 1:
                 st = 1
-            dil = dil_factor ** i
+            dil = int(round(dil_factor ** i))
             pd = round(int(floor(pad_factor * (fs - 1) * dil_factor)) * decay_factor)
             self.alg.append(spconv.SparseConv3d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
