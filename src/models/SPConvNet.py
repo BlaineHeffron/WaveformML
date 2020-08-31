@@ -62,10 +62,15 @@ class SPConvNet(nn.Module):
                 params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams, p_name))
                 if p_name == "wf_params":
                     if hparams.n_dil > 0:
+                        """
                         wfLayer = DilationBlock(2, 2, hparams.n_dil, int(size[2] / 2), **params)
                         self.waveformLayer = wfLayer.func
                         size[2] = int(wfLayer.out_length * 2)
                         self.waveformOutputLength = copy(size[2])
+                        """
+                        self.waveformLayer = TemporalConvNet(2, [2]*hparams.n_dil, **params)
+                        size[2] = 300
+                        self.waveformOutputLength = 300
                 elif p_name == "conv_params":
                     spModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_conv, size, True, **params)
                     self.sparseModel = spModel.func
