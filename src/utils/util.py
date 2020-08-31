@@ -12,6 +12,8 @@ import sys
 import logging
 from os import listdir
 import re
+import collections
+
 
 log = logging.getLogger(__name__)
 
@@ -358,3 +360,14 @@ def json_load(path):
     with open(path, 'r') as f:
         data = json.load(f)
     return data
+
+
+def flatten(d, parent_key='', sep='/'):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
