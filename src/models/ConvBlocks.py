@@ -76,6 +76,8 @@ class Chomp1d(nn.Module):
 
 
 class TemporalBlock(nn.Module):
+    """Implementation found athttps://github.com/locuslab/TCN/blob/master/TCN/tcn.py
+    """
     def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2):
         super(TemporalBlock, self).__init__()
         self.conv1 = weight_norm(nn.Conv1d(n_inputs, n_outputs, kernel_size,
