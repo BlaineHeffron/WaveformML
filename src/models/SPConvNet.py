@@ -1,3 +1,5 @@
+from copy import copy
+
 import spconv
 from torch import nn, LongTensor
 from src.utils.util import DictionaryUtility
@@ -42,37 +44,39 @@ class SPConvNet(nn.Module):
         batch_size = x[0][-1, -1] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
         x = self.sparseModel(x)
-        self.log.debug("output shape from sparse model : {}".format(x.shape))
+        #self.log.debug("output shape from sparse model : {}".format(x.shape))
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
         return x
 
-        self.n_linear = linear_funcs[1][0]
-
     def create_algorithm(self, hparams, n_classes):
-        #TODO: get this working with 3d
-        requirements = ["n_dil", "n_conv", "n_lin"]
+        # TODO: get this working with 3d
+        requirements = ["n_dil", "n_conv", "n_lin", "out_planes"]
         extras = ["wf_params", "conv_params", "lin_params"]
-        size = [14,11,self.nsamples*2]
+        size = [14, 11, int(self.nsamples * 2)]
         if hasattr(hparams, "n_conv"):
             for rq in requirements:
-                if not hasattr(hparams,rq):
+                if not hasattr(hparams, rq):
                     raise IOError(rq + " is required to create the sparse conv algorithm.")
             for p_name in extras:
-                params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams,p_name))
+                params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams, p_name))
                 if p_name == "wf_params":
-                    self.waveformLayer = DilationBlock(2,2, hparams.n_dil, size[2]/2, **params)
-                    size[2] = self.waveformLayer.out_length*2
+                    if hparams.n_dil > 0:
+                        wfLayer = DilationBlock(2, 2, hparams.n_dil, int(size[2] / 2), **params)
+                        self.waveformLayer = wfLayer.func
+                        size[2] = int(wfLayer.out_length * 2)
+                        self.waveformOutputLength = copy(size[2])
                 elif p_name == "conv_params":
-                    self.sparseModel = SparseConv2DBlock(2,2, hparams.n_dil, size, **params)
-                    size = self.sparseModel.out_size
+                    spModel = SparseConv2DBlock(size[2], hparams.out_planes, hparams.n_conv, size, True, **params)
+                    self.sparseModel = spModel.func
+                    size = spModel.out_size
                 elif p_name == "lin_params":
                     flat_size = 1
                     for s in size:
                         flat_size = flat_size * s
+                    self.n_linear = copy(flat_size)
                     self.log.debug("Flattened size of the SCN network output is {}".format(flat_size))
-                    self.linear = LinearBlock(flat_size, n_classes, hparams.n_lin)
-            self.n_linear = hparams.n_lin
+                    self.linear = LinearBlock(flat_size, n_classes, hparams.n_lin).func
             self.log.debug("n_linear: {}".format(self.n_linear))
         else:
             raise IOError("hparams must be a dictionary containing the following minimal settings:\n"
@@ -87,7 +91,7 @@ class SPConvNet(nn.Module):
         has_wf = False
         if not hasattr(self.net_config, "algorithm"):
             if hasattr(self.net_config, "hparams"):
-                self.create_algorithm(self.net_config.hparams)
+                self.create_algorithm(self.net_config.hparams, self.ntype)
             else:
                 raise IOError("net_config must contain one of either 'algorithm' or 'hparams'")
         else:

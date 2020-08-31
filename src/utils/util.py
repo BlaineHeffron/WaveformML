@@ -6,9 +6,12 @@ import pickle
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
 from os.path import abspath, normpath
+from pathlib import Path
 import git
 import sys
 import logging
+from os import listdir
+import re
 
 log = logging.getLogger(__name__)
 
@@ -137,14 +140,58 @@ def path_create(a_path):
         os.mkdir(os.path.expanduser(os.path.normpath(a_path)))
 
 
-def save_path(model_folder, model_name, exp_name):
+def save_path(log_folder, model_name, exp_name, get_regex=False):
     if exp_name:
         if model_name:
-            return os.path.join(model_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
+            if get_regex:
+                return model_name + "_" + exp_name + r'_epoch=(\d*)-val_checkpoint_on=(\d*\.\d*).ckpt'
+            else:
+                return os.path.join(log_folder, model_name + "_" + exp_name + "_{epoch:02d}-{val_checkpoint_on:.3f}")
         else:
             raise IOError("No model name given. Set model_name property in net_config.")
     else:
         raise IOError("No experiment name given. Set exp_name property in run_config.")
+
+
+def get_tb_logdir_version(log_folder):
+    pattern = re.compile(r'version_(\d*)')
+    for m in re.finditer(pattern, log_folder):
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def retrieve_model_checkpoint(log_folder, model_name, exp_name):
+    p = Path(log_folder)
+    if not p.is_dir():
+        raise RuntimeError("{0} is not a valid directory.".format(str(p.resolve())))
+    assert (p.is_dir())
+    files = p.glob('**/*.ckpt')  # recursive search in all version folders
+    pattern = re.compile(save_path(log_folder, model_name, exp_name, get_regex=True))
+    vals = []
+    fs = []
+    for f in files:
+        for m in re.finditer(pattern, str(f.name)):
+            if m:
+                vals.append(m.group(2))
+                fs.append(str(f))
+    best = 1000000
+    bestind = -1
+    fallback = []
+    for i, v in enumerate(vals):
+        v = float(v)
+        if v == 0:
+            fallback.append(i)
+        else:
+            if v < best:
+                best = v
+                bestind = i
+    if bestind == -1:
+        if fallback:
+            return fs[fallback[0]]
+        else:
+            return ""
+    return fs[bestind]
 
 
 def save_object_to_file(obj, path, fmt="json"):

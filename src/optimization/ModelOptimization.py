@@ -13,6 +13,7 @@ from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
 from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args, write_run_info
 
+
 module_log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
@@ -71,11 +72,14 @@ class ModelOptimization:
         if not os.path.exists(base_dir):
             os.mkdir(base_dir)
         self.study_dir = os.path.join(model_dir, "studies/{}".format(config.run_config.exp_name))
+        self.study_name = self.config.run_config.exp_name if not hasattr(optuna_config, "name") else self.optuna_config.name
         self.trainer_args = trainer_args
         if not os.path.exists(self.study_dir):
             os.mkdir(self.study_dir)
+        self.connstr = "sqlite:///" + os.path.join(self.study_dir, "study.db")
         write_run_info(self.study_dir)
         self.hyperparameters_bounds = DictionaryUtility.to_dict(self.optuna_config.hyperparameters)
+        self.log.debug("hyperparameters bounds set to {0}".format(self.hyperparameters_bounds))
         self.parse_config()
 
     def parse_config(self):
@@ -111,8 +115,13 @@ class ModelOptimization:
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], float):
-                setattr(self.hyperparameters[hp], name,
-                        trial.suggest_float(name, bounds[0], bounds[1]))
+                t = None
+                if bounds[0] != 0 and bounds[1] != 0:
+                    if bounds[1] / bounds[0] > 100 or bounds[0] / bounds[1] > 100:
+                        t = trial.suggest_loguniform(name, bounds[0], bounds[1])
+                if t is None:
+                    t = trial.suggest_float(name, bounds[0], bounds[1])
+                setattr(self.hyperparameters[hp], name, t)
             elif isinstance(bounds[0], bool):
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, 0, 1))
@@ -146,11 +155,12 @@ class ModelOptimization:
         #        "trial_{}".format(trial.number), "train_args")
         metrics_callback = MetricsCallback()
         cbs = [metrics_callback]
+        cbs.append(LoggingCallback())
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config)
         data_module = PSDDataModule(self.config, model.device)
-        trainer.fit(model, data_module)
+        trainer.fit(model, datamodule=data_module)
         if metrics_callback.metrics:
             return metrics_callback.metrics[-1]["val_checkpoint_on"].item()
         else:
@@ -158,9 +168,11 @@ class ModelOptimization:
 
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
-        study = optuna.create_study(direction="minimize", pruner=pruner)
+        study = optuna.create_study(study_name=self.study_name, direction="minimize", pruner=pruner,
+                                    storage=self.connstr, load_if_exists=True)
         self.log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
-        study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args), show_progress_bar=True, gc_after_trial=True)
+        study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args),
+                       show_progress_bar=True, gc_after_trial=True)
         output = {}
         self.log.info("Number of finished trials: {}".format(len(study.trials)))
         self.log.info("Best trial:")

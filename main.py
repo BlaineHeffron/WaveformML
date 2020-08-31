@@ -9,7 +9,8 @@ import json
 import logging
 from src.utils import util
 import argparse
-from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args
+from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args, \
+    retrieve_model_checkpoint, get_tb_logdir_version
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
@@ -57,6 +58,7 @@ def setup_logger(args):
         fh.setFormatter(formatter)
         logger.addHandler(fh)
         logger.info("Logging to file {}".format(args.logfile))
+    return logger
 
 
 def check_config(config_file):
@@ -80,10 +82,16 @@ def main():
                         help="Set the experiment name for this run. Overrides exp_name specified in the run_config.",
                         type=str)
     # TODO implement verbosity
+    parser.add_argument("--load_best", "-lb", action="store_true",
+                        help="finds the best checkpoint matching the model and experiment names, loads it and resumes training.")
+    parser.add_argument("--load_checkpoint", "-l", type=str,
+                        help="Set the path to the checkpoint you'd like to resume training on.")
+    parser.add_argument("--restore_training", "-r", action="store_true",
+                        help="Restores the training state in addition to model weights when loading a checkpoint. Does nothing if no checkpoints are loaded.")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int, default=0)
-    parser.add_argument("--logfile", "-l",
+    parser.add_argument("--logfile", "-lf",
                         help="Set the filename or path to the filename for the program log this run."
                              " Set --verbosity to control the amount of information logged.",
                         type=str)
@@ -100,7 +108,8 @@ def main():
         help="Activate the pruning feature. `MedianPruner` stops unpromising "
              "trials at the early stages of training.",
     )
-    non_trainer_args = ["config", "name", "verbosity",
+    non_trainer_args = ["config", "load_checkpoint", "load_best", "name",
+                        "restore_training", "verbosity",
                         "logfile", "config_validation", "optimize_config",
                         "pruning", "validate"]
     parser = Trainer.add_argparse_args(parser)
@@ -149,7 +158,7 @@ def main():
             config.run_config.exp_name = exp_name
     if args.name:
         config.run_config.exp_name = args.name
-    setup_logger(args)
+    main_logger = setup_logger(args)
     logging.debug('Command line arguments: %s' % str(sys.argv))
 
     logging.info('=======================================================')
@@ -183,7 +192,23 @@ def main():
         tb_folder = join(model_folder, "runs")
         if not os.path.exists(tb_folder):
             os.mkdir(tb_folder)
-        logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
+        exp_folder = join(tb_folder, config.run_config.exp_name)
+        if not os.path.exists(exp_folder):
+            os.mkdir(exp_folder)
+        load_checkpoint = None
+        if args.load_best:
+            load_checkpoint = retrieve_model_checkpoint(exp_folder, model_name, config.run_config.exp_name)
+        if args.load_checkpoint:
+            load_checkpoint = args.load_checkpoint
+        if args.restore_training and load_checkpoint:
+            vnum = get_tb_logdir_version(load_checkpoint)
+            if vnum:
+                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, version=vnum)
+                main_logger.info("Utilizing existing log directory {}".format(logger.log_dir))
+            else:
+                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
+        else:
+            logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
         log_folder = logger.log_dir
         if not os.path.exists(log_folder):
             os.makedirs(log_folder, exist_ok=True)
@@ -191,12 +216,16 @@ def main():
         psd_callbacks = PSDCallbacks(config)
         trainer_args = vars(args)
         for non_trainer_arg in non_trainer_args:
+            if non_trainer_arg == "restore_training" and load_checkpoint:
+                main_logger.info("Training is set to resume from model checkpoint {}".format(load_checkpoint))
+                trainer_args["resume_from_checkpoint"] = load_checkpoint
             del trainer_args[non_trainer_arg]
         trainer_args = psd_callbacks.set_args(trainer_args)
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
-                filepath=save_path(model_folder, model_name, config.run_config.exp_name),
+                filepath=save_path(log_folder, model_name, config.run_config.exp_name),
                 monitor="val_checkpoint_on")
+
         if trainer_args["profiler"] or verbosity >= 5:
             if verbosity >= 5:
                 profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
@@ -211,10 +240,14 @@ def main():
         #        config.run_config.exp_name, "train_args")
 
         modules = ModuleUtility(config.run_config.imports)
-        runner = modules.retrieve_class(config.run_config.run_class)(config)
+        if load_checkpoint:
+            main_logger.info("Loading model checkpoint {}".format(load_checkpoint))
+            runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config)
+        else:
+            runner = modules.retrieve_class(config.run_config.run_class)(config)
         data_module = PSDDataModule(config, runner.device)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
-        trainer.fit(runner, data_module)
+        trainer.fit(runner, datamodule=data_module)
 
 
 if __name__ == '__main__':

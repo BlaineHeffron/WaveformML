@@ -1,12 +1,14 @@
+import logging
+from math import floor, pow
 import torch.nn as nn
 from src.models.Algorithm import *
-from math import floor, pow
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
 
 
 class DilationBlock(Algorithm):
 
     def __call__(self, *args, **kwargs):
+        self.log.debug("dilation block called with args {}".format(args))
         super().__call__(*args, **kwargs)
 
     def __str__(self):
@@ -15,6 +17,8 @@ class DilationBlock(Algorithm):
     def __init__(self, nin, nout, n, length, size_factor=3, pad_factor=0, stride_factor=1, dil_factor=2.,
                  trainable_weights=False):
         self.out_length = length
+        self.log = logging.getLogger(__name__)
+        self.log.debug("output lenght is {}".format(self.out_length))
         self.alg = []
         if nin != nout:
             diff = float(nin - nout) / n
@@ -30,10 +34,12 @@ class DilationBlock(Algorithm):
                 st = 1
             dil = int(round(dil_factor ** i))
             pd = int(floor(pad_factor * (fs - 1) * dil_factor))
-            self.alg.append(nn.Conv1D(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
-            self.out_length = ModelValidation.calc_output_size_1d(self.out_length, )
+            self.alg.append(nn.Conv1d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+            arg_dict = {DIM: 2, NIN: nframes[i], NOUT: nframes[i + 1], FS: fs, STR: st, PAD: pd, DIL: dil}
+            self.out_length = ModelValidation.calc_output_size_1d(self.out_length, arg_dict)
+            self.log.debug("loop {0}, output length is {1}".format(i, self.out_length))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
-            self.alg.append(nn.ReLU)
+            self.alg.append(nn.ReLU())
 
         self.func = nn.Sequential(*self.alg)
 
@@ -41,14 +47,19 @@ class DilationBlock(Algorithm):
 class LinearBlock(Algorithm):
 
     def __call__(self, *args, **kwargs):
+        self.log.debug("linear block called with args {}".format(args))
         super().__call__(*args, **kwargs)
 
     def __str__(self):
         super().__str__()
 
     def __init__(self, nin, nout, n):
+        assert(n > 0)
+        assert(nin > 0)
         self.alg = []
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Creating Linear block\n    nin: {0}\n   nout:{1}\n  n:{2}".format(nin, nout, n))
         factor = pow(float(nout) / nin, 1. / n)
         for i in range(n):
-            self.alg.append(nn.Linear(nin * pow(factor, i), nin * pow(factor, i + 1)))
+            self.alg.append(nn.Linear(int(round(nin * pow(factor, i))), int(round(nin * pow(factor, i + 1)))))
         self.func = nn.Sequential(*self.alg)
