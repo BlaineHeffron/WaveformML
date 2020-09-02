@@ -10,69 +10,11 @@ import logging
 from src.utils import util
 import argparse
 from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args, \
-    retrieve_model_checkpoint, get_tb_logdir_version
+    retrieve_model_checkpoint, get_tb_logdir_version, check_config, setup_logger
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
 CONFIG_VALIDATION = "./config_requirements.json"
-
-
-def setup_logger(args):
-    log_level = logging.ERROR
-    if args.verbosity:
-        if args.verbosity == 1:
-            log_level = logging.CRITICAL
-        elif args.verbosity == 2:
-            log_level = logging.ERROR
-        elif args.verbosity == 3:
-            log_level = logging.WARNING
-        elif args.verbosity == 4:
-            log_level = logging.INFO
-        elif args.verbosity == 5:
-            log_level = logging.DEBUG
-
-    # set up logging to file - see previous section for more details
-    logargs = {}
-    if args.logfile:
-        logargs["filename"] = args.logfile
-    logging.basicConfig(level=log_level,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                        datefmt='%m-%d %H:%M',
-                        filemode='a', **logargs)
-    # define a Handler which writes INFO messages or higher to the sys.stderr
-    console = logging.StreamHandler()
-    console.setLevel(log_level)
-    # set a format which is simpler for console use
-    formatter = logging.Formatter('%(asctime)s %(name)-12s: %(levelname)-8s %(message)s')
-    # tell the handler to use this format
-    console.setFormatter(formatter)
-    # add the handler to the root logger
-    logger = logging.getLogger('WaveformML')
-    logger.addHandler(console)
-    logger.info("Logging verbosity set to {}".format(args.verbosity))
-
-    # create a file handler if specified in command args
-    if args.logfile:
-        fh = logging.FileHandler(args.logfile)
-        fh.setLevel(log_level)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-        logger.info("Logging to file {}".format(args.logfile))
-    return logger
-
-
-def check_config(config_file):
-    orig = config_file
-    if not config_file.endswith(".json"):
-        config_file = "{}.json".format(config_file)
-    if not os.path.isabs(config_file):
-        config_file = join(CONFIG_DIR, config_file)
-        if not os.path.exists(config_file):
-            config_file = join(os.getcwd(), config_file)
-            if not os.path.exists(config_file):
-                raise IOError("Could not find config file {0}. search in"
-                              " {1}".format(orig, config_file))
-    return config_file
 
 
 def main():
@@ -88,6 +30,7 @@ def main():
                         help="Set the path to the checkpoint you'd like to resume training on.")
     parser.add_argument("--restore_training", "-r", action="store_true",
                         help="Restores the training state in addition to model weights when loading a checkpoint. Does nothing if no checkpoints are loaded.")
+    parser.add_argument("--test", "-t", action="store_true", help="Run test on model after training.")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int, default=0)
@@ -111,12 +54,15 @@ def main():
     non_trainer_args = ["config", "load_checkpoint", "load_best", "name",
                         "restore_training", "verbosity",
                         "logfile", "config_validation", "optimize_config",
-                        "pruning", "validate"]
+                        "pruning", "validate", "test"]
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
+    run_test = False
+    if args.test:
+        run_test = True
     verbosity = args.verbosity
     config_file = args.config
-    config_file = check_config(config_file)
+    config_file = check_config(config_file, CONFIG_DIR)
     if args.config_validation:
         valid_file = args.config_validation
     else:
@@ -235,6 +181,7 @@ def main():
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = model_folder
         set_default_trainer_args(trainer_args, config)
+
         save_config(config, log_folder, config.run_config.exp_name, "config")
         # save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        config.run_config.exp_name, "train_args")
@@ -248,6 +195,8 @@ def main():
         data_module = PSDDataModule(config, runner.device)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         trainer.fit(runner, datamodule=data_module)
+        if run_test:
+            trainer.test()
 
 
 if __name__ == '__main__':

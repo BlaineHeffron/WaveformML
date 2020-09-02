@@ -5,7 +5,7 @@ import json
 import pickle
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
-from os.path import abspath, normpath
+from os.path import abspath, normpath, join
 from pathlib import Path
 import git
 import sys
@@ -13,7 +13,7 @@ import logging
 from os import listdir
 import re
 import collections
-
+import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -371,3 +371,70 @@ def flatten(d, parent_key='', sep='/'):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def check_config(config_file, config_dir):
+    orig = config_file
+    if not config_file.endswith(".json"):
+        config_file = "{}.json".format(config_file)
+    if not os.path.isabs(config_file):
+        config_file = join(config_dir, config_file)
+        if not os.path.exists(config_file):
+            config_file = join(os.getcwd(), config_file)
+            if not os.path.exists(config_file):
+                raise IOError("Could not find config file {0}. search in"
+                              " {1}".format(orig, config_file))
+    return config_file
+
+
+def setup_logger(args):
+    log_level = logging.ERROR
+    if args.verbosity:
+        if args.verbosity == 1:
+            log_level = logging.CRITICAL
+        elif args.verbosity == 2:
+            log_level = logging.ERROR
+        elif args.verbosity == 3:
+            log_level = logging.WARNING
+        elif args.verbosity == 4:
+            log_level = logging.INFO
+        elif args.verbosity == 5:
+            log_level = logging.DEBUG
+
+    # set up logging to file - see previous section for more details
+    logargs = {}
+    if args.logfile:
+        logargs["filename"] = args.logfile
+    logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filemode='a', **logargs)
+    # define a Handler which writes INFO messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(log_level)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(asctime)s %(name)-12s: %(levelname)-8s %(message)s')
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+    # add the handler to the root logger
+    logger = logging.getLogger('WaveformML')
+    logger.addHandler(console)
+    logger.info("Logging verbosity set to {}".format(args.verbosity))
+
+    # create a file handler if specified in command args
+    if args.logfile:
+        fh = logging.FileHandler(args.logfile)
+        fh.setLevel(log_level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+        logger.info("Logging to file {}".format(args.logfile))
+    return logger
+
+
+def get_config(c):
+    with open(c) as json_data_file:
+        config = json.load(json_data_file)
+    return DictionaryUtility.to_object(config)
+
+def extract_values(all_values, labels, criterion):
+    inds = np.asarray(labels == criterion).nonzero()
+    return all_values[inds]

@@ -71,10 +71,14 @@ class PSDDataModule(pl.LightningDataModule):
                         n_validate = self.config.dataset_config.n_validate
                     else:
                         n_validate = self.config.dataset_config.n_test
+                    if hasattr(self,"train_excludes"):
+                        par = {"file_excludes": self.train_excludes}
+                    else:
+                        par = {}
                     self.val_dataset = self.dataset_class(self.config, "validate",
                                                           n_validate,
                                                           self.device,
-                                                          file_excludes=self.train_excludes,
+                                                          **par,
                                                           **DictionaryUtility.to_dict(
                                                               self.config.dataset_config.dataset_params))
                     self.log.info("Validation dataset generated.")
@@ -85,10 +89,15 @@ class PSDDataModule(pl.LightningDataModule):
                                                                            self.device)
                     self.log.info("Using test dataset from {}.".format(self.config.dataset_config.test_config))
                 else:
+                    if hasattr(self,"train_excludes"):
+                        par = {"file_excludes": self.train_excludes + self.val_dataset.get_file_list()}
+                    else:
+                        par = {"file_excludes": self.val_dataset.get_file_list()}
+
                     self.test_dataset = self.dataset_class(self.config, "test",
                                                            self.config.dataset_config.n_test,
                                                            self.device,
-                                                           file_excludes=self.train_excludes + self.val_dataset.get_file_list(),
+                                                           **par,
                                                            **DictionaryUtility.to_dict(
                                                                self.config.dataset_config.dataset_params))
                     self.log.info("Test dataset generated.")

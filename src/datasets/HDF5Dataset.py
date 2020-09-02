@@ -1,12 +1,11 @@
 from re import compile
 
 from src.utils.HDF5Utils import H5FileHandler
-import h5py
 from pathlib import Path
 from os.path import getmtime, normpath
 import torch
 from torch.utils import data
-from numpy import where, full
+from numpy import where
 from os.path import dirname, abspath
 from src.utils.util import read_object_from_file, save_object_to_file, json_load
 import logging

@@ -1,7 +1,9 @@
+import torch
 from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
-from torch import argmax, float32, int64, sum
+from torch import argmax, sum
+from src.evaluation.PSDEvaluator import PSDEvaluator
 import logging
 
 N_CHANNELS = 14
@@ -35,6 +37,7 @@ class LitPSD(pl.LightningModule):
         self.softmax = LogSoftmax(dim=1)
         self.accuracy = Accuracy(num_classes=self.n_type)
         self.confusion = ConfusionMatrix()
+        self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -107,12 +110,33 @@ class LitPSD(pl.LightningModule):
         result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
         acc = self.accuracy(pred, target)
         results_dict = {'val_loss': loss, 'val_acc': acc}
-        result.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        result.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
         if self.log.level <= logging.INFO:
             if not hasattr(self, "confusion_matrix"):
                 self.confusion_matrix = self.confusion(pred, target)
             else:
                 self.confusion_matrix += self.confusion(pred, target)
 
+        return result
+
+    def test_step(self, batch, batch_idx):
+        (c, f), target = batch
+        predictions = self.model([c, f])
+        loss = self.criterion.forward(predictions, target)
+        pred = argmax(self.softmax(predictions), dim=1)
+        #if batch_idx == 0:
+        #    self.logger.experiment.add_graph(self.model, [c, f])
+        acc = self.accuracy(pred, target)
+        result = pl.EvalResult()
+
+        results_dict = {'test_loss': loss, 'test_acc': acc}
+        if not hasattr(self, "test_confusion_matrix"):
+            self.test_confusion_matrix = self.confusion(pred, target)
+        else:
+            self.test_confusion_matrix += self.confusion(pred, target)
+        if not self.evaluator.logger:
+            self.evaluator.logger = self.logger
+        self.evaluator.add(batch, predictions, pred)
+        result.log_dict(results_dict, on_epoch=True, logger=True)
         return result
 

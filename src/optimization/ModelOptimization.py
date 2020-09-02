@@ -70,12 +70,12 @@ class ModelOptimization:
         self.log = logging.getLogger(__name__)
         base_dir = os.path.join(model_dir, "studies")
         if not os.path.exists(base_dir):
-            os.mkdir(base_dir)
+            os.makedirs(base_dir, exist_ok=True)
         self.study_dir = os.path.join(model_dir, "studies/{}".format(config.run_config.exp_name))
         self.study_name = self.config.run_config.exp_name if not hasattr(optuna_config, "name") else self.optuna_config.name
         self.trainer_args = trainer_args
         if not os.path.exists(self.study_dir):
-            os.mkdir(self.study_dir)
+            os.makedirs(self.study_dir, exist_ok=True)
         self.connstr = "sqlite:///" + os.path.join(self.study_dir, "study.db")
         write_run_info(self.study_dir)
         self.hyperparameters_bounds = DictionaryUtility.to_dict(self.optuna_config.hyperparameters)
@@ -141,7 +141,7 @@ class ModelOptimization:
         trainer_args = self.trainer_args
         trainer_args["checkpoint_callback"] = \
             ModelCheckpoint(
-                os.path.join(self.study_dir, "trial_{}".format(trial.number), "{epoch}"),
+                os.path.join(log_folder, "{epoch}"),
                 monitor="val_checkpoint_on")
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = self.study_dir
@@ -162,7 +162,7 @@ class ModelOptimization:
         data_module = PSDDataModule(self.config, model.device)
         trainer.fit(model, datamodule=data_module)
         if metrics_callback.metrics:
-            return metrics_callback.metrics[-1]["val_checkpoint_on"].item()
+            return metrics_callback.metrics[-1]["val_checkpoint_on"].detach().item()
         else:
             return 0
 

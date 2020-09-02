@@ -1,6 +1,5 @@
-from main import check_config
 from src.datasets.PulseDataset import *
-from src.utils.util import unique_path_combine, DictionaryUtility
+from src.utils.util import unique_path_combine, DictionaryUtility, check_config
 from os.path import isdir, join, abspath, normpath, expanduser
 import argparse
 
@@ -16,6 +15,7 @@ DEFAULT_CONFIG = {
     }
 }
 
+CONFIG_DIR = "./config"
 
 def main():
     parser = argparse.ArgumentParser(description='Shuffle data from directories.')
@@ -50,7 +50,7 @@ def main():
     config = DEFAULT_CONFIG
     if args.config:
         config = args.config
-        config = check_config(config)
+        config = check_config(config, CONFIG_DIR)
         with open(config) as json_data_file:
             config = json.load(json_data_file)
     config = DictionaryUtility.to_object(config)
