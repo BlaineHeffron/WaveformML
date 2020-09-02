@@ -146,7 +146,6 @@ class ModelOptimization:
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = self.study_dir
         set_default_trainer_args(trainer_args, self.config)
-        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
         if trainer_args["profiler"]:
             profiler = SimpleProfiler(output_filename=os.path.join(log_folder, "profile_results.txt"))
             trainer_args["profiler"] = profiler
@@ -156,6 +155,7 @@ class ModelOptimization:
         metrics_callback = MetricsCallback()
         cbs = [metrics_callback]
         cbs.append(LoggingCallback())
+        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config)

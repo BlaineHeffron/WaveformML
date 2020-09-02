@@ -125,7 +125,7 @@ def main():
             del trainer_args[non_trainer_arg]
         if opt_config:
             logging.info('Running optimization routine using optuna config file: %s' % str(opt_config))
-            opt_config = check_config(opt_config)
+            opt_config = check_config(opt_config, CONFIG_DIR)
             with open(opt_config) as f:
                 opt_config = json.load(f)
                 opt_config = util.DictionaryUtility.to_object(opt_config)

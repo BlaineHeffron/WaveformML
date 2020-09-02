@@ -22,7 +22,6 @@ def main():
     cp = p.glob('*.tfevents.*')
     logger = None
     if cp:
-        print(cp)
         for ckpt in cp:
             print("Using existing log file {}".format(ckpt))
             vnum = get_tb_logdir_version(str(ckpt))
