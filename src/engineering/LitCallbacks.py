@@ -37,6 +37,9 @@ class LoggingCallback(Callback):
         #    pl_module.logger.experiment.add_hparams(flatten(pl_module.hparams["net_config"]["hparams"]), {"epoch_val_acc": 1., "epoch_val_loss": 1.})
 
     def on_test_epoch_end(self, trainer, pl_module):
+        pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals", plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy(),
+                                                                                                    pl_module.config.system_config.type_names,
+                                                                                                    normalize=False))
         pl_module.logger.experiment.add_figure("evaluation/confusion_matrix", plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy(),
                                                              pl_module.config.system_config.type_names,
                                                              normalize=True))
