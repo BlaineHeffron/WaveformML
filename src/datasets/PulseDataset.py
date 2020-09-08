@@ -6,6 +6,7 @@ from src.utils.util import config_equals, unique_path_combine
 
 import logging
 from numpy import asarray, concatenate, empty, array, int8
+import h5py
 
 from src.datasets.HDF5Dataset import *
 from src.utils.util import DictionaryUtility, save_object_to_file, read_object_from_file
