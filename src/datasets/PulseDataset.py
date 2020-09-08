@@ -533,7 +533,7 @@ class PulseDatasetPMT(PulseDataset):
         """
 
         super().__init__(config, dataset_type, n_per_dir, device,
-                         "*PMTCoordSim.h5", "DetPulse",
+                         "*PMTCoordSim.h5", "DetPulseCoord",
                          "coord", "pulse",
                          batch_index=2,
                          file_excludes=file_excludes,
