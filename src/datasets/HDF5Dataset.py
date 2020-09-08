@@ -89,11 +89,13 @@ class HDF5Dataset(data.Dataset):
                  load_data=False,
                  file_excludes=None,
                  label_name=None,
-                 data_cache_size=1):
+                 data_cache_size=1,
+                 normalize=False):
         super().__init__()
         self.info = {}
         self.log = logging.getLogger(__name__)
         self.num_dirs = len(file_paths)
+        self.normalize = normalize
         self.data_cache = {}
         self.data_cache_map = {}
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
@@ -221,7 +223,8 @@ class HDF5Dataset(data.Dataset):
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
-        vals /= MAX_RANGE
+        if self.normalize:
+            vals /= MAX_RANGE
         return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,

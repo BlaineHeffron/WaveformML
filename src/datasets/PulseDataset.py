@@ -4,12 +4,11 @@ from copy import copy
 from torch.utils.data import get_worker_info
 from src.utils.util import config_equals, unique_path_combine
 
-import logging
 from numpy import asarray, concatenate, empty, array, int8
 import h5py
 
 from src.datasets.HDF5Dataset import *
-from src.utils.util import DictionaryUtility, save_object_to_file, read_object_from_file
+from src.utils.util import DictionaryUtility, save_object_to_file
 
 """
 mydl = DataLoader(dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, num_workers=0,
@@ -75,7 +74,7 @@ class PulseDataset(HDF5Dataset):
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3,
-                 batch_index=2, model_dir=None, data_dir=None, dataset_dir=None):
+                 batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True):
         """
         Args:
             config: configuration file object
@@ -103,7 +102,8 @@ class PulseDataset(HDF5Dataset):
                          device,
                          file_excludes=file_excludes,
                          label_name=label_name,
-                         data_cache_size=data_cache_size)
+                         data_cache_size=data_cache_size,
+                         normalize=normalize)
 
         if not model_dir:
             model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
@@ -453,7 +453,6 @@ class PulseDataset2D(PulseDataset):
             file_excludes: list of file paths to exclude from dataset
             label_name: name of the table
             data_cache_size: number of file to hold in memory
-            use_pinned: whether to use pinned memory (for GPU loading)
         """
         super().__init__(config, dataset_type,
                          n_per_dir, device,
@@ -492,7 +491,6 @@ class PulseDataset3D(PulseDataset):
             file_excludes: list of file paths to exclude from dataset
             label_name: name of the table
             data_cache_size: number of file to hold in memory
-            use_pinned: whether to use pinned memory (for GPU loading)
         """
 
         super().__init__(config, dataset_type, n_per_dir, device,
@@ -532,19 +530,19 @@ class PulseDatasetPMT(PulseDataset):
             file_excludes: list of file paths to exclude from dataset
             label_name: name of the table
             data_cache_size: number of file to hold in memory
-            use_pinned: whether to use pinned memory (for GPU loading)
         """
 
         super().__init__(config, dataset_type, n_per_dir, device,
-                         "*PMTSim.h5", "DetPulse",
+                         "*PMTCoordSim.h5", "DetPulse",
                          "coord", "pulse",
-                         batch_index=3,
+                         batch_index=2,
                          file_excludes=file_excludes,
                          label_name=label_name,
                          data_cache_size=data_cache_size,
                          model_dir=model_dir,
                          data_dir=data_dir,
-                         dataset_dir=dataset_dir)
+                         dataset_dir=dataset_dir,
+                         normalize=False)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
