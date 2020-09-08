@@ -3,7 +3,7 @@ from src.utils.util import unique_path_combine, DictionaryUtility, check_config
 from os.path import isdir, join, abspath, normpath, expanduser
 import argparse
 
-TYPES = ['2d', '3d']
+TYPES = ['2d', '3d', 'pmt']
 DEFAULT_CONFIG = {
     "dataset_config": {
         "data_prep": "shuffle",
@@ -25,7 +25,7 @@ def main():
                         help='directory to place shuffled files. If not specified, defaults to ./data/<combined '
                              'directory name>')
     parser.add_argument('--type', '-t', type=str,
-                        help='Type of file. Either 3d or 2d. Defaults to 2d')
+                        help='Type of file. Either 3d, 2d, or pmt. Defaults to 2d')
     parser.add_argument('--config', '-c', type=str,
                         help='Pass config file to override chunk_size and shuffled_filesize.')
     args = parser.parse_args()
@@ -66,6 +66,9 @@ def main():
                            dataset_dir=outdir)
     elif type == '3d':
         d = PulseDataset2D(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
+                           dataset_dir=outdir)
+    elif type == 'pmt':
+        d = PulseDatasetPMT(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
                            dataset_dir=outdir)
     else:
         raise IOError("Unknown dataset type {}".format(type))
