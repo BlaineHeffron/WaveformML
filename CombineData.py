@@ -48,6 +48,8 @@ def main():
     else:
         outdir = normpath(abspath(expanduser(outdir)))
     config = DEFAULT_CONFIG
+    if type == 'pmt':
+        config["dataset_config"]["shuffled_filesize"] = 16384*28
     if args.config:
         config = args.config
         config = check_config(config, CONFIG_DIR)
