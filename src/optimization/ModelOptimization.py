@@ -18,6 +18,7 @@ module_log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
+"""
 class PruningCallback(Callback):
     def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         print(trainer.callback_metrics)
@@ -27,6 +28,7 @@ class PruningCallback(Callback):
         pl_module.trial.report(val, batch_idx)
         if pl_module.trial.should_prune():
             raise optuna.TrialPruned()
+"""
 
 
 class MetricsCallback(Callback):
@@ -166,8 +168,7 @@ class ModelOptimization:
         metrics_callback = MetricsCallback()
         cbs = [metrics_callback]
         cbs.append(LoggingCallback())
-        cbs.append(PruningCallback())
-        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="epoch_val_loss")
+        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config, trial)
