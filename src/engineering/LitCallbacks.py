@@ -5,7 +5,6 @@ from pytorch_lightning.callbacks import LearningRateLogger
 from pytorch_lightning.callbacks.base import Callback
 from torch import zeros
 from src.utils.PlotUtils import plot_confusion_matrix
-from src.utils.util import flatten
 
 
 class PSDCallbacks:
@@ -31,7 +30,7 @@ class PSDCallbacks:
 class LoggingCallback(Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         if hasattr(pl_module, "confusion_matrix"):
-            pl_module.logger.experiment.add_figure("validation/confusion_matrix", plot_confusion_matrix(pl_module.confusion_matrix.detach().cpu().numpy().astype(int),
+            pl_module.logger.experiment.add_figure("validation/confusion_matrix", plot_confusion_matrix(pl_module.confusion_matrix.detach().cpu().numpy(),
                                                                                         pl_module.config.system_config.type_names,
                                                                                         normalize=True))
             pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
@@ -39,7 +38,7 @@ class LoggingCallback(Callback):
         #    pl_module.logger.experiment.add_hparams(flatten(pl_module.hparams["net_config"]["hparams"]), {"val_loss": trainer.callback_metrics["val_checkpoint_on"]})
 
     def on_test_epoch_end(self, trainer, pl_module):
-        pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals", plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy(),
+        pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals", plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy().astype(int),
                                                                                                     pl_module.config.system_config.type_names,
                                                                                                     normalize=False))
         pl_module.logger.experiment.add_figure("evaluation/confusion_matrix", plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy(),
