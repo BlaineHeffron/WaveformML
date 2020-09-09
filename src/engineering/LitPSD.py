@@ -1,5 +1,3 @@
-import optuna
-import torch
 from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
@@ -18,10 +16,12 @@ class LitPSD(pl.LightningModule):
 
     def __init__(self, config, trial=None):
         super(LitPSD, self).__init__()
+        """
         if trial:
             self.trial = trial
         else:
             self.trial = None
+        """
         self.log = logging.getLogger(__name__)
         logging.getLogger("lightning").setLevel(self.log.level)
         self.config = config
@@ -122,10 +122,12 @@ class LitPSD(pl.LightningModule):
             else:
                 self.confusion_matrix += self.confusion(pred, target)
 
+        """
         if self.trial:
             self.trial.report(loss.detach().item(), batch_idx)
             if self.trial.should_prune():
                 raise optuna.TrialPruned()
+        """
 
         return result
 
