@@ -19,7 +19,7 @@ INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
 class PruningCallback(Callback):
-    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx):
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         print(trainer.callback_metrics)
         val = trainer.callback_metrics["epoch_val_loss"].detach().item()
         if not pl_module.trial:
