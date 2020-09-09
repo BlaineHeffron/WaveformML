@@ -15,8 +15,10 @@ def weight_avg(t, n):
 
 class LitPSD(pl.LightningModule):
 
-    def __init__(self, config):
+    def __init__(self, config, trial=None):
         super(LitPSD, self).__init__()
+        if trial:
+            self.trial = trial
         self.log = logging.getLogger(__name__)
         logging.getLogger("lightning").setLevel(self.log.level)
         self.config = config
@@ -98,7 +100,7 @@ class LitPSD(pl.LightningModule):
         # self.log.debug("predictions shape is {}".format(predictions.shape))
         loss = self.criterion.forward(predictions, target)
         result = pl.TrainResult(loss)
-        result.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        result.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return result
 
     def validation_step(self, batch, batch_idx):
@@ -110,7 +112,7 @@ class LitPSD(pl.LightningModule):
         result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
         acc = self.accuracy(pred, target)
         results_dict = {'val_loss': loss, 'val_acc': acc}
-        result.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
+        result.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         if self.log.level <= logging.INFO:
             if not hasattr(self, "confusion_matrix"):
                 self.confusion_matrix = self.confusion(pred, target)

@@ -18,6 +18,17 @@ module_log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
+class PruningCallback(Callback):
+    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx):
+        print(trainer.callback_metrics)
+        val = trainer.callback_metrics["epoch_val_loss"].detach().item()
+        if not pl_module.trial:
+            raise Exception("No Trial found in lightning module {}".format(pl_module))
+        pl_module.trial.report(val, batch_idx)
+        if pl_module.trial.should_prune():
+            raise optuna.TrialPruned()
+
+
 class MetricsCallback(Callback):
     """PyTorch Lightning metric callback."""
 
@@ -155,10 +166,11 @@ class ModelOptimization:
         metrics_callback = MetricsCallback()
         cbs = [metrics_callback]
         cbs.append(LoggingCallback())
-        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
+        cbs.append(PruningCallback())
+        trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="epoch_val_loss")
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
-        model = modules.retrieve_class(self.config.run_config.run_class)(self.config)
+        model = modules.retrieve_class(self.config.run_config.run_class)(self.config, trial)
         data_module = PSDDataModule(self.config, model.device)
         trainer.fit(model, datamodule=data_module)
         if metrics_callback.metrics:
