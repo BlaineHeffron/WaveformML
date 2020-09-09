@@ -7,6 +7,9 @@ from numpy import zeros
 
 from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecall
 
+def safe_divide(a,b):
+    return np.divide(a, b, out=np.zeros_like(a), where=b != 0)
+
 
 class PSDEvaluator:
 
@@ -98,19 +101,19 @@ class PSDEvaluator:
         self.logger.experiment.add_figure("evaluation/energy_psd_accuracy",
                                           plot_countour(self.calc_axis(self.emin, self.emax, self.n_bins),
                                                         self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
-                                                        self.results["ene_psd_acc"][0][1:self.n_bins + 1,
-                                                        1:self.n_bins + 1] / self.results["ene_psd_acc"][1][
-                                                                             1:self.n_bins + 1, 1:self.n_bins + 1],
+                                                        safe_divide(self.results["ene_psd_acc"][0][1:self.n_bins + 1,1:self.n_bins + 1],
+                                                                  self.results["ene_psd_acc"][1][1:self.n_bins + 1, 1:self.n_bins + 1]),
                                                         "energy [arb]", "psd", "accuracy"))
         self.logger.experiment.add_figure("evaluation/position_accuracy",
                                           plot_countour(np.arange(1, self.nx + 1, 1), np.arange(1, self.ny + 1, 1),
-                                                        self.results["pos_acc"][0][1:self.nx + 1, 1:self.ny + 1] /
-                                                        self.results["pos_acc"][1][1:self.nx + 1, 1:self.ny + 1],
+                                                        safe_divide(self.results["pos_acc"][0][1:self.nx + 1, 1:self.ny + 1],
+                                                        self.results["pos_acc"][1][1:self.nx + 1, 1:self.ny + 1]),
                                                         "x", "y", "accuracy"))
         self.logger.experiment.add_figure("evaluation/multiplicity_accuracy",
                                           plot_bar(np.arange(1, self.n_mult + 1),
-                                                   self.results["mult_acc"][0][1:self.n_mult + 1] /
-                                                   self.results["mult_acc"][1][1:self.n_mult + 1], "multiplicity",
+                                                   safe_divide(self.results["mult_acc"][0][1:self.n_mult + 1],
+                                                   self.results["mult_acc"][1][1:self.n_mult + 1]),
+                                                   "multiplicity",
                                                    "accuracy"))
         self._init_results()
 
