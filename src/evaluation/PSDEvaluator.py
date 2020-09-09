@@ -54,9 +54,11 @@ class PSDEvaluator:
         energy = np.sum(summed_pulses, axis=1)
         # print("first 10 energy: {}".format(energy[0:10]))
         self.logger.experiment.add_histogram("evaluation/energy", energy, max_bins=self.n_bins)
+        missing_classes = False
         for i in range(self.n_classes):
             vals = extract_values(energy, labels, i)
             if vals.size == 0:
+                missing_classes = True
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
             self.logger.experiment.add_histogram("evaluation/energy_{}".format(self.class_names[i]),
@@ -68,10 +70,11 @@ class PSDEvaluator:
                                                  bins=np.arange(0.5, self.n_mult + 0.5, 1))
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i],
                                                  max_bins=self.n_bins)
-        this_roc = self.roc(output, labels)
-        this_prc = self.pr(output, labels)
-        self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
-        self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
+        if not missing_classes:
+            this_roc = self.roc(output, labels)
+            this_prc = self.pr(output, labels)
+            self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
+            self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
 
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
 
