@@ -8,7 +8,7 @@ from src.engineering.LitPSD import LitPSD, PSDDataModule
 import argparse
 from os.path import dirname
 
-from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version
+from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version, set_default_trainer_args
 
 
 def main():
@@ -34,6 +34,7 @@ def main():
     runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config)
     trainer_args = {"logger": logger}
     trainer_args["callbacks"] = [LoggingCallback()]
+    set_default_trainer_args(trainer_args, config)
     model = LitPSD.load_from_checkpoint(args.checkpoint, config)
     #model.set_logger(logger)
     data_module = PSDDataModule(config, runner.device)
