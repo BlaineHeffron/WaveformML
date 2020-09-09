@@ -438,7 +438,7 @@ def get_config(c):
 
 def extract_values(all_values, labels, criterion):
     inds = np.asarray(labels == criterion).nonzero()
-    if inds.size > 0:
+    if inds[0].size > 0:
         return all_values[inds]
     else:
         return np.array([])
