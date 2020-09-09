@@ -10,7 +10,6 @@ from pathlib import Path
 import git
 import sys
 import logging
-from os import listdir
 import re
 import collections
 import numpy as np
