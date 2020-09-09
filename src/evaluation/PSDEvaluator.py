@@ -56,7 +56,7 @@ class PSDEvaluator:
         self.logger.experiment.add_histogram("evaluation/energy", energy, max_bins=self.n_bins)
         for i in range(self.n_classes):
             vals = extract_values(energy, labels, i)
-            if not vals:
+            if vals.size == 0:
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
             self.logger.experiment.add_histogram("evaluation/energy_{}".format(self.class_names[i]),

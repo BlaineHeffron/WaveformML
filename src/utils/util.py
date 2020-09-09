@@ -435,6 +435,10 @@ def get_config(c):
         config = json.load(json_data_file)
     return DictionaryUtility.to_object(config)
 
+
 def extract_values(all_values, labels, criterion):
     inds = np.asarray(labels == criterion).nonzero()
-    return all_values[inds]
+    if inds.size > 0:
+        return all_values[inds]
+    else:
+        return np.array([])
