@@ -38,10 +38,7 @@ class PSDEvaluator:
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
-        if 'cpu' in str(self.device):
-            c, f, labels, predictions, output = c.detach().numpy(), f.detach().numpy(), labels.detach().numpy(), predictions.detach().numpy(), output.detach().numpy()
-        else:
-            c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), output.detach().cpu().numpy()
+        c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), output.detach().cpu().numpy()
         # print("first several coords: {}".format(c[0:100]))
         # print("first several pulses: {}".format(f[0:100]))
         avg_coo, summed_pulses, multiplicity, psd = average_pulse(c, f,
