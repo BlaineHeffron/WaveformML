@@ -55,8 +55,12 @@ class PSDEvaluator:
         # print("first 10 energy: {}".format(energy[0:10]))
         self.logger.experiment.add_histogram("evaluation/energy", energy, max_bins=self.n_bins)
         for i in range(self.n_classes):
+            vals = extract_values(energy, labels, i)
+            if not vals:
+                print("warning, no data found for class {}".format(self.class_names[i]))
+                continue
             self.logger.experiment.add_histogram("evaluation/energy_{}".format(self.class_names[i]),
-                                                 extract_values(energy, labels, i))
+                                                 vals)
             self.logger.experiment.add_histogram("evaluation/psd_{}".format(self.class_names[i]),
                                                  extract_values(psd, labels, i))
             self.logger.experiment.add_histogram("evaluation/multiplicity_{}".format(self.class_names[i]),
