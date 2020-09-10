@@ -198,7 +198,7 @@ class HDF5Dataset(data.Dataset):
 
     def _concat_range(self, index, coords, vals, di):
         # this is only meant to be called in __getitem__ because it accesses file here
-        valtype = torch.float16 if self.half_precision else torch.float32
+        valtype = torch.int16 if self.half_precision else torch.float32
         second_ind = 0
         first_ind = 0
         if di['event_range'][1] + 1 < di['n_events']:
@@ -230,7 +230,7 @@ class HDF5Dataset(data.Dataset):
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
-        if self.normalize:
+        if self.normalize and not self.half_precision:
             vals *= MAX_RANGE_INV
         return coords, vals, y
 

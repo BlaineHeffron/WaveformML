@@ -16,12 +16,10 @@ class LitPSD(pl.LightningModule):
 
     def __init__(self, config, trial=None):
         super(LitPSD, self).__init__()
-        """
         if trial:
             self.trial = trial
         else:
             self.trial = None
-        """
         self.log = logging.getLogger(__name__)
         logging.getLogger("lightning").setLevel(self.log.level)
         self.config = config
