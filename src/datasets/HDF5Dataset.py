@@ -13,6 +13,7 @@ import logging
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
 N_CHANNELS = 14
 MAX_RANGE = 2**N_CHANNELS - 1
+MAX_RANGE_INV = 1./MAX_RANGE
 
 
 def _sort_pattern(name):
@@ -228,7 +229,7 @@ class HDF5Dataset(data.Dataset):
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
         if self.normalize and not self.half_precision:
-            vals /= MAX_RANGE
+            vals *= MAX_RANGE_INV
         return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
