@@ -57,7 +57,7 @@ class HDF5Dataset(data.Dataset):
     """
 
     @classmethod
-    def retrieve_config(cls, config_path, device):
+    def retrieve_config(cls, config_path, device, use_half=False):
         """
         @param config_path: path to dataset configuration json file
         @param device: device upon which to map tensors
@@ -76,6 +76,7 @@ class HDF5Dataset(data.Dataset):
                      "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"]}
         cls.group_mode = False
         cls.ordered_file_set = [fp["file_path"] for fp in cls.info["data_info"]]
+        cls.use_half = use_half
         return cls
 
     def __init__(self, file_paths,
@@ -90,7 +91,8 @@ class HDF5Dataset(data.Dataset):
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=1,
-                 normalize=False):
+                 normalize=False,
+                 use_half=False):
         super().__init__()
         self.info = {}
         self.log = logging.getLogger(__name__)
@@ -99,6 +101,7 @@ class HDF5Dataset(data.Dataset):
         self.data_cache = {}
         self.data_cache_map = {}
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
+        self.half_precision = use_half
         self.device = device
         self.file_paths = [normpath(abspath(f)) for f in file_paths]
         self.info["file_paths"] = self.file_paths
@@ -192,6 +195,7 @@ class HDF5Dataset(data.Dataset):
 
     def _concat_range(self, index, coords, vals, di):
         # this is only meant to be called in __getitem__ because it accesses file here
+        valtype = torch.float16 if self.half_precision else torch.float32
         second_ind = 0
         first_ind = 0
         if di['event_range'][1] + 1 < di['n_events']:
@@ -200,13 +204,13 @@ class HDF5Dataset(data.Dataset):
             first_ind = where(coords[:,2] == di['event_range'][0])[0][0]
         if second_ind > 0:
             coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
-            vals = torch.tensor(vals[first_ind:second_ind, :], dtype=torch.float32, device=self.device)
+            vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
         elif first_ind > 0:
             coords = torch.tensor(coords[first_ind:, :], dtype=torch.int32, device=self.device)
-            vals = torch.tensor(vals[first_ind:, :], dtype=torch.float32, device=self.device)
+            vals = torch.tensor(vals[first_ind:, :], dtype=valtype, device=self.device)
         else:
             coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
-            vals = torch.tensor(vals, dtype=torch.float32, device=self.device)
+            vals = torch.tensor(vals, dtype=valtype, device=self.device)
 
         if self.info['label_name'] is None:
              y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),

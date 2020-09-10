@@ -64,8 +64,8 @@ def _file_config_superset(data_info, fname):
 class PulseDataset(HDF5Dataset):
 
     @classmethod
-    def retrieve_config(cls, config_path, device):
-        return super().retrieve_config(config_path, device)
+    def retrieve_config(cls, config_path, device, use_half):
+        return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type,
                  n_per_dir, device,
@@ -74,7 +74,7 @@ class PulseDataset(HDF5Dataset):
                  file_excludes=None,
                  label_name=None,
                  data_cache_size=3,
-                 batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True):
+                 batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True, use_half=False):
         """
         Args:
             config: configuration file object
@@ -103,8 +103,10 @@ class PulseDataset(HDF5Dataset):
                          file_excludes=file_excludes,
                          label_name=label_name,
                          data_cache_size=data_cache_size,
-                         normalize=normalize)
+                         normalize=normalize,
+                         use_half=use_half)
 
+        self.use_half = use_half
         if not model_dir:
             model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
         if not data_dir:
@@ -426,7 +428,7 @@ class PulseDataset(HDF5Dataset):
                              self.info['events_per_dir'] * self.n_paths,
                              self.device,
                              label_name='labels',
-                             data_cache_size=self.info['data_cache_size'])
+                             data_cache_size=self.info['data_cache_size'], use_half=self.use_half)
             self.log.info("Writing shuffled dataset information to {}.".format(self.file_path))
             self.save_info_to_file()
 
@@ -436,8 +438,8 @@ class PulseDataset2D(PulseDataset):
     where N is the number of PMTs fired for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device):
-        return super().retrieve_config(config_path, device)
+    def retrieve_config(cls, config_path, device, use_half):
+        return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
@@ -445,7 +447,8 @@ class PulseDataset2D(PulseDataset):
                  data_cache_size=3,
                  model_dir=None,
                  data_dir=None,
-                 dataset_dir=None):
+                 dataset_dir=None,
+                 use_half=False):
         """
         Args:
             config: configuration file object
@@ -463,7 +466,8 @@ class PulseDataset2D(PulseDataset):
                          data_cache_size=data_cache_size,
                          model_dir=model_dir,
                          data_dir=data_dir,
-                         dataset_dir=dataset_dir)
+                         dataset_dir=dataset_dir,
+                         use_half=use_half)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
@@ -474,8 +478,8 @@ class PulseDataset3D(PulseDataset):
     where N is the number of cells active * active samples for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device):
-        return super().retrieve_config(config_path, device)
+    def retrieve_config(cls, config_path, device, use_half):
+        return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
@@ -483,7 +487,8 @@ class PulseDataset3D(PulseDataset):
                  data_cache_size=3,
                  model_dir=None,
                  data_dir=None,
-                 dataset_dir=None):
+                 dataset_dir=None,
+                 use_half = False):
         """
         Args:
             config: configuration file object
@@ -502,7 +507,8 @@ class PulseDataset3D(PulseDataset):
                          data_cache_size=data_cache_size,
                          model_dir=model_dir,
                          data_dir=data_dir,
-                         dataset_dir=dataset_dir)
+                         dataset_dir=dataset_dir,
+                         use_half = use_half)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
@@ -513,8 +519,8 @@ class PulseDatasetPMT(PulseDataset):
     where N is the number of cells active * active samples for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device):
-        return super().retrieve_config(config_path, device)
+    def retrieve_config(cls, config_path, device, use_half):
+        return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
@@ -522,7 +528,8 @@ class PulseDatasetPMT(PulseDataset):
                  data_cache_size=3,
                  model_dir=None,
                  data_dir=None,
-                 dataset_dir=None):
+                 dataset_dir=None,
+                 use_half=False):
         """
         Args:
             config: configuration file object
@@ -542,7 +549,8 @@ class PulseDatasetPMT(PulseDataset):
                          model_dir=model_dir,
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
-                         normalize=False)
+                         normalize=False,
+                         use_half = use_half)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)

@@ -21,6 +21,10 @@ class PSDDataModule(pl.LightningDataModule):
         self.log = logging.getLogger(__name__)
         self.config = config
         self.device = device
+        if hasattr(self.config.system_config,"half_precision"):
+            self.half_precision = self.config.system_config.half_precision
+        else:
+            self.half_precision = False
         self.ntype = len(self.config.dataset_config.paths)
         self.total_train = self.config.dataset_config.n_train * self.ntype
         self.modules = ModuleUtility(self.config.dataset_config.imports)
@@ -37,7 +41,7 @@ class PSDDataModule(pl.LightningDataModule):
             if not hasattr(self, "train_dataset"):
                 if hasattr(self.config.dataset_config, "train_config"):
                     self.train_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.train_config,
-                                                                            self.device)
+                                                                            self.device, self.half_precision)
                     self.log.info("Using train dataset from {}.".format(self.config.dataset_config.train_config))
                 else:
                     self.train_dataset = self.dataset_class(self.config, "train",
@@ -64,7 +68,7 @@ class PSDDataModule(pl.LightningDataModule):
             if not hasattr(self, "val_dataset"):
                 if hasattr(self.config.dataset_config, "val_config"):
                     self.val_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.val_config,
-                                                                          self.device)
+                                                                          self.device, self.half_precision)
                     self.log.info("Using validation dataset from {}.".format(self.config.dataset_config.val_config))
                 else:
                     if hasattr(self.config.dataset_config, "n_validate"):
@@ -86,7 +90,7 @@ class PSDDataModule(pl.LightningDataModule):
             if not hasattr(self, "test_dataset"):
                 if hasattr(self.config.dataset_config, "val_config"):
                     self.test_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.test_config,
-                                                                           self.device)
+                                                                           self.device, self.half_precision)
                     self.log.info("Using test dataset from {}.".format(self.config.dataset_config.test_config))
                 else:
                     if hasattr(self,"train_excludes"):
