@@ -149,12 +149,12 @@ def main():
         if args.restore_training and load_checkpoint:
             vnum = get_tb_logdir_version(load_checkpoint)
             if vnum:
-                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, version=vnum)
+                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, version=vnum, default_hp_metric=False)
                 main_logger.info("Utilizing existing log directory {}".format(logger.log_dir))
             else:
-                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
+                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, default_hp_metric=False)
         else:
-            logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name)
+            logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, default_hp_metric=False)
         log_folder = logger.log_dir
         if not os.path.exists(log_folder):
             os.makedirs(log_folder, exist_ok=True)

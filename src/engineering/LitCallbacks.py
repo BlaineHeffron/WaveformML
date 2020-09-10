@@ -28,6 +28,10 @@ class PSDCallbacks:
 
 
 class LoggingCallback(Callback):
+    def __init__(self):
+        super().__init__()
+        self.best_loss = 100
+
     def on_validation_epoch_end(self, trainer, pl_module):
         if hasattr(pl_module, "confusion_matrix"):
             pl_module.logger.experiment.add_figure("validation/confusion_matrix",
@@ -35,7 +39,10 @@ class LoggingCallback(Callback):
                                                                          pl_module.config.system_config.type_names,
                                                                          normalize=True))
             pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
-        pl_module.logger.log_hyperparams(pl_module.hparams, {"val_loss": trainer.callback_metrics["val_checkpoint_on"]})
+        loss = trainer.callback_metrics["val_checkpoint_on"].detach().item()
+        if self.best_loss > loss:
+            self.best_loss = loss
+            pl_module.logger.log_hyperparams(pl_module.hparams, {"hp_metric": loss})
 
     def on_test_epoch_end(self, trainer, pl_module):
         pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals",
