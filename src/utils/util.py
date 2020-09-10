@@ -417,6 +417,7 @@ def setup_logger(args):
     console.setFormatter(formatter)
     # add the handler to the root logger
     logger = logging.getLogger('WaveformML')
+    logger.setLevel(log_level)
     logger.addHandler(console)
     logger.info("Logging verbosity set to {}".format(args.verbosity))
 
