@@ -77,7 +77,7 @@ class HDF5Dataset(data.Dataset):
                      "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"]}
         cls.group_mode = False
         cls.ordered_file_set = [fp["file_path"] for fp in cls.info["data_info"]]
-        cls.use_half = use_half
+        cls.half_precision = use_half
         return cls
 
     def __init__(self, file_paths,
@@ -103,6 +103,8 @@ class HDF5Dataset(data.Dataset):
         self.data_cache_map = {}
         self.n_events = [0] * self.num_dirs  # each element indexed to the file_paths list
         self.half_precision = use_half
+        if self.half_precision:
+            self.log.debug("Using half precision")
         self.device = device
         self.file_paths = [normpath(abspath(f)) for f in file_paths]
         self.info["file_paths"] = self.file_paths
