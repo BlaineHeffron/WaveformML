@@ -230,7 +230,7 @@ class HDF5Dataset(data.Dataset):
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
-        if self.normalize and not self.half_precision:
+        if self.normalize:
             vals *= MAX_RANGE_INV
         return coords, vals, y
 
