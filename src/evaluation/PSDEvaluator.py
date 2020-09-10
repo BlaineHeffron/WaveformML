@@ -5,7 +5,7 @@ from src.utils.PlotUtils import plot_countour, plot_bar, plot_pr, plot_roc
 from src.utils.util import extract_values
 from numpy import zeros
 
-from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecall
+from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecallCurve
 
 def safe_divide(a,b):
     return np.divide(a, b, out=np.zeros_like(a), where=b != 0)
@@ -27,7 +27,7 @@ class PSDEvaluator:
         self.class_names = class_names
         self.n_classes = len(self.class_names)
         self.roc = MulticlassROC(num_classes=self.n_classes)
-        self.pr = MulticlassPrecisionRecall(num_classes=self.n_classes)
+        self.pr = MulticlassPrecisionRecallCurve(num_classes=self.n_classes)
         self._init_results()
 
     def _init_results(self):
