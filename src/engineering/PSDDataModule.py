@@ -23,6 +23,9 @@ class PSDDataModule(pl.LightningDataModule):
         self.device = device
         if hasattr(self.config.system_config,"half_precision"):
             self.half_precision = self.config.system_config.half_precision
+            self.log.debug("Half precision set to {}".format(self.half_precision))
+            if not hasattr(self.config.dataset_config.dataset_params, "use_half"):
+                setattr(self.config.dataset_config.dataset_params,"use_half",self.half_precision)
         else:
             self.half_precision = False
         self.ntype = len(self.config.dataset_config.paths)
