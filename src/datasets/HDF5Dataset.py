@@ -198,7 +198,7 @@ class HDF5Dataset(data.Dataset):
 
     def _concat_range(self, index, coords, vals, di):
         # this is only meant to be called in __getitem__ because it accesses file here
-        valtype = torch.half if self.half_precision else torch.float32
+        valtype = torch.int16 if self.half_precision else torch.float32
         second_ind = 0
         first_ind = 0
         if di['event_range'][1] + 1 < di['n_events']:
