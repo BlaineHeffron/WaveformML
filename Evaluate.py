@@ -6,7 +6,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from src.engineering.LitCallbacks import LoggingCallback
 from src.engineering.LitPSD import LitPSD, PSDDataModule
 import argparse
-from os.path import dirname
+from os.path import dirname, basename
 
 from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version, set_default_trainer_args
 
@@ -25,7 +25,7 @@ def main():
         for ckpt in cp:
             print("Using existing log file {}".format(ckpt))
             vnum = get_tb_logdir_version(str(ckpt))
-            logger = TensorBoardLogger(dirname(log_folder), name=config.run_config.exp_name, version=vnum)
+            logger = TensorBoardLogger(dirname(dirname(log_folder)), name=basename(dirname(log_folder)), version=vnum)
             break
     else:
         logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name)
