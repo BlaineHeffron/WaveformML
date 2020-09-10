@@ -17,10 +17,11 @@ class SparseConv2DBlock(Algorithm):
 
     def __init__(self, nin, nout, n, size, to_dense,
                  size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
-                 pointwise_factor=0, depth_factor=0, trainable_weights=False):
+                 pointwise_factor=0, depth_factor=0, dropout=0, trainable_weights=False):
         assert (n > 0)
         self.alg = []
         self.out_size = size
+        self.dropout = dropout
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing convolution block with nin {0}, nout {1}, size {2}".format(nin, nout, size))
         self.ndim = len(size) - 1
@@ -69,6 +70,8 @@ class SparseConv2DBlock(Algorithm):
                 self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
             self.alg.append(nn.ReLU())
+            if self.dropout:
+                self.alg.append(nn.Dropout(self.dropout))
             arg_dict = {DIM: self.ndim, NIN: nframes[i], NOUT: nframes[i + 1], FS: [fs] * 4, STR: [st] * 4,
                         PAD: [pd] * 4, DIL: [dil] * 4}
             self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
