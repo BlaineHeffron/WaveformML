@@ -398,7 +398,7 @@ def setup_logger(args):
             log_level = logging.WARNING
         elif args.verbosity == 4:
             log_level = logging.INFO
-        elif args.verbosity == 5:
+        elif args.verbosity >= 5:
             log_level = logging.DEBUG
 
     # set up logging to file - see previous section for more details
@@ -416,7 +416,7 @@ def setup_logger(args):
     # tell the handler to use this format
     console.setFormatter(formatter)
     # add the handler to the root logger
-    logger = logging.getLogger('WaveformML')
+    logger = logging.getLogger()
     logger.setLevel(log_level)
     logger.addHandler(console)
     logger.info("Logging verbosity set to {}".format(args.verbosity))
