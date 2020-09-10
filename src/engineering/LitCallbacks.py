@@ -35,8 +35,7 @@ class LoggingCallback(Callback):
                                                                          pl_module.config.system_config.type_names,
                                                                          normalize=True))
             pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
-        #if hasattr(pl_module.config.net_config, "hparams"):
-        #    pl_module.logger.experiment.add_hparams(flatten(pl_module.hparams["net_config"]["hparams"]), {"val_loss": trainer.callback_metrics["val_checkpoint_on"]})
+        pl_module.logger.log_hyperparams(pl_module.hparams, {"val_loss": trainer.callback_metrics["val_checkpoint_on"]})
 
     def on_test_epoch_end(self, trainer, pl_module):
         pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals",
