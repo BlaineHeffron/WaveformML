@@ -488,7 +488,7 @@ class PulseDataset3D(PulseDataset):
                  model_dir=None,
                  data_dir=None,
                  dataset_dir=None,
-                 use_half = False):
+                 use_half=False):
         """
         Args:
             config: configuration file object
@@ -508,7 +508,7 @@ class PulseDataset3D(PulseDataset):
                          model_dir=model_dir,
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
-                         use_half = use_half)
+                         use_half=use_half)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
@@ -538,6 +538,11 @@ class PulseDatasetPMT(PulseDataset):
             label_name: name of the table
             data_cache_size: number of file to hold in memory
         """
+        self.nbits = 14
+        self.max_val = 2 ** self.nbits - 1
+        self.normalization_factors = torch.tensor(
+            [1. / self.max_val, 1. / (self.max_val * 10), 0.001, 1.0, 1. / self.max_val, 1. / (self.max_val * 10),
+             0.001, 1.0], dtype=torch.float32)
 
         super().__init__(config, dataset_type, n_per_dir, device,
                          "*PMTCoordSim.h5", "DetPulseCoord",
@@ -550,7 +555,9 @@ class PulseDatasetPMT(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          normalize=False,
-                         use_half = use_half)
+                         use_half=use_half)
 
     def __getitem__(self, idx):
-        return super().__getitem__(idx)
+        (c, f), l = super().__getitem__(idx)
+        f = f * self.normalization_factors
+        return [c, f], l
