@@ -183,7 +183,7 @@ class ModelOptimization:
             return 0
 
     def run_study(self, pruning=False):
-        pruner = optuna.pruners.MedianPruner(n_warmup_steps=50,
+        pruner = optuna.pruners.MedianPruner(n_warmup_steps=10,
                                              interval_steps=3) if pruning else optuna.pruners.NopPruner()
         if hasattr(self.optuna_config, "pruner"):
             if hasattr(self.optuna_config, "pruner_params"):

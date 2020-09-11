@@ -143,7 +143,21 @@ Each trial's logs and model checkpoints are saved to the
     ./studies/<experiment name>/trial_<n> 
 folder.
 
+#### Optuna Configuration
+
 You can prune unpromising trials by adding the `-p` flag to the command.
+
+You can choose your pruner by setting the `pruner` value in your optuna config file to 
+one of the pruners listed here: https://optuna.readthedocs.io/en/stable/reference/pruners.html
+
+You can pass parameters to the pruner with the `pruner_params` config options.
+
+You can choose your sampler by setting the `sampler` value in your optuna config file to 
+one of the samplers listed here: https://optuna.readthedocs.io/en/stable/reference/samplers.html
+
+You can pass parameters to the pruner with the `pruner_params` config options.
+
+The default sampler is `TPESampler` and the default pruner is `MedianPruner`
 
 ## Viewing logs:
 
