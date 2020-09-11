@@ -11,8 +11,8 @@ from optuna.integration import PyTorchLightningPruningCallback
 
 from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
+from src.utils.util import ModuleUtility
 from src.utils.util import save_config, DictionaryUtility, set_default_trainer_args, write_run_info
-
 
 module_log = logging.getLogger(__name__)
 INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
@@ -22,7 +22,7 @@ class PruningCallback(Callback):
     def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
         if trainer.callback_metrics:
             val = trainer.callback_metrics["val_early_stop_on"].detach().item()
-            if not hasattr(pl_module,"trial"):
+            if not hasattr(pl_module, "trial"):
                 raise Exception("No Trial found in lightning module {}".format(pl_module))
             pl_module.trial.report(val, batch_idx)
             if pl_module.trial.should_prune():
@@ -83,7 +83,8 @@ class ModelOptimization:
         if not os.path.exists(base_dir):
             os.makedirs(base_dir, exist_ok=True)
         self.study_dir = os.path.join(model_dir, "studies/{}".format(config.run_config.exp_name))
-        self.study_name = self.config.run_config.exp_name if not hasattr(optuna_config, "name") else self.optuna_config.name
+        self.study_name = self.config.run_config.exp_name if not hasattr(optuna_config,
+                                                                         "name") else self.optuna_config.name
         self.trainer_args = trainer_args
         if not os.path.exists(self.study_dir):
             os.makedirs(self.study_dir, exist_ok=True)
@@ -91,6 +92,7 @@ class ModelOptimization:
         write_run_info(self.study_dir)
         self.hyperparameters_bounds = DictionaryUtility.to_dict(self.optuna_config.hyperparameters)
         self.log.debug("hyperparameters bounds set to {0}".format(self.hyperparameters_bounds))
+        self.modules = ModuleUtility(["optuna.pruners", "optuna.samplers"])
         self.parse_config()
 
     def parse_config(self):
@@ -167,7 +169,7 @@ class ModelOptimization:
         cbs = [metrics_callback]
         cbs.append(LoggingCallback())
         cbs.append(PruningCallback())
-        #trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
+        # trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
         trainer_args["early_stop_callback"] = EarlyStopping(min_delta=.00, verbose=True, mode="min", patience=4)
 
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
@@ -181,9 +183,24 @@ class ModelOptimization:
             return 0
 
     def run_study(self, pruning=False):
-        pruner = optuna.pruners.MedianPruner() if pruning else optuna.pruners.NopPruner()
+        pruner = optuna.pruners.MedianPruner(n_warmup_steps=50,
+                                             interval_steps=3) if pruning else optuna.pruners.NopPruner()
+        if hasattr(self.optuna_config, "pruner"):
+            if hasattr(self.optuna_config, "pruner_params"):
+                pruner = self.modules.retrieve_class("pruners." + self.optuna_config.pruner)(
+                    **DictionaryUtility.to_dict(self.optuna_config.pruner_params))
+            else:
+                pruner = self.modules.retrieve_class("pruners." + self.optuna_config.pruner)()
+        opt_dict = {}
+        if hasattr(self.optuna_config, "sampler"):
+            if hasattr(self.optuna_config, "sampler_params"):
+                opt_dict["sampler"] = self.modules.retrieve_class("samplers." + self.optuna_config.sampler)(
+                    **DictionaryUtility.to_dict(self.optuna_config.sampler_params))
+            else:
+                opt_dict["sampler"] = self.modules.retrieve_class("samplers." + self.optuna_config.sampler)()
+
         study = optuna.create_study(study_name=self.study_name, direction="minimize", pruner=pruner,
-                                    storage=self.connstr, load_if_exists=True)
+                                    storage=self.connstr, load_if_exists=True, **opt_dict)
         self.log.debug("optimize parameters: \n{}".format(DictionaryUtility.to_dict(self.optuna_config.optimize_args)))
         study.optimize(self.objective, **DictionaryUtility.to_dict(self.optuna_config.optimize_args),
                        show_progress_bar=True, gc_after_trial=True)
