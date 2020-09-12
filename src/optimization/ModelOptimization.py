@@ -25,7 +25,12 @@ class PruningCallback(Callback):
             if not hasattr(pl_module, "trial"):
                 raise Exception("No Trial found in lightning module {}".format(pl_module))
             pl_module.trial.report(val, batch_idx)
-            if pl_module.trial.should_prune():
+            prune = False
+            try:
+                prune = pl_module.trial.should_prune()
+            except Exception as e: 
+                print(e)
+            if prune: 
                 raise optuna.TrialPruned()
 
 
