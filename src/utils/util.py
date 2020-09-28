@@ -443,3 +443,16 @@ def extract_values(all_values, labels, criterion):
         return all_values[inds]
     else:
         return np.array([])
+
+
+def replace_file_pattern(fname, pattern, newpattern):
+    pattern1 = pattern.split("*")
+    pattern2 = newpattern.split("*")
+    newstr = fname
+    if len(pattern1) != len(pattern2):
+        raise ValueError("incompatible patterns: {0} and {1}".format(pattern1, pattern2))
+    for p1, p2 in zip(pattern1, pattern2):
+        if p1 == p2 == '':
+            continue
+        newstr = newstr.replace(p1, p2, 1)
+    return newstr

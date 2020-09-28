@@ -2,18 +2,19 @@ from re import compile
 
 from src.utils.HDF5Utils import H5FileHandler
 from pathlib import Path
-from os.path import getmtime, normpath
+from os.path import getmtime, normpath, basename, join
 import torch
 from torch.utils import data
 from numpy import where
 from os.path import dirname, abspath
-from src.utils.util import read_object_from_file, save_object_to_file, json_load
+from src.utils.util import read_object_from_file, save_object_to_file, json_load, replace_file_pattern
 import logging
+from os.path import exists
 
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
 N_CHANNELS = 14
-MAX_RANGE = 2**N_CHANNELS - 1
-MAX_RANGE_INV = 1./MAX_RANGE
+MAX_RANGE = 2 ** N_CHANNELS - 1
+MAX_RANGE_INV = 1. / MAX_RANGE
 
 
 def _sort_pattern(name):
@@ -54,6 +55,7 @@ class HDF5Dataset(data.Dataset):
             the data will load lazily.
         file_excludes: list of file to be excluded from dataset
         label_name: string indicating the name of the labels dataset if applicable
+        label_file_pattern: string indicating the file pattern used to obtain labels if they are in a separte file
         data_cache_size: Number of HDF5 files that can be cached in the cache (default=3).
     """
 
@@ -72,9 +74,10 @@ class HDF5Dataset(data.Dataset):
         cls.file_paths = conf["file_paths"]
         cls.num_dirs = len(cls.file_paths)
         cls.info = {"file_paths": conf["file_paths"], "data_info": conf["data_info"],
-                     "data_cache_size": conf["data_cache_size"], "data_name": conf["data_name"],
-                     "coord_name": conf["coord_name"], "feat_name": conf["feat_name"],
-                     "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"]}
+                    "data_cache_size": conf["data_cache_size"], "data_name": conf["data_name"],
+                    "coord_name": conf["coord_name"], "feat_name": conf["feat_name"],
+                    "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"],
+                    "label_file_pattern": conf["label_file_pattern"], "file_pattern": conf["file_pattern"]}
         cls.group_mode = False
         cls.ordered_file_set = [fp["file_path"] for fp in cls.info["data_info"]]
         cls.half_precision = use_half
@@ -91,6 +94,7 @@ class HDF5Dataset(data.Dataset):
                  load_data=False,
                  file_excludes=None,
                  label_name=None,
+                 label_file_pattern=None,
                  data_cache_size=1,
                  normalize=False,
                  use_half=False):
@@ -114,8 +118,10 @@ class HDF5Dataset(data.Dataset):
         self.info["coord_name"] = coordinate_name
         self.info["feat_name"] = feature_name
         self.info["label_name"] = label_name
+        self.info["label_file_pattern"] = label_file_pattern
+        self.info["file_pattern"] = file_pattern
         self.info["events_per_dir"] = events_per_dir
-        #self.log.debug("file excludes is {}".format(file_excludes))
+        # self.log.debug("file excludes is {}".format(file_excludes))
         self.group_mode = False
         self.ordered_file_set = []
         # Search for all h5 files
@@ -150,7 +156,7 @@ class HDF5Dataset(data.Dataset):
                     and _needs_more_data(tally, events_per_dir, all_files):
                 for i, file_set in enumerate(all_files):
                     while len(file_set) > 0 and tally[i] < events_per_dir:
-                        #self.log.debug("about to add {} to dataset".format(str(file_set[0].resolve())))
+                        # self.log.debug("about to add {} to dataset".format(str(file_set[0].resolve())))
                         ordered_file_set.append(file_set.pop(0))
                         tally[i] += self._get_event_num(ordered_file_set[-1])
                         if not tally[i] < max(tally):
@@ -185,9 +191,9 @@ class HDF5Dataset(data.Dataset):
         # self.log.debug("now coords size is {}".format(coords.size))
         # self.log.debug("now vals size is {}".format(vals.size))
         # self.log.debug("y size is {}".format(y.size))
-        #self.log.debug("shape of coords: {}".format(coords.shape))
-        #self.log.debug("shape of features: {} ".format(vals.shape))
-        #self.log.debug("shape of labels: {} ".format(y.shape))
+        # self.log.debug("shape of coords: {}".format(coords.shape))
+        # self.log.debug("shape of features: {} ".format(vals.shape))
+        # self.log.debug("shape of labels: {} ".format(y.shape))
         return [coords, vals], y
 
     def __len__(self):
@@ -195,6 +201,9 @@ class HDF5Dataset(data.Dataset):
             return len(self.get_data_infos(self.info['coord_name']))
         else:
             return len(self.get_data_infos(self.info['data_name']))
+
+    def _convert_label(self, data):
+
 
     def _concat_range(self, index, coords, vals, di):
         # this is only meant to be called in __getitem__ because it accesses file here
@@ -204,7 +213,7 @@ class HDF5Dataset(data.Dataset):
         if di['event_range'][1] + 1 < di['n_events']:
             second_ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
         if di['event_range'][0] > 0:
-            first_ind = where(coords[:,2] == di['event_range'][0])[0][0]
+            first_ind = where(coords[:, 2] == di['event_range'][0])[0][0]
         if second_ind > 0:
             coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
             vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
@@ -216,13 +225,13 @@ class HDF5Dataset(data.Dataset):
             vals = torch.tensor(vals, dtype=valtype, device=self.device)
 
         if self.info['label_name'] is None:
-             y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
+            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
                                       (di['event_range'][1] + 1 - di['event_range'][0],),
                                       di['dir_index'], dtype=torch.int64, device=self.device)
-            #y = full((di['event_range'][1] - di['event_range'][0] + 1,), fill_value=di['dir_index'], dtype=int8)
+        # y = full((di['event_range'][1] - di['event_range'][0] + 1,), fill_value=di['dir_index'], dtype=int8)
         else:
             if second_ind > 0:
-                y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:di['event_range'][1]+1]
+                y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:di['event_range'][1] + 1]
             elif first_ind > 0:
                 y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:]
             else:
@@ -230,6 +239,10 @@ class HDF5Dataset(data.Dataset):
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
+        if (self.info["label_file_pattern"]):
+            y[y > 1] = self.num_dirs #set neutron captures to the last class
+            y[y <= 1] = di["dir_index"] #set others to the directory index
+
         if self.normalize and not self.half_precision:
             vals *= MAX_RANGE_INV
         return coords, vals, y
@@ -263,6 +276,7 @@ class HDF5Dataset(data.Dataset):
         # return h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
+        n_file_events = 0
         with H5FileHandler(file_path, 'r') as h5_file:
             modified = getmtime(file_path)
             n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
@@ -283,6 +297,23 @@ class HDF5Dataset(data.Dataset):
                         self._add_data_block(ds, dname, file_path, load_data, n, dir_index, n_file_events, modified)
                 else:
                     self.group_mode = False
+                    self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
+        if self.info["label_file_pattern"]:
+            fdir = dirname(file_path)
+            fname = basename(file_path)
+            label_file = replace_file_pattern(fname, self.info["file_pattern"], self.info["label_file_pattern"])
+            label_file = join(fdir, label_file)
+            if not exists(label_file):
+                raise RuntimeError(
+                    "No corresponding label file found for file {0}, tried {1}".format(file_path, label_file))
+            with H5FileHandler(label_file, 'r') as h5_file:
+                modified = getmtime(file_path)
+                n = n_file_events
+                if self.info['events_per_dir'] - self.n_events[dir_index] < n:
+                    n = self.info['events_per_dir'] - self.n_events[dir_index]
+
+                # Walk through all groups, extracting datasets
+                for gname, group in h5_file.items():
                     self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
 
     def _get_dir_index(self, file_path):

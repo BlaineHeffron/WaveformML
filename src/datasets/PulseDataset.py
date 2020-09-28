@@ -73,6 +73,7 @@ class PulseDataset(HDF5Dataset):
                  coord_name, feat_name,
                  file_excludes=None,
                  label_name=None,
+                 label_file_pattern=None,
                  data_cache_size=3,
                  batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True, use_half=False):
         """
@@ -102,6 +103,7 @@ class PulseDataset(HDF5Dataset):
                          device,
                          file_excludes=file_excludes,
                          label_name=label_name,
+                         label_file_pattern=label_file_pattern,
                          data_cache_size=data_cache_size,
                          normalize=normalize,
                          use_half=use_half)
@@ -444,6 +446,7 @@ class PulseDataset2D(PulseDataset):
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
                  label_name=None,
+                 label_file_pattern=None,
                  data_cache_size=3,
                  model_dir=None,
                  data_dir=None,
@@ -463,6 +466,7 @@ class PulseDataset2D(PulseDataset):
                          "coord", "waveform",
                          file_excludes=file_excludes,
                          label_name=label_name,
+                         label_file_pattern=label_file_pattern,
                          data_cache_size=data_cache_size,
                          model_dir=model_dir,
                          data_dir=data_dir,
@@ -484,6 +488,7 @@ class PulseDataset3D(PulseDataset):
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
                  label_name=None,
+                 label_file_pattern=None,
                  data_cache_size=3,
                  model_dir=None,
                  data_dir=None,
@@ -504,6 +509,7 @@ class PulseDataset3D(PulseDataset):
                          batch_index=3,
                          file_excludes=file_excludes,
                          label_name=label_name,
+                         label_file_pattern=label_file_pattern,
                          data_cache_size=data_cache_size,
                          model_dir=model_dir,
                          data_dir=data_dir,
@@ -525,6 +531,7 @@ class PulseDatasetPMT(PulseDataset):
     def __init__(self, config, dataset_type, n_per_dir, device,
                  file_excludes=None,
                  label_name=None,
+                 label_file_pattern=None,
                  data_cache_size=3,
                  model_dir=None,
                  data_dir=None,
@@ -550,6 +557,7 @@ class PulseDatasetPMT(PulseDataset):
                          batch_index=2,
                          file_excludes=file_excludes,
                          label_name=label_name,
+                         label_file_pattern=label_file_pattern,
                          data_cache_size=data_cache_size,
                          model_dir=model_dir,
                          data_dir=data_dir,
@@ -561,3 +569,45 @@ class PulseDatasetPMT(PulseDataset):
         (c, f), l = super().__getitem__(idx)
         f = f * self.normalization_factors
         return [c, f], l
+
+
+class PulseDatasetDet(PulseDataset):
+    """Detector data in the form of size [N,7],
+    where N is the number of PMTs fired for the M = batch size events"""
+
+    @classmethod
+    def retrieve_config(cls, config_path, device, use_half):
+        return super().retrieve_config(config_path, device, use_half)
+
+    def __init__(self, config, dataset_type, n_per_dir, device,
+                 file_excludes=None,
+                 label_name=None,
+                 label_file_pattern=None,
+                 data_cache_size=3,
+                 model_dir=None,
+                 data_dir=None,
+                 dataset_dir=None,
+                 use_half=False):
+        """
+        Args:
+            config: configuration file object
+            n_per_dir: number of events to use per directory
+            file_excludes: list of file paths to exclude from dataset
+            label_name: name of the table
+            data_cache_size: number of file to hold in memory
+        """
+        super().__init__(config, dataset_type,
+                         n_per_dir, device,
+                         "*DetCoordSim.h5", "DetPulseCoord",
+                         "coord", "pulse",
+                         file_excludes=file_excludes,
+                         label_name=label_name,
+                         label_file_pattern=label_file_pattern,
+                         data_cache_size=data_cache_size,
+                         model_dir=model_dir,
+                         data_dir=data_dir,
+                         dataset_dir=dataset_dir,
+                         use_half=use_half)
+
+    def __getitem__(self, idx):
+        return super().__getitem__(idx)
