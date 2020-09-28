@@ -202,9 +202,6 @@ class HDF5Dataset(data.Dataset):
         else:
             return len(self.get_data_infos(self.info['data_name']))
 
-    def _convert_label(self, data):
-
-
     def _concat_range(self, index, coords, vals, di):
         # this is only meant to be called in __getitem__ because it accesses file here
         valtype = torch.int16 if self.half_precision else torch.float32
