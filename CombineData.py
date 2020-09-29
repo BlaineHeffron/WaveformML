@@ -8,7 +8,7 @@ DEFAULT_CONFIG = {
     "dataset_config": {
         "data_prep": "shuffle",
         "chunk_size": 1024,
-        "shuffled_filesize": 16384,
+        "shuffled_size": 16384,
         "dataset_params": {
             "data_cache_size": 1,
             "label_file_pattern": "*WaveformPairSimLabel.h5"
@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--type', '-t', type=str,
                         help='Type of file. Either 3d, 2d, det or pmt. Defaults to 2d')
     parser.add_argument('--config', '-c', type=str,
-                        help='Pass config file to override chunk_size and shuffled_filesize.')
+                        help='Pass config file to override chunk_size and shuffled_size.')
     args = parser.parse_args()
     type = '2d'
     args.dirs = [normpath(abspath(expanduser(p))) for p in args.dirs]
@@ -50,13 +50,13 @@ def main():
         outdir = normpath(abspath(expanduser(outdir)))
     config = DEFAULT_CONFIG
     if type == 'pmt':
-        config["dataset_config"]["shuffled_filesize"] = 16384*28
-        config['dataset_config']['label_file_pattern'] = "*PMTCoordSimLabel.h5"
+        config["dataset_config"]["shuffled_size"] = 16384*28
+        config['dataset_config']['dataset_params']['label_file_pattern'] = "*PMTCoordSimLabel.h5"
     elif type == '3d':
-        config['dataset_config']['label_file_pattern'] = "*Waveform3DPairSimLabel.h5"
+        config['dataset_config']['dataset_params']['label_file_pattern'] = "*Waveform3DPairSimLabel.h5"
     elif type == 'det':
-        config["dataset_config"]["shuffled_filesize"] = 16384*28
-        config['dataset_config']['label_file_pattern'] = "*DetCoordSimLabel.h5"
+        config["dataset_config"]["shuffled_size"] = 16384*28
+        config['dataset_config']['dataset_params']['label_file_pattern'] = "*DetCoordSimLabel.h5"
     if args.config:
         config = args.config
         config = check_config(config, CONFIG_DIR)
@@ -64,24 +64,24 @@ def main():
             config = json.load(json_data_file)
     config = DictionaryUtility.to_object(config)
     setattr(config.dataset_config, "data_prep", "shuffle")
-    if not hasattr(config.dataset_config, "shuffled_filesize"):
-        setattr(config.dataset_config, "shuffled_filesize", 16384)
+    if not hasattr(config.dataset_config, "shuffled_size"):
+        setattr(config.dataset_config, "shuffled_size", 16384)
     if not hasattr(config.dataset_config, "chunk_size"):
         setattr(config.dataset_config, "chunk_size", 1024)
     setattr(config.dataset_config, "base_path", "")
     setattr(config.dataset_config, "paths", args.dirs)
     if type == '2d':
         d = PulseDataset2D(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
-                           dataset_dir=outdir)
+                           dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
     elif type == '3d':
         d = PulseDataset2D(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
-                           dataset_dir=outdir)
+                           dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
     elif type == 'pmt':
         d = PulseDatasetPMT(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
-                           dataset_dir=outdir)
+                           dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
     elif type == 'det':
         d = PulseDatasetDet(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
-                            dataset_dir=outdir)
+                            dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
     else:
         raise IOError("Unknown dataset type {}".format(type))
     print("Writing combined files to {}".format(outdir))

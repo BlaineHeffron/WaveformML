@@ -2,7 +2,7 @@ import json
 import os
 from copy import copy
 from torch.utils.data import get_worker_info
-from src.utils.util import config_equals, unique_path_combine
+from src.utils.util import config_equals, unique_path_combine, replace_file_pattern
 
 from numpy import asarray, concatenate, empty, array, int8
 import h5py
@@ -109,6 +109,8 @@ class PulseDataset(HDF5Dataset):
                          use_half=use_half)
 
         self.use_half = use_half
+        self.label_file_pattern = label_file_pattern
+        self.n_categories = len(self.config.paths)
         if not model_dir:
             model_dir = os.path.join(config.system_config.model_base_path, config.system_config.model_name)
         if not data_dir:
@@ -172,9 +174,8 @@ class PulseDataset(HDF5Dataset):
         self.shuffle_queue = []
         self.log.debug("Generating shuffle map for paths {}".format(self.config.paths))
         ordered_paths_by_dir = {i: [] for i in range(len(self.config.paths))}
-        n_categories = len(self.config.paths)
-        n_per_category = int(self.shuffled_size / n_categories)
-        current_total = [0] * n_categories
+        n_per_category = int(self.shuffled_size / self.n_categories)
+        current_total = [0] * self.n_categories
         category_map = {os.path.normpath(os.path.join(self.config.base_path, p)): i for i, p in
                         enumerate(self.config.paths)}
         # self.log.debug("category map: {}".format(category_map))
@@ -232,10 +233,28 @@ class PulseDataset(HDF5Dataset):
                     inds = self._npwhere(coords[:, self.batch_index] >= file_info[1][0])
                 else:
                     inds = None
+        labels = None
+        if self.label_file_pattern:
+            fdir = dirname(file_info[0])
+            fname = basename(file_info[0])
+            label_file = replace_file_pattern(fname, self.info["file_pattern"], self.info["label_file_pattern"])
+            label_file = join(fdir, label_file)
+            if not exists(label_file):
+                raise RuntimeError(
+                    "No corresponding label file found for file {0}, tried {1}".format(file_info[0], label_file))
+            with H5FileHandler(label_file, 'r') as h5_file:
+                ds = h5_file["Label"]
+                labels = ds["label"]
         if inds:
-            return coords[inds], features[inds]
+            if labels is not None:
+                return coords[inds], features[inds], labels[file_info[1][0]:file_info[1][1]+1]
+            else:
+                return coords[inds], features[inds]
         else:
-            return coords, features
+            if labels is not None:
+                return coords, features, labels
+            else:
+                return coords, features
 
     def _select_chunk_size(self, shape):
         if self.chunk_size > shape[0]:
@@ -278,12 +297,22 @@ class PulseDataset(HDF5Dataset):
         if not data:
             return data
         inds = self._npwhere(data[0][:, self.batch_index] == idx + offset)
-        return data[0][inds], data[1][inds]
+        if len(inds[0]) == 0:
+            return None
+        if self.label_file_pattern:
+            if len(data[2]) <= idx:
+                print("should never happen")
+            return data[0][inds], data[1][inds], data[2][idx]
+        else:
+            return data[0][inds], data[1][inds]
 
     def _not_empty(self, chunk):
         if isinstance(chunk, int):
             return False
-        return len(chunk) > 0 and chunk[0].size
+        if chunk is not None:
+            return len(chunk) > 0 and chunk[0].size
+        else:
+            return False
 
     def _concat(self, d1, d2):
         if not len(d1):
@@ -336,6 +365,15 @@ class PulseDataset(HDF5Dataset):
         self.log.debug("Initializing a length {0} dataset for {1}".format(total_rows, data_info))
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
+    def _get_label(self, label, cat):
+        # 0,1 are electron recoil, nuclear recoil
+        # 2 is neutron capture on lithium, make that its own category
+        if label < 2:
+            return cat
+        else:
+            return self.n_categories
+
+
     def _write_shuffled(self, data_info, fname):
         if os.path.exists(fname[0:-3] + ".json"):
             if config_equals(fname[0:-3] + ".json", data_info):
@@ -349,15 +387,14 @@ class PulseDataset(HDF5Dataset):
         self.log.info("Working on shuffling the following data into file {0}: {1}".format(fname, data_info))
         labels = []
         out_df = self._init_shuffled_dataset(data_info)
-        n_categories = len(data_info.keys())
-        data_queue = [[]] * n_categories
-        data_queue_offsets = [0] * n_categories
-        last_id_grabbed = [-1] * n_categories
-        current_file_indices = [0] * n_categories
+        data_queue = [[]] * self.n_categories
+        data_queue_offsets = [0] * self.n_categories
+        last_id_grabbed = [-1] * self.n_categories
+        current_file_indices = [0] * self.n_categories
         current_row_index = 0
         columns = [self.info['coord_name'], self.info['feat_name']]
         event_counter = -1
-        ignore_cats = [False] * n_categories
+        ignore_cats = [False] * self.n_categories
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
             for cat in data_info.keys():
                 if not data_info[cat]:
@@ -396,7 +433,10 @@ class PulseDataset(HDF5Dataset):
                         out_df[1][current_row_index:current_row_index + tempdf[0].shape[0]] = \
                             tempdf[1]
                         current_row_index += tempdf[0].shape[0]
-                        labels.append(cat)
+                        if self.label_file_pattern:
+                            labels.append(self._get_label(tempdf[2], cat))
+                        else:
+                            labels.append(cat)
                     else:
                         data_queue[cat] = []
                         data_queue_offsets[cat] = 0

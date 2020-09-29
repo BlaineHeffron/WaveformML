@@ -236,9 +236,9 @@ class HDF5Dataset(data.Dataset):
             y = torch.tensor(y, device=self.device, dtype=torch.int64)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
-        if (self.info["label_file_pattern"]):
-            y[y > 1] = self.num_dirs #set neutron captures to the last class
-            y[y <= 1] = di["dir_index"] #set others to the directory index
+        #if (self.info["label_file_pattern"]):
+        #    y[y > 1] = self.num_dirs #set neutron captures to the last class
+        #    y[y <= 1] = di["dir_index"] #set others to the directory index
 
         if self.normalize and not self.half_precision:
             vals *= MAX_RANGE_INV
@@ -295,6 +295,7 @@ class HDF5Dataset(data.Dataset):
                 else:
                     self.group_mode = False
                     self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
+        """
         if self.info["label_file_pattern"]:
             fdir = dirname(file_path)
             fname = basename(file_path)
@@ -312,6 +313,7 @@ class HDF5Dataset(data.Dataset):
                 # Walk through all groups, extracting datasets
                 for gname, group in h5_file.items():
                     self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
+        """
 
     def _get_dir_index(self, file_path):
         return self.file_paths.index(file_path)
