@@ -50,12 +50,12 @@ def main():
         outdir = normpath(abspath(expanduser(outdir)))
     config = DEFAULT_CONFIG
     if type == 'pmt':
-        config["dataset_config"]["shuffled_size"] = 16384*28
+        config["dataset_config"]["shuffled_size"] = 16384*8
         config['dataset_config']['dataset_params']['label_file_pattern'] = "*PMTCoordSimLabel.h5"
     elif type == '3d':
         config['dataset_config']['dataset_params']['label_file_pattern'] = "*Waveform3DPairSimLabel.h5"
     elif type == 'det':
-        config["dataset_config"]["shuffled_size"] = 16384*28
+        config["dataset_config"]["shuffled_size"] = 16384*8
         config['dataset_config']['dataset_params']['label_file_pattern'] = "*DetCoordSimLabel.h5"
     if args.config:
         config = args.config
