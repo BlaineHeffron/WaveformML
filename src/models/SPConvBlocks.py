@@ -37,7 +37,7 @@ class SparseConv2DBlock(Algorithm):
                         else:
                             nframes += [nout]
             elif depth_factor > 0:
-                nframes = [nin, nin * depth_factor]
+                nframes = [nin, int(nin * depth_factor)]
                 if n > 1:
                     diff = float(nframes[-1] - nout) / (n - 1)
                     for i in range(n - 1):
