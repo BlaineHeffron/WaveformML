@@ -1,8 +1,10 @@
+import logging
+
 class Algorithm:
     def __init__(self, func):
         self.func, self.args, self.kwargs = func
         self.alg = []
-        self.log = logging.getLogger(__)
+        self.log = logging.getLogger(__name__)
 
     def __call__(self, *args, **kwargs):
         return self.func(*self.args, **kwargs)

@@ -1,17 +1,46 @@
 import itertools
 import numpy as np
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from collections import OrderedDict
+cmaps = OrderedDict()
 
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 
-def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+# color maps taken from https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html
+cmaps['Sequential'] = [
+            'viridis', 'plasma', 'inferno', 'magma', 'cividis']
+cmaps['Sequential2'] = [
+            'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+            'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+            'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn']
+cmaps['SequentialBanding'] = [
+            'binary', 'gist_yarg', 'gist_gray', 'gray', 'bone', 'pink',
+            'spring', 'summer', 'autumn', 'winter', 'cool', 'Wistia',
+            'hot', 'afmhot', 'gist_heat', 'copper']
+cmaps['Diverging'] = [
+            'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+            'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']
+cmaps['Cyclic'] = ['twilight', 'twilight_shifted', 'hsv']
+cmaps['Qualitative'] = ['Pastel1', 'Pastel2', 'Paired', 'Accent',
+                        'Dark2', 'Set1', 'Set2', 'Set3',
+                        'tab10', 'tab20', 'tab20b', 'tab20c']
+cmaps['Miscellaneous'] = [
+            'flag', 'prism', 'ocean', 'gist_earth', 'terrain', 'gist_stern',
+            'gnuplot', 'gnuplot2', 'CMRmap', 'cubehelix', 'brg',
+            'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar']
+
+
+def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Blues):
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     fig = plt.figure()
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
+    plt.imshow(cm, interpolation='nearest', cmap=plt.get_cmap(""))
+    if title != '':
+        plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
@@ -50,14 +79,15 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 def plot_roc(data, class_names):
     # Plot all ROC curves
-    lw = 2
+    lw = 4
     fig, ax = plt.subplots()
-    colors = ['navy', 'red', 'black', 'brown', 'purple', 'aqua', 'darkorange', 'cornflowerblue']
+    #colors = ['navy', 'red', 'brown', 'purple', 'aqua', 'darkorange', 'cornflowerblue']
     for i, classd in enumerate(data):
         plt.plot(classd[0], classd[1],
-                 label=class_names[i],
-                 color=colors[i % 8], linewidth=4)
-    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+                 label=class_names[i], cmap=plt.get_cmap('Qualitative'),
+                 #color=colors[i % 8],
+                 linewidth=lw)
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
     ax.set_xlim([0.0, 1.05])
     ax.set_ylim([0.0, 1.05])
     ax.set_xlabel('False Positive Rate')
@@ -67,14 +97,15 @@ def plot_roc(data, class_names):
 
 def plot_pr(data, class_names):
     # Plot all ROC curves
-    lw = 2
+    lw = 4
     fig, ax = plt.subplots()
-    colors = ['navy', 'red', 'black', 'brown', 'purple', 'aqua', 'darkorange', 'cornflowerblue']
+    #colors = ['navy', 'red', 'black', 'brown', 'purple', 'aqua', 'darkorange', 'cornflowerblue']
     for i, classd in enumerate(data):
         plt.plot(classd[1], classd[0],
-                 label=class_names[i],
-                 color=colors[i % 8], linewidth=4)
-    plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+                 label=class_names[i], cmap=plt.get_cmap('Qualitative'),
+                 #color=colors[i % 8],
+                 linewidth=lw)
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
     ax.set_xlim([0.0, 1.05])
     ax.set_ylim([0.0, 1.05])
     ax.set_xlabel('Recall')
