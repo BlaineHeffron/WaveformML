@@ -1,8 +1,6 @@
 import itertools
 import numpy as np
 import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib import cm
 from collections import OrderedDict
 cmaps = OrderedDict()
 
@@ -38,7 +36,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     fig = plt.figure()
-    plt.imshow(cm, interpolation='nearest', cmap=plt.get_cmap(""))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
     if title != '':
         plt.title(title)
     plt.colorbar()
@@ -81,11 +79,11 @@ def plot_roc(data, class_names):
     # Plot all ROC curves
     lw = 4
     fig, ax = plt.subplots()
-    #colors = ['navy', 'red', 'brown', 'purple', 'aqua', 'darkorange', 'cornflowerblue']
+    colors = ['tab:blue', 'tab:red', 'tab:brown', 'tab:purple', 'tab:orange', 'tab:green', 'tab:grey', 'tab:olive', 'tab:cyan', 'tab:pink']
     for i, classd in enumerate(data):
         plt.plot(classd[0], classd[1],
-                 label=class_names[i], cmap=plt.get_cmap('Qualitative'),
-                 #color=colors[i % 8],
+                 label=class_names[i],
+                 color=colors[i % 10],
                  linewidth=lw)
     plt.plot([0, 1], [0, 1], 'k--', lw=2)
     ax.set_xlim([0.0, 1.05])
@@ -99,11 +97,11 @@ def plot_pr(data, class_names):
     # Plot all ROC curves
     lw = 4
     fig, ax = plt.subplots()
-    #colors = ['navy', 'red', 'black', 'brown', 'purple', 'aqua', 'darkorange', 'cornflowerblue']
+    colors = ['tab:blue', 'tab:red', 'tab:brown', 'tab:purple', 'tab:orange', 'tab:green', 'tab:grey', 'tab:olive', 'tab:cyan', 'tab:pink']
     for i, classd in enumerate(data):
         plt.plot(classd[1], classd[0],
-                 label=class_names[i], cmap=plt.get_cmap('Qualitative'),
-                 #color=colors[i % 8],
+                 label=class_names[i],
+                 color=colors[i % 10],
                  linewidth=lw)
     plt.plot([0, 1], [0, 1], 'k--', lw=2)
     ax.set_xlim([0.0, 1.05])
