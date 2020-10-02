@@ -29,8 +29,8 @@ class TBHelper:
         else:
             best = 100000.
             for row in self.ea.Scalars('epoch_val_loss'):
-                if row['value'] < best:
-                    best = row['value']
+                if row.value < best:
+                    best = row.value
             return best
 
 

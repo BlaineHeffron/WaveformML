@@ -65,6 +65,6 @@ class OptunaDB(SQLiteBase):
         results = self.fetchall("select trial_id, study_id, value from trials WHERE value IS NOT NULL order by value asc limit 10")
         print("Top 10 trials: \n")
         for r in results:
-            print("{0}: {1}\n".format(r[0], r[2]))
+            print("{0}: {1}".format(r[0], r[2]))
         return results[0][0]-1
 

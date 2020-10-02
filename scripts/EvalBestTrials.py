@@ -69,7 +69,7 @@ def main():
         sqlfiles = p.glob("**/*.sql")
         for s in sqlfiles:
             optdb = OptunaDB(str(s.resolve()))
-            logdir = "trial_{}".format(optdb.get_best_trial())
+            logdir = join(dirname(str(s.resolve())), "trial_{}".format(optdb.get_best_trial()))
             optdb.close()
             opt_path = Path(logdir)
             logfiles = opt_path.glob("**/*events.out.tfevents.*")
