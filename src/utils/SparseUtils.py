@@ -1,6 +1,7 @@
 import numba as nb
 from math import ceil, floor
 from numba.typed import List
+from numpy import divide, zeros_like
 
 
 # TODO: implement this with pytorch + cython so it can stay on the gpu
@@ -12,6 +13,11 @@ def find_matches(pred, lab, out):
         else:
             out[i] = 0
     return out
+
+
+@nb.jit(nopython=True)
+def safe_divide(a,b):
+    return divide(a, b, out=zeros_like(a), where=b != 0)
 
 
 @nb.jit(nopython=True)
@@ -87,7 +93,7 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psd):
     for coord in coords:
         if coord[2] != last_id:
             if last_id > -1:
-                out_coords[current_ind] /= n_current
+                out_coords[current_ind] = safe_divide(out_coords[current_ind], n_current)
                 multiplicity[current_ind] = n_current
                 psd[current_ind] = calc_psd(out_pulses[current_ind], calc_arrival(out_pulses[current_ind]),
                                             psd_window_lo, psd_window_hi, psd_divider)
@@ -97,7 +103,7 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psd):
         n_current += 1
         out_coords[current_ind] += coord[0:2]
         out_pulses[current_ind] += pulses[current_ind]
-    out_coords[last_id] /= n_current
+    out_coords[last_id] = safe_divide(out_coords[last_id], n_current)
     multiplicity[current_ind] = n_current
     psd[current_ind] = calc_psd(out_pulses[current_ind], calc_arrival(out_pulses[current_ind]), psd_window_lo,
                                 psd_window_hi, psd_divider)
@@ -124,6 +130,8 @@ def calc_arrival(fdat):
 def calc_psd(fdat, arrival_samp, psd_window_lo, psd_window_hi, psd_divider):
     fast = integrate_lininterp_range(fdat, arrival_samp + psd_window_lo, arrival_samp + psd_divider)
     slow = integrate_lininterp_range(fdat, arrival_samp + psd_divider, arrival_samp + psd_window_hi)
+    if (slow + fast) == 0:
+        return 0
     return slow / (slow + fast)
 
 
