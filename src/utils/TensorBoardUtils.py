@@ -24,7 +24,7 @@ class TBHelper:
 
     def get_best_value(self,scalar_name):
         if scalar_name not in self.ea.Tags()['scalars']:
-            raise RuntimeError("No {0} foound in file {1}".format(scalar_name,f))
+            raise RuntimeError("No {0} foound in file {1}".format(scalar_name,self.f))
 
         else:
             best = 100000.
@@ -41,7 +41,7 @@ def run_evaluation(log_folder,config,ckpt):
     logger = TensorBoardLogger(dirname(dirname(log_folder)), name=basename(dirname(log_folder)), version=vnum)
     print("Creating new log file in directory {}".format(logger.log_dir))
     modules = ModuleUtility(config.run_config.imports)
-    runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config)
+    runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(ckpt, config)
     trainer_args = {"logger": logger}
     trainer_args["callbacks"] = [LoggingCallback()]
     set_default_trainer_args(trainer_args, config)
