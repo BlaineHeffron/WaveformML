@@ -2,10 +2,12 @@ import argparse
 from pathlib import Path
 from os.path import join, exists, basename, dirname
 import sys
+
 sys.path.insert(1, '..')
 from src.utils.SQLUtils import OptunaDB
 from src.utils.TensorBoardUtils import TBHelper, run_evaluation
 from src.utils.util import get_config, get_model_folder
+
 
 def get_best_logfile(logfiles):
     best = 1000.
@@ -18,6 +20,7 @@ def get_best_logfile(logfiles):
             best_file = str(f.resolve())
     return best_file
 
+
 def get_corresponding_config_ckpt(logfile):
     bn = basename(logfile)
     dn = dirname(logfile)
@@ -29,16 +32,18 @@ def get_corresponding_config_ckpt(logfile):
     else:
         raise RuntimeError("Couldnt find both a checkpoint file and a config file for {}".format(logfile))
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dir", "-d", help="directory or directories to recurse in and find logs to determine lowest epoch_loss to evaluate",
+    parser.add_argument("--dir", "-d",
+                        help="directory or directories to recurse in and find logs to determine lowest epoch_loss to evaluate",
                         nargs='*')
     parser.add_argument("--config", "-c",
                         help="Use a config file to find best trials.",
                         type=str)
     args = parser.parse_args()
     mydirs = []
-    if(args.dir):
+    if (args.dir):
         mydirs = [args.dir]
     elif args.config:
         conf = get_config(args.config)
@@ -48,7 +53,7 @@ def main():
         if exists(tb_folder):
             mydirs.append(join(tb_folder, conf.run_config.exp_name))
         if exists(study_folder):
-            mydirs.append(join(study_folder,conf.run_config.exp_name))
+            mydirs.append(join(study_folder, conf.run_config.exp_name))
 
     for dir in mydirs:
         p = Path(args.mydir)
@@ -65,10 +70,14 @@ def main():
                     print("no log files found for {0}".format(logdir))
 
                 best_file = get_best_logfile(logfiles)
-                conf,ckpt =  get_corresponding_config_ckpt(best_file)
+                conf, ckpt = get_corresponding_config_ckpt(best_file)
                 print("Evaluating best trial from {}".format(s.resolve()))
                 run_evaluation(logdir, conf, ckpt)
 
         else:
             print("not implemented yet")
-            #cpfiles = p.glob("**/*.ckpt")
+            # cpfiles = p.glob("**/*.ckpt")
+
+
+if __name__ == "__main__":
+    main()
