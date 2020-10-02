@@ -37,7 +37,7 @@ def get_corresponding_config_ckpt(logfile):
     myckpt = peek(ckpt)
     myconf = peek(conf)
     if myckpt is not None and myconf is not None:
-        return myconf[0], myckpt[0]
+        return str(myconf[0].resolve()), str(myckpt[0].resolve())
     else:
         raise RuntimeError("Couldnt find both a checkpoint file and a config file for {}".format(logfile))
 
