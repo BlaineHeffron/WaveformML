@@ -101,7 +101,8 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psd):
     for coord in coords:
         if coord[2] != last_id:
             if last_id > -1:
-                out_coords[current_ind] = safe_divide(out_coords[current_ind], n_current)
+                if n_current > 0:
+                    out_coords[current_ind] /= n_current
                 multiplicity[current_ind] = n_current
                 psd[current_ind] = calc_psd(out_pulses[current_ind], calc_arrival(out_pulses[current_ind]),
                                             psd_window_lo, psd_window_hi, psd_divider)
@@ -111,7 +112,8 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psd):
         n_current += 1
         out_coords[current_ind] += coord[0:2]
         out_pulses[current_ind] += pulses[current_ind]
-    out_coords[last_id] = safe_divide(out_coords[last_id], n_current)
+    if n_current > 0:
+        out_coords[last_id] /= n_current
     multiplicity[current_ind] = n_current
     psd[current_ind] = calc_psd(out_pulses[current_ind], calc_arrival(out_pulses[current_ind]), psd_window_lo,
                                 psd_window_hi, psd_divider)
