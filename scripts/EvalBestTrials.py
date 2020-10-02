@@ -1,4 +1,5 @@
 import argparse
+import itertools
 from pathlib import Path
 from os.path import join, exists, basename, dirname
 import sys
@@ -11,7 +12,7 @@ from src.utils.util import get_config, get_model_folder
 
 def get_best_logfile(logfiles):
     best = 1000.
-    best_file = ''
+    best_file = None
     for f in logfiles:
         t = TBHelper(str(f.resolve()))
         a = t.get_best_value("epoch_val_loss")
@@ -20,6 +21,12 @@ def get_best_logfile(logfiles):
             best_file = str(f.resolve())
     return best_file
 
+def peek(iterable):
+    try:
+        first = next(iterable)
+    except StopIteration:
+        return None
+    return first, itertools.chain([first], iterable)
 
 def get_corresponding_config_ckpt(logfile):
     bn = basename(logfile)
@@ -27,8 +34,10 @@ def get_corresponding_config_ckpt(logfile):
     dp = Path(dn)
     ckpt = dp.glob("*.ckpt")
     conf = dp.glob("*_config.json")
-    if len(ckpt) > 0 and len(conf) > 0:
-        return conf[0], ckpt[0]
+    myckpt = peek(ckpt)
+    myconf = peek(conf)
+    if myckpt is not None and myconf is not None:
+        return myconf, myckpt
     else:
         raise RuntimeError("Couldnt find both a checkpoint file and a config file for {}".format(logfile))
 
@@ -44,7 +53,7 @@ def main():
     args = parser.parse_args()
     mydirs = []
     if (args.dir):
-        mydirs = [args.dir]
+        mydirs = args.dir
     elif args.config:
         conf = get_config(args.config)
         model_name, model_folder = get_model_folder(conf)
@@ -55,28 +64,26 @@ def main():
         if exists(study_folder):
             mydirs.append(join(study_folder, conf.run_config.exp_name))
 
-    for dir in mydirs:
-        p = Path(dir)
+    for directory in mydirs:
+        p = Path(directory)
         sqlfiles = p.glob("**/*.sql")
-        if len(sqlfiles) > 0:
-            for s in sqlfiles:
-                optdb = OptunaDB(str(s.resolve()))
-                logdir = "trial_{}".format(optdb.get_best_trial())
-                optdb.close()
-                opt_path = Path(logdir)
-                logfiles = opt_path.glob("**/*events.out.tfevents.*")
-                cpfiles = p.glob("**/*.ckpt")
-                if len(logfiles) == 0:
-                    print("no log files found for {0}".format(logdir))
+        for s in sqlfiles:
+            optdb = OptunaDB(str(s.resolve()))
+            logdir = "trial_{}".format(optdb.get_best_trial())
+            optdb.close()
+            opt_path = Path(logdir)
+            logfiles = opt_path.glob("**/*events.out.tfevents.*")
+            cpfiles = p.glob("**/*.ckpt")
 
-                best_file = get_best_logfile(logfiles)
-                conf, ckpt = get_corresponding_config_ckpt(best_file)
-                print("Evaluating best trial from {}".format(s.resolve()))
-                run_evaluation(logdir, conf, ckpt)
+            best_file = get_best_logfile(logfiles)
+            if best_file is None:
+                print("no log files found for {0}".format(logdir))
+            conf, ckpt = get_corresponding_config_ckpt(best_file)
+            print("Evaluating best trial from {}".format(s.resolve()))
+            run_evaluation(logdir, conf, ckpt)
 
-        else:
-            print("not implemented yet")
-            # cpfiles = p.glob("**/*.ckpt")
+        #print("not implemented yet")
+        # cpfiles = p.glob("**/*.ckpt")
 
 
 if __name__ == "__main__":
