@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from os.path import join, exists, basename, dirname
 import sys
-sys.path.insert(1, '../src')
+sys.path.insert(1, '..')
 from src.utils.SQLUtils import OptunaDB
 from src.utils.TensorBoardUtils import TBHelper, run_evaluation
 from src.utils.util import get_config, get_model_folder
