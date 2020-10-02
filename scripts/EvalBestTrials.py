@@ -66,7 +66,7 @@ def main():
 
     for directory in mydirs:
         p = Path(directory)
-        sqlfiles = p.glob("**/*.sql")
+        sqlfiles = p.glob("**/*.db")
         for s in sqlfiles:
             optdb = OptunaDB(str(s.resolve()))
             logdir = join(dirname(str(s.resolve())), "trial_{}".format(optdb.get_best_trial()))
