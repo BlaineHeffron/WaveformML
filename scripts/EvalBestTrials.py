@@ -56,7 +56,7 @@ def main():
             mydirs.append(join(study_folder, conf.run_config.exp_name))
 
     for dir in mydirs:
-        p = Path(args.mydir)
+        p = Path(dir)
         sqlfiles = p.glob("**/*.sql")
         if len(sqlfiles) > 0:
             for s in sqlfiles:
