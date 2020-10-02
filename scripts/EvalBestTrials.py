@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 from os.path import join, exists, basename, dirname
+import sys
+sys.path.insert(1, '../src')
 from src.utils.SQLUtils import OptunaDB
 from src.utils.TensorBoardUtils import TBHelper, run_evaluation
 from src.utils.util import get_config, get_model_folder
@@ -10,7 +12,7 @@ def get_best_logfile(logfiles):
     best_file = ''
     for f in logfiles:
         t = TBHelper(str(f.resolve()))
-        a = t.get_best_value()
+        a = t.get_best_value("epoch_val_loss")
         if a < best:
             best = a
             best_file = str(f.resolve())
