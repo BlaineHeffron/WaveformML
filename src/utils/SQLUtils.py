@@ -62,6 +62,9 @@ class OptunaDB(SQLiteBase):
         """returns trial number - 1 so you can go into the correct directory
         (directory names start with 0, trial indices in sqlite start with 1)"""
 
-        result = self.fetchone("select trial_id, study_id, value from trials order by value asc limit 1")
-        return result[0]-1
+        results = self.fetchall("select trial_id, study_id, value from trials order by value asc limit 10")
+        print("Top 10 trials: \n")
+        for r in results:
+            print("{0}: {1}\n".format(r[0], r[2]))
+        return results[0][0]-1
 
