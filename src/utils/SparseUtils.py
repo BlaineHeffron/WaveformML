@@ -8,7 +8,7 @@ from numpy import divide, zeros_like
 
 @nb.jit(nopython=True)
 def safe_divide(a, b):
-    for i in range(a):
+    for i in range(a.shape[0]):
         if b[i] == 0:
             a[i] = 0
         else:
