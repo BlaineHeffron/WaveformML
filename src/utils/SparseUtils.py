@@ -5,6 +5,17 @@ from numpy import divide, zeros_like
 
 
 # TODO: implement this with pytorch + cython so it can stay on the gpu
+
+@nb.jit(nopython=True)
+def safe_divide(a, b):
+    for i in range(a):
+        if b[i] == 0:
+            a[i] = 0
+        else:
+            a[i] = a[i] / b
+    return a
+
+
 @nb.jit(nopython=True)
 def find_matches(pred, lab, out):
     for i in range(pred.shape[0]):
@@ -13,11 +24,6 @@ def find_matches(pred, lab, out):
         else:
             out[i] = 0
     return out
-
-
-@nb.jit(nopython=True)
-def safe_divide(a,b):
-    return divide(a, b, out=zeros_like(a), where=b != 0)
 
 
 @nb.jit(nopython=True)
@@ -41,10 +47,12 @@ def metric_accumulate_1d(metric, category, output, out_n, xrange, nbins):
         output[bin] += metric[i]
         out_n[bin] += 1
 
+
 def get_typed_list(mylist):
     typed_list = List()
     [typed_list.append(x) for x in mylist]
     return typed_list
+
 
 @nb.jit(nopython=True)
 def metric_accumulate_2d(metric, category, output, out_n, xrange, yrange, nbinsx, nbinsy):
