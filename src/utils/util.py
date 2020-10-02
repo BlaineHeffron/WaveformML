@@ -436,6 +436,22 @@ def get_config(c):
         config = json.load(json_data_file)
     return DictionaryUtility.to_object(config)
 
+def get_model_folder(config):
+    if hasattr(config.system_config, "model_name"):
+        model_name = config.system_config.model_name
+    else:
+        model_name = unique_path_combine(config.dataset_config.paths)
+    if hasattr(config.system_config, "model_base_path"):
+        model_dir = config.system_config.model_base_path
+    else:
+        model_dir = "./model"
+        setattr(config.system_config, "model_base_path", model_dir)
+    if not os.path.exists(model_dir):
+        path_create(model_dir)
+    model_folder = join(abspath(model_dir), model_name)
+    if not os.path.exists(model_folder):
+        path_create(model_folder)
+    return model_name, model_folder
 
 def extract_values(all_values, labels, criterion):
     inds = np.asarray(labels == criterion).nonzero()
@@ -456,3 +472,4 @@ def replace_file_pattern(fname, pattern, newpattern):
             continue
         newstr = newstr.replace(p1, p2, 1)
     return newstr
+

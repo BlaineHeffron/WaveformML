@@ -7,8 +7,8 @@ import logging
 # two-dimensional SparseConvNet
 class SCNet(nn.Module):
     def __init__(self, config):
+        super(SCNet, self).__init__()
         self.log = logging.getLogger(__name__)
-        nn.Module.__init__(self)
         self.system_config = config.system_config
         self.net_config = config.net_config
         self.nsamples = self.system_config.n_samples

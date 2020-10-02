@@ -10,7 +10,7 @@ import logging
 from src.utils import util
 import argparse
 from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args, \
-    retrieve_model_checkpoint, get_tb_logdir_version, check_config, setup_logger
+    retrieve_model_checkpoint, get_tb_logdir_version, check_config, setup_logger, get_model_folder
 
 MODEL_DIR = "./model"
 CONFIG_DIR = "./config"
@@ -80,20 +80,7 @@ def main():
     if not hasattr(config, "system_config"): raise IOError("Config file must contain system_config")
     if not hasattr(config, "dataset_config"): raise IOError("Config file must contain dataset_config")
     if not hasattr(config.dataset_config, "paths"): raise IOError("Dataset config must contain paths list")
-    if hasattr(config.system_config, "model_name"):
-        model_name = config.system_config.model_name
-    else:
-        model_name = util.unique_path_combine(config.dataset_config.paths)
-    if hasattr(config.system_config, "model_base_path"):
-        model_dir = config.system_config.model_base_path
-    else:
-        model_dir = MODEL_DIR
-        setattr(config.system_config, "model_base_path", model_dir)
-    if not os.path.exists(model_dir):
-        path_create(model_dir)
-    model_folder = join(abspath(model_dir), model_name)
-    if not os.path.exists(model_folder):
-        path_create(model_folder)
+    model_name, model_folder = get_model_folder(config)
     if hasattr(config, "run_config"):
         if not hasattr(config.run_config, "exp_name"):
             counter = 1
