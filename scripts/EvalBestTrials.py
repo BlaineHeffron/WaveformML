@@ -37,7 +37,7 @@ def get_corresponding_config_ckpt(logfile):
     myckpt = peek(ckpt)
     myconf = peek(conf)
     if myckpt is not None and myconf is not None:
-        return myconf, myckpt
+        return myconf[0], myckpt[0]
     else:
         raise RuntimeError("Couldnt find both a checkpoint file and a config file for {}".format(logfile))
 
@@ -73,8 +73,6 @@ def main():
             optdb.close()
             opt_path = Path(logdir)
             logfiles = opt_path.glob("**/*events.out.tfevents.*")
-            cpfiles = p.glob("**/*.ckpt")
-
             best_file = get_best_logfile(logfiles)
             if best_file is None:
                 print("no log files found for {0}".format(logdir))
