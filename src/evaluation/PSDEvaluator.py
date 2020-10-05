@@ -1,7 +1,7 @@
 import numpy as np
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list
-from src.utils.PlotUtils import plot_countour, plot_bar, plot_pr, plot_roc
+from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar
 from src.utils.util import extract_values
 from numpy import zeros
 
@@ -17,7 +17,7 @@ class PSDEvaluator:
         self.logger = logger
         self.device = device
         self.n_bins = 40
-        self.n_mult = 12
+        self.n_mult = 20
         self.emin = 0.0
         self.emax = 5.0
         self.psd_min = 0.0
@@ -28,6 +28,9 @@ class PSDEvaluator:
         self.n_classes = len(self.class_names)
         self.roc = MulticlassROC(num_classes=self.n_classes)
         self.pr = MulticlassPrecisionRecallCurve(num_classes=self.n_classes)
+        self.summed_waveforms = []
+        self.n_wfs = [0]*(self.n_classes+1)
+        self.summed_labelled_waveforms = []
         self._init_results()
 
     def _init_results(self):
@@ -54,7 +57,13 @@ class PSDEvaluator:
         # print("first 10 summed_pulses: {}".format(summed_pulses[0:10]))
         # print("first 10 multiplicity: {}".format(multiplicity[0:10]))
         # print("first 10 psd: {}".format(psd[0:10]))
-        # self.logger.experiment.add_histogram("evaluation/timing", summed_pulses, max_bins=summed_pulses[0].size)
+        if len(self.summed_waveforms) == 0:
+            for i in range(self.n_classes + 1):
+                self.summed_waveforms.append(np.zeros(summed_pulses[1].size, np.int32))
+            for i in range(self.n_classes):
+                self.summed_labelled_waveforms.append(np.zeros(summed_pulses[1].size, np.int32))
+        self.n_wfs[0] += predictions.shape[0]
+        self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
         # print("first 10 energy: {}".format(energy[0:10]))
         self.logger.experiment.add_histogram("evaluation/energy", energy, max_bins=self.n_bins)
@@ -69,11 +78,23 @@ class PSDEvaluator:
                                                  vals)
             self.logger.experiment.add_histogram("evaluation/psd_{}".format(self.class_names[i]),
                                                  extract_values(psd, labels, i))
+            self.logger.experiment.add_histogram("evaluation/energy_labelled_{}".format(self.class_names[i]),
+                                                 extract_values(energy, predictions, i))
+            self.logger.experiment.add_histogram("evaluation/psd_labelled_{}".format(self.class_names[i]),
+                                                 extract_values(psd, predictions, i))
             self.logger.experiment.add_histogram("evaluation/multiplicity_{}".format(self.class_names[i]),
                                                  extract_values(multiplicity, labels, i),
                                                  bins=np.arange(0.5, self.n_mult + 0.5, 1))
+            self.logger.experiment.add_histogram("evaluation/multiplicity_labelled_{}".format(self.class_names[i]),
+                                                 extract_values(multiplicity, predictions, i),
+                                                 bins=np.arange(0.5, self.n_mult + 0.5, 1))
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i],
                                                  max_bins=self.n_bins)
+            pulses = extract_values(summed_pulses, labels, i)
+            self.n_waveforms[i+1] += pulses.shape[0]
+            self.summed_waveforms[i+1] += np.sum(pulses, axis=0)
+            self.summed_labelled_waveforms[i] += np.sum(extract_values(summed_pulses, predictions, i), axis=0)
+
         if not missing_classes:
             this_roc = self.roc(output, labels)
             this_prc = self.pr(output, labels)
@@ -116,6 +137,12 @@ class PSDEvaluator:
                                                    self.results["mult_acc"][1][1:self.n_mult + 1]),
                                                    "multiplicity",
                                                    "accuracy"))
+        self.logger.experiment.add_figure("evaluation/average_pulses",
+                                          plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names))
+        self.logger.experiment.add_figure("evaluation/average_pulses_labelled",
+                                          plot_wfs(self.summed_labelled_waveforms, self.n_wfs[1:], self.class_names))
+        self.logger.experiment.add_figure("evaluation/pulse",
+                                          plot_wfs(self.summed_waveforms[0], self.n_wfs[0], ["total"], plot_errors=True))
         self._init_results()
 
     def calc_axis(self, min, max, n):
