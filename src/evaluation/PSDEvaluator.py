@@ -50,7 +50,7 @@ class PSDEvaluator:
         # print("first several pulses: {}".format(f[0:100]))
         avg_coo, summed_pulses, multiplicity, psd = average_pulse(c, f,
                                                                   zeros((predictions.shape[0], 2)),
-                                                                  zeros((predictions.shape[0], f.shape[1])),
+                                                                  zeros((predictions.shape[0], f.shape[1],), dtype=np.float32),
                                                                   zeros((predictions.shape[0],), dtype=np.int32),
                                                                   zeros((predictions.shape[0],)))
         # print("first 10 avg coo: {}".format(avg_coo[0:10]))
@@ -59,9 +59,9 @@ class PSDEvaluator:
         # print("first 10 psd: {}".format(psd[0:10]))
         if len(self.summed_waveforms) == 0:
             for i in range(self.n_classes + 1):
-                self.summed_waveforms.append(np.zeros(summed_pulses[1].size, np.int32))
+                self.summed_waveforms.append(np.zeros(summed_pulses[1].size, np.float32))
             for i in range(self.n_classes):
-                self.summed_labelled_waveforms.append(np.zeros(summed_pulses[1].size, np.int32))
+                self.summed_labelled_waveforms.append(np.zeros(summed_pulses[1].size, np.float32))
         self.n_wfs[0] += predictions.shape[0]
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
