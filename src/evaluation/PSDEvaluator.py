@@ -39,6 +39,7 @@ class PSDEvaluator:
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
         }
 
+
     def add(self, batch, output, predictions):
         (c, f), labels = batch
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), output.detach().cpu().numpy()
@@ -112,7 +113,7 @@ class PSDEvaluator:
         self.logger.experiment.add_figure("evaluation/multiplicity_accuracy",
                                           plot_bar(np.arange(1, self.n_mult + 1),
                                                    safe_divide(self.results["mult_acc"][0][1:self.n_mult + 1],
-                                                   self.results["mu305460lt_acc"][1][1:self.n_mult + 1]),
+                                                   self.results["mult_acc"][1][1:self.n_mult + 1]),
                                                    "multiplicity",
                                                    "accuracy"))
         self._init_results()
