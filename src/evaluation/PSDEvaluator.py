@@ -91,7 +91,7 @@ class PSDEvaluator:
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i],
                                                  max_bins=self.n_bins)
             pulses = extract_values(summed_pulses, labels, i)
-            self.n_waveforms[i+1] += pulses.shape[0]
+            self.n_wfs[i+1] += pulses.shape[0]
             self.summed_waveforms[i+1] += np.sum(pulses, axis=0)
             self.summed_labelled_waveforms[i] += np.sum(extract_values(summed_pulses, predictions, i), axis=0)
 
