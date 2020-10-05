@@ -1,10 +1,9 @@
 import argparse
 import itertools
 from pathlib import Path
-from os.path import join, exists, basename, dirname
+from os.path import join, exists, basename, dirname, realpath
 import sys
-
-sys.path.insert(1, '..')
+sys.path.insert(1, dirname(join("..",realpath(__file__))))
 from src.utils.SQLUtils import OptunaDB
 from src.utils.TensorBoardUtils import TBHelper, run_evaluation
 from src.utils.util import get_config, get_model_folder
