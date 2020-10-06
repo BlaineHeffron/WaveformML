@@ -132,6 +132,8 @@ def plot_wfs(data, n, labels, plot_errors=False):
     fig, ax = plt.subplots()
     x = np.arange(2, 600, 4)
     for i, classd in enumerate(data):
+        if classd.shape[0] == 2*x.shape[0]:
+            classd = classd[:150] + classd[150:]
         tot = n[i]
         if plot_errors:
             plt.bar(x, classd / tot,
