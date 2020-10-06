@@ -132,9 +132,7 @@ def plot_wfs(data, n, labels, plot_errors=False):
     fig, ax = plt.subplots()
     x = np.arange(2, 600, 4)
     for i, classd in enumerate(data):
-        tot = n
-        if isinstance(n, list):
-            tot = n[i]
+        tot = n[i]
         if plot_errors:
             plt.bar(x, data[i] / tot,
                     label=labels[i],
