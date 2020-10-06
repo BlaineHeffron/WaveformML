@@ -131,7 +131,7 @@ def plot_wfs(data, n, labels, plot_errors=False):
         errors = np.sqrt(data)
     fig, ax = plt.subplots()
     x = np.arange(2, 600, 4)
-    for i in range(labels):
+    for i in range(len(labels)):
         if data.shape[1] == 2 * x.shape[0]:
             y = data[i, :150] + data[i, 150:]
         else:
