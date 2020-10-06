@@ -62,7 +62,7 @@ class PSDEvaluator:
                 self.summed_waveforms.append(np.zeros(summed_pulses[1].size, np.float32))
             for i in range(self.n_classes):
                 self.summed_labelled_waveforms.append(np.zeros(summed_pulses[1].size, np.float32))
-        self.n_wfs[0] += predictions.shape[0]
+        self.n_wfs[0] += np.sum(multiplicity)
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
         # print("first 10 energy: {}".format(energy[0:10]))
@@ -91,7 +91,7 @@ class PSDEvaluator:
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i],
                                                  max_bins=self.n_bins)
             pulses = extract_values(summed_pulses, labels, i)
-            self.n_wfs[i+1] += pulses.shape[0]
+            self.n_wfs[i+1] += np.sum(extract_values(multiplicity, labels, i))
             self.summed_waveforms[i+1] += np.sum(pulses, axis=0)
             self.summed_labelled_waveforms[i] += np.sum(extract_values(summed_pulses, predictions, i), axis=0)
 
@@ -137,6 +137,7 @@ class PSDEvaluator:
                                                    self.results["mult_acc"][1][1:self.n_mult + 1]),
                                                    "multiplicity",
                                                    "accuracy"))
+
         self.logger.experiment.add_figure("evaluation/average_pulses",
                                           plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names))
         self.logger.experiment.add_figure("evaluation/average_pulses_labelled",
