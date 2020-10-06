@@ -127,8 +127,6 @@ def plot_pr(data, class_names):
 def plot_wfs(data, n, labels, plot_errors=False):
     lw = 3
     data *= (2 ** 14 - 1)
-    if plot_errors:
-        errors = np.sqrt(data)
     fig, ax = plt.subplots()
     x = np.arange(2, 600, 4)
     for i in range(len(labels)):
@@ -138,6 +136,7 @@ def plot_wfs(data, n, labels, plot_errors=False):
             y = data[i]
         tot = n[i]
         if plot_errors:
+            errors = np.sqrt(y)
             plt.bar(x, y / tot,
                     label=labels[i],
                     color=tab_colors[i % 10],
