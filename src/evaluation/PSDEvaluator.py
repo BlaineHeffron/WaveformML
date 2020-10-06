@@ -28,7 +28,7 @@ class PSDEvaluator:
         self.n_classes = len(self.class_names)
         self.roc = MulticlassROC(num_classes=self.n_classes)
         self.pr = MulticlassPrecisionRecallCurve(num_classes=self.n_classes)
-        self.summed_waveforms = []
+        self.summed_waveforms = None
         self.n_wfs = [0]*(self.n_classes+1)
         self.summed_labelled_waveforms = []
         self._init_results()
@@ -57,11 +57,10 @@ class PSDEvaluator:
         # print("first 10 summed_pulses: {}".format(summed_pulses[0:10]))
         # print("first 10 multiplicity: {}".format(multiplicity[0:10]))
         # print("first 10 psd: {}".format(psd[0:10]))
-        if len(self.summed_waveforms) == 0:
-            for i in range(self.n_classes + 1):
-                self.summed_waveforms.append(np.zeros(summed_pulses[1].size, np.float32))
-            for i in range(self.n_classes):
-                self.summed_labelled_waveforms.append(np.zeros(summed_pulses[1].size, np.float32))
+        if self.summed_waveforms is None:
+            self.summed_waveforms = np.zeros((self.n_classes+1, summed_pulses[1].size), np.float32)
+            self.summed_labelled_waveforms = \
+                np.zeros((self.n_classes, summed_pulses[1].size), np.float32)
         self.n_wfs[0] += np.sum(multiplicity)
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
