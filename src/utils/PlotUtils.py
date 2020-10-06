@@ -131,19 +131,21 @@ def plot_wfs(data, n, labels, plot_errors=False):
         errors = np.sqrt(data)
     fig, ax = plt.subplots()
     x = np.arange(2, 600, 4)
-    for i, classd in enumerate(data):
-        if classd.shape[0] == 2*x.shape[0]:
-            classd = classd[:150] + classd[150:]
+    for i in range(labels):
+        if data[i].shape[0] == 2*x.shape[0]:
+            y = data[i][:150] + data[i][150:]
+        else:
+            y = data[i]
         tot = n[i]
         if plot_errors:
-            plt.bar(x, classd / tot,
+            plt.bar(x, y / tot,
                     label=labels[i],
                     color=tab_colors[i % 10],
                     ls=category_styles[i % len(category_styles)],
                     linewidth=lw,
                     yerr=errors[i] / tot)
         else:
-            plt.bar(x, classd / tot,
+            plt.bar(x, y / tot,
                     label=labels[i],
                     color=tab_colors[i % 10],
                     ls=category_styles[i % len(category_styles)],
