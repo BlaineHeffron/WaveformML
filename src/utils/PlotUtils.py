@@ -134,14 +134,14 @@ def plot_wfs(data, n, labels, plot_errors=False):
     for i, classd in enumerate(data):
         tot = n[i]
         if plot_errors:
-            plt.bar(x, data[i] / tot,
+            plt.bar(x, classd / tot,
                     label=labels[i],
                     color=tab_colors[i % 10],
                     ls=category_styles[i % len(category_styles)],
                     linewidth=lw,
                     yerr=errors[i] / tot)
         else:
-            plt.bar(x, data[i] / tot,
+            plt.bar(x, classd / tot,
                     label=labels[i],
                     color=tab_colors[i % 10],
                     ls=category_styles[i % len(category_styles)],

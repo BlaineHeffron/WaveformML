@@ -138,6 +138,8 @@ class PSDEvaluator:
                                                    "multiplicity",
                                                    "accuracy"))
 
+        print("n_wfs  is {0}".format(self.n_wfs))
+        print("summed waveforms shape is {0}".format(self.summed_waveforms))
         self.logger.experiment.add_figure("evaluation/average_pulses",
                                           plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names))
         self.logger.experiment.add_figure("evaluation/average_pulses_labelled",
