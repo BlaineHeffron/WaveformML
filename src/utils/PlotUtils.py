@@ -62,6 +62,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
+    fig.subplots_adjust(bottom=0.15)
     return fig
 
 
