@@ -366,9 +366,9 @@ class PulseDataset(HDF5Dataset):
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
     def _get_label(self, label, cat):
-        # 0,1 are electron recoil, nuclear recoil
-        # 2 is neutron capture on lithium, make that its own category
-        if label < 2:
+        # 0,1,2 are electron recoil, nuclear recoil, alpha recoil
+        # 3 is tritium recoil, assume this means ncap6li which is its own category
+        if label < 3:
             return cat
         else:
             return self.n_categories
