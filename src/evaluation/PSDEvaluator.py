@@ -67,7 +67,7 @@ class PSDEvaluator:
         # print("first 10 energy: {}".format(energy[0:10]))
         ene_bins = np.arange(0,400,10)
         psd_bins = np.arange(0.0,1.0,0.025)
-        self.logger.experiment.add_histogram("evaluation/energy", energy, max_bins=self.n_bins,bins=ene_bins)
+        self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins,bins=ene_bins)
         missing_classes = False
         for i in range(self.n_classes):
             vals = extract_values(energy, labels, i)
@@ -76,20 +76,20 @@ class PSDEvaluator:
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
             self.logger.experiment.add_histogram("evaluation/energy_{}".format(self.class_names[i]),
-                                                 vals,bins=ene_bins)
+                                                 vals, 0, bins=ene_bins)
             self.logger.experiment.add_histogram("evaluation/psd_{}".format(self.class_names[i]),
-                                                 extract_values(psd, labels, i),bins=psd_bins)
+                                                 extract_values(psd, labels, i), 0, bins=psd_bins)
             self.logger.experiment.add_histogram("evaluation/energy_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(energy, predictions, i),bins=ene_bins)
+                                                 extract_values(energy, predictions, i), 0, bins=ene_bins)
             self.logger.experiment.add_histogram("evaluation/psd_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(psd, predictions, i),bins=psd_bins)
+                                                 extract_values(psd, predictions, i), 0, bins=psd_bins)
             self.logger.experiment.add_histogram("evaluation/multiplicity_{}".format(self.class_names[i]),
-                                                 extract_values(multiplicity, labels, i),
+                                                 extract_values(multiplicity, labels, i), 0,
                                                  bins=np.arange(0.5, self.n_mult + 0.5, 1))
             self.logger.experiment.add_histogram("evaluation/multiplicity_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(multiplicity, predictions, i),
+                                                 extract_values(multiplicity, predictions, i), 0,
                                                  bins=np.arange(0.5, self.n_mult + 0.5, 1))
-            self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i],
+            self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
                                                  max_bins=self.n_bins, bins='fd')
             pulses = extract_values(summed_pulses, labels, i)
             self.n_wfs[i+1] += np.sum(extract_values(multiplicity, labels, i))
