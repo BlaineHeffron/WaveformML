@@ -68,7 +68,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
 def plot_countour(X, Y, Z, xlabel, ylabel, zlabel):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
-    CS = ax.contour(X, Y, Z)
+    CS = ax.contour(X, Y, Z, cmap=plt.cm.PiYG)
     ax.clabel(CS, inline=True, fontsize=12)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -86,13 +86,13 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 def plot_roc(data, class_names):
     # Plot all ROC curves
-    lw = 4
+    lw = 3
     fig, ax = plt.subplots()
     for i, classd in enumerate(data):
         plt.plot(classd[0], classd[1],
                  label=class_names[i],
                  color=tab_colors[i % 10],
-                 marker=category_markers[i % len(category_markers)],
+                 #marker=category_markers[i % len(category_markers)],
                  ls=category_styles[i % len(category_styles)],
                  linewidth=lw)
     plt.plot([0, 1], [0, 1], 'k--', lw=2)
@@ -112,7 +112,7 @@ def plot_pr(data, class_names):
         plt.plot(classd[1], classd[0],
                  label=class_names[i],
                  color=tab_colors[i % 10],
-                 marker=category_markers[i % len(category_markers)],
+                 #marker=category_markers[i % len(category_markers)],
                  ls=category_styles[i % len(category_styles)],
                  linewidth=lw)
     plt.plot([0, 1], [0, 1], 'k--', lw=2)
