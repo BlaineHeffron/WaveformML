@@ -93,7 +93,7 @@ def plot_roc(data, class_names):
         plt.plot(classd[0], classd[1],
                  label=class_names[i],
                  color=tab_colors[i % 10],
-                 #marker=category_markers[i % len(category_markers)],
+                 # marker=category_markers[i % len(category_markers)],
                  ls=category_styles[i % len(category_styles)],
                  linewidth=lw)
     plt.plot([0, 1], [0, 1], 'k--', lw=2)
@@ -113,7 +113,7 @@ def plot_pr(data, class_names):
         plt.plot(classd[1], classd[0],
                  label=class_names[i],
                  color=tab_colors[i % 10],
-                 #marker=category_markers[i % len(category_markers)],
+                 # marker=category_markers[i % len(category_markers)],
                  ls=category_styles[i % len(category_styles)],
                  linewidth=lw)
     plt.plot([0, 1], [0, 1], 'k--', lw=2)
@@ -138,18 +138,18 @@ def plot_wfs(data, n, labels, plot_errors=False):
         tot = n[i]
         if plot_errors:
             errors = np.sqrt(y)
-            plt.bar(x, y / tot,
-                    label=labels[i],
-                    color=tab_colors[i % 10],
-                    ls=category_styles[i % len(category_styles)],
-                    linewidth=lw,
-                    yerr=errors[i] / tot)
+            plt.plot(x, y / tot,
+                     label=labels[i],
+                     color=tab_colors[i % 10],
+                     ls=category_styles[i % len(category_styles)],
+                     linewidth=lw,
+                     yerr=errors[i] / tot)
         else:
-            plt.bar(x, y / tot,
-                    label=labels[i],
-                    color=tab_colors[i % 10],
-                    ls=category_styles[i % len(category_styles)],
-                    linewidth=lw)
+            plt.plot(x, y / tot,
+                     label=labels[i],
+                     color=tab_colors[i % 10],
+                     ls=category_styles[i % len(category_styles)],
+                     linewidth=lw)
     ax.set_xlabel('t [ns]')
     ax.set_ylabel('rate [counts/ns]')
     plt.legend(loc="upper right")
