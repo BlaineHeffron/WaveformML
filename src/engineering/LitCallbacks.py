@@ -44,7 +44,7 @@ class LoggingCallback(Callback):
             self.best_loss = loss
             pl_module.logger.log_hyperparams(pl_module.hparams, {"hp_metric": loss})
 
-    def on_test_epoch_end(self, trainer, pl_module):
+    def on_test_end(self, trainer, pl_module):
         pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals",
                                                plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy().astype(int),
                                                                      pl_module.config.system_config.type_names,
