@@ -65,7 +65,9 @@ class PSDEvaluator:
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
         # print("first 10 energy: {}".format(energy[0:10]))
-        self.logger.experiment.add_histogram("evaluation/energy", energy, max_bins=self.n_bins)
+        ene_bins = np.arange(0,400,10)
+        psd_bins = np.arange(0.0,1.0,0.025)
+        self.logger.experiment.add_histogram("evaluation/energy", energy, max_bins=self.n_bins,bins=ene_bins)
         missing_classes = False
         for i in range(self.n_classes):
             vals = extract_values(energy, labels, i)
@@ -74,13 +76,13 @@ class PSDEvaluator:
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
             self.logger.experiment.add_histogram("evaluation/energy_{}".format(self.class_names[i]),
-                                                 vals)
+                                                 vals,bins=ene_bins)
             self.logger.experiment.add_histogram("evaluation/psd_{}".format(self.class_names[i]),
-                                                 extract_values(psd, labels, i))
+                                                 extract_values(psd, labels, i),bins=psd_bins)
             self.logger.experiment.add_histogram("evaluation/energy_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(energy, predictions, i))
+                                                 extract_values(energy, predictions, i),bins=ene_bins)
             self.logger.experiment.add_histogram("evaluation/psd_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(psd, predictions, i))
+                                                 extract_values(psd, predictions, i),bins=psd_bins)
             self.logger.experiment.add_histogram("evaluation/multiplicity_{}".format(self.class_names[i]),
                                                  extract_values(multiplicity, labels, i),
                                                  bins=np.arange(0.5, self.n_mult + 0.5, 1))
@@ -88,7 +90,7 @@ class PSDEvaluator:
                                                  extract_values(multiplicity, predictions, i),
                                                  bins=np.arange(0.5, self.n_mult + 0.5, 1))
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i],
-                                                 max_bins=self.n_bins)
+                                                 max_bins=self.n_bins, bins='fd')
             pulses = extract_values(summed_pulses, labels, i)
             self.n_wfs[i+1] += np.sum(extract_values(multiplicity, labels, i))
             self.summed_waveforms[i+1] += np.sum(pulses, axis=0)
