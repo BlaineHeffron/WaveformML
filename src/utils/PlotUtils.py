@@ -87,7 +87,7 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 def plot_roc(data, class_names):
     # Plot all ROC curves
-    lw = 3
+    lw = 4
     fig, ax = plt.subplots()
     for i, classd in enumerate(data):
         plt.plot(classd[0], classd[1],
