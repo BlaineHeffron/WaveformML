@@ -436,6 +436,7 @@ def get_config(c):
         config = json.load(json_data_file)
     return DictionaryUtility.to_object(config)
 
+
 def get_model_folder(config):
     if hasattr(config.system_config, "model_name"):
         model_name = config.system_config.model_name
@@ -481,3 +482,8 @@ def replace_file_pattern(fname, pattern, newpattern):
 
 def safe_divide(a, b):
     return np.divide(a, b, out=np.zeros_like(a), where=b != 0)
+
+
+def get_bins(start, stop, n):
+    width = (stop - start) / n
+    return np.arange(start, stop + width, width)

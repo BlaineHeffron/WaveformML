@@ -2,7 +2,7 @@ import numpy as np
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list, weighted_average_quantities
 from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d
-from src.utils.util import list_matches, safe_divide
+from src.utils.util import list_matches, safe_divide, get_bins
 from numpy import zeros
 
 from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecallCurve
@@ -13,7 +13,7 @@ class PSDEvaluator:
     def __init__(self, class_names, logger, device):
         self.logger = logger
         self.device = device
-        self.n_bins = 40
+        self.n_bins = 100
         self.n_mult = 20
         self.emin = 0.0
         self.emax = 100.0
@@ -65,8 +65,9 @@ class PSDEvaluator:
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
         # print("first 10 energy: {}".format(energy[0:10]))
-        ene_bins = np.arange(self.emin, self.emax, 5)
-        psd_bins = np.arange(0.0, 1.0, 0.025)
+
+        ene_bins = get_bins(self.emin, self.emax, self.n_bins)
+        psd_bins = get_bins(0., 1., self.n_bins)
         mult_bins = np.arange(0, 20, 1)
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins, bins=ene_bins)
         feature_list = [energy, psdl, psdr, multiplicity]
@@ -232,8 +233,8 @@ class PhysEvaluator(PSDEvaluator):
     def add(self, batch, output, predictions):
         (c, f), labels = batch
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), output.detach().cpu().numpy()
-        ene_bins = np.arange(0, 20, 0.05)
-        psd_bins = np.arange(0.0, 1.0, 0.025)
+        ene_bins = get_bins(self.emin, self.emax, self.n_bins)
+        psd_bins = get_bins(0., 1., self.n_bins)
         PE_bins = np.arange(0, 500, 10)
         z_bins = np.arange(-1000, 1000, 10)
         dt_bins = np.arange(-90., 90., 10)
@@ -267,7 +268,8 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
                                                  max_bins=self.n_bins, bins='fd')
             metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((feature_list[0][label_class_inds], feature_list[5][label_class_inds]), axis=1),
+                                 np.stack((feature_list[0][label_class_inds], feature_list[5][label_class_inds]),
+                                          axis=1),
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
@@ -281,7 +283,8 @@ class PhysEvaluator(PSDEvaluator):
         metric_accumulate_1d(results, feature_list[7], *self.results["mult_acc"],
                              get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
-        metric_accumulate_2d(results, np.stack((feature_list[0], feature_list[5]), axis=1), *self.results["ene_psd_acc"],
+        metric_accumulate_2d(results, np.stack((feature_list[0], feature_list[5]), axis=1),
+                             *self.results["ene_psd_acc"],
                              get_typed_list([self.emin, self.emax]),
                              get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
         metric_accumulate_2d(results, avg_coo, *self.results["pos_acc"], get_typed_list([0.0, float(self.nx)]),
