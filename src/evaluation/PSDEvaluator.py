@@ -286,7 +286,7 @@ class PhysEvaluator(PSDEvaluator):
         print("minimum en is ", np.amin(energy))
         print("minimum psd is ", np.amin(psd))
         """
-        metric_accumulate_1d(results, feature_list[8], *self.results["mult_acc"],
+        metric_accumulate_1d(results, feature_list[7], *self.results["mult_acc"],
                              get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
         metric_accumulate_2d(results, np.stack((energy, psd), axis=1), *self.results["ene_psd_acc"],
