@@ -169,7 +169,7 @@ class PSDEvaluator:
         """
         missing_classes = False
         for feat, bins, featnames in zip(feature_list, bins_list, feature_names):
-            self.logger.experiment.add_histogram("evaluation/{0}_{1}".format(feature_names, self.class_names[i]),
+            self.logger.experiment.add_histogram("evaluation/{0}_{1}".format(feature_names[i], self.class_names[i]),
                                                  feat[label_class_inds], 0, bins=bins)
             if len(preds_class_inds) == 0:
                 missing_classes = True
