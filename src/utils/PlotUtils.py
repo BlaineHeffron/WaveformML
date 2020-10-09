@@ -87,17 +87,41 @@ def plot_bar(X, Y, xlabel, ylabel):
     return fig
 
 
+def plot_hist2d(xedges,yedges,vals,title,xlabel,ylabel):
+    fix, ax = plt.subplots()
+    xwidth = xedges[1]-xedges[0]
+    ywidth = yedges[1]-yedges[0]
+    tot = vals.shape[0]*vals.shape[1]
+    w = np.zeros((tot,))
+    xs = np.zeros((tot,))
+    ys = np.zeros((tot,))
+    n = 0
+    for i in range(len(xedges)):
+        x = xwidth * i + xwidth / 2.
+        for j in range(len(yedges)):
+            y = ywidth * j + ywidth/2.
+            w[n] = vals[i,j]
+            xs[n] = x
+            ys[n] = y
+            n += 1
+    plt.hist2d(xs,ys,bins=[xedges,yedges],weights=w,cmap=plt.cm.BrBG)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    plt.legend(loc="upper right")
+    return fig
+
 def plot_roc(data, class_names):
     # Plot all ROC curves
     lw = 4
     fig, ax = plt.subplots()
     for i, classd in enumerate(data):
         plt.plot(classd[0], classd[1],
-                 label=class_names[i],
-                 color=tab_colors[i % 10],
-                 # marker=category_markers[i % len(category_markers)],
-                 ls=category_styles[i % len(category_styles)],
-                 linewidth=lw)
+             label=class_names[i],
+             color=tab_colors[i % 10],
+             # marker=category_markers[i % len(category_markers)],
+             ls=category_styles[i % len(category_styles)],
+             linewidth=lw)
     plt.plot([0, 1], [0, 1], 'k--', lw=2)
     ax.set_xlim([0.0, 1.05])
     ax.set_ylim([0.0, 1.05])

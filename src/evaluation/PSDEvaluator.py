@@ -16,7 +16,7 @@ class PSDEvaluator:
         self.n_bins = 40
         self.n_mult = 20
         self.emin = 0.0
-        self.emax = 400.0
+        self.emax = 100.0
         self.psd_min = 0.0
         self.psd_max = 1.0
         self.nx = 14
@@ -62,7 +62,7 @@ class PSDEvaluator:
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
         # print("first 10 energy: {}".format(energy[0:10]))
-        ene_bins = np.arange(self.emin, self.emax, 10)
+        ene_bins = np.arange(self.emin, self.emax, 5)
         psd_bins = np.arange(0.0, 1.0, 0.025)
         mult_bins = np.arange(0, 20, 1)
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins, bins=ene_bins)
@@ -132,6 +132,13 @@ class PSDEvaluator:
                                                                self.results["mult_acc"][1][1:self.n_mult + 1]),
                                                    "multiplicity",
                                                    "accuracy"))
+
+        self.logger.experiment.add_figure("evaluation/EPSD",
+                                          plot_hist2d(self.calc_axis(self.emin, self.emax, self.n_bins),
+                                                      self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
+                                                      self.results["ene_psd_acc"][1][1:self.n_bins + 1,1:self.n_bins + 1],
+                                                      "energy [arb]", "psd", "accuracy"))
+        self.logger.experiment.add_figure()
 
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
