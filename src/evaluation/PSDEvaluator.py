@@ -68,11 +68,11 @@ class PSDEvaluator:
 
         ene_bins = get_bins(self.emin, self.emax, self.n_bins)
         psd_bins = get_bins(0., 1., self.n_bins)
-        mult_bins = np.arange(0, 20, 1)
+        mult_bins = np.arange(0, 21, 1)
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins, bins=ene_bins)
         feature_list = [energy, psdl, psdr, multiplicity]
         feature_names = ["energy", "psd", "psd", "multiplicity"]
-        bins_list = [self.n_bins]*len(feature_list)
+        bins_list = [ene_bins, psd_bins, psd_bins, mult_bins]
         missing_classes = False
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
@@ -203,14 +203,14 @@ class PSDEvaluator:
         missing_classes = False
         for feat, bins, featname in zip(feature_list, bins_list, feature_names):
             self.logger.experiment.add_histogram("evaluation/{0}_{1}".format(featname, self.class_names[i]),
-                                                 feat[label_class_inds], 0, max_bins=bins, bins='fd')
+                                                 feat[label_class_inds], 0, max_bins=len(bins) - 1, bins=bins)
             if len(preds_class_inds) == 0:
                 missing_classes = True
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
             self.logger.experiment.add_histogram(
                 "evaluation/{0}_labelled_{1}".format(featname, self.class_names[i]),
-                feat[preds_class_inds], 0, bins='fd', max_bins=bins)
+                feat[preds_class_inds], 0, bins=bins, max_bins=len(bins) - 1)
         return missing_classes
 
 
@@ -254,9 +254,7 @@ class PhysEvaluator(PSDEvaluator):
         feature_list = zeros((full_feature_list.shape[0], predictions.shape[0]), dtype=np.float32)
         avg_coo, feature_list = weighted_average_quantities(c, full_feature_list, feature_list,
                                                             zeros((predictions.shape[0], 2)), 8)
-        #bins_list = [ene_bins, dt_bins, PE_bins, PE_bins, z_bins, psd_bins, t0_bins]
-        bins_list = [self.n_bins]*(len(feature_list)-1)
-        bins_list.append(20)
+        bins_list = [ene_bins, dt_bins, PE_bins, PE_bins, z_bins, psd_bins, t0_bins, np.arange(0, 21, 1)]
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
             label_class_inds = list_matches(labels, i)
