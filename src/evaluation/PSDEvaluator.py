@@ -77,6 +77,9 @@ class PSDEvaluator:
         for i in range(self.n_classes):
             label_class_inds = list_matches(labels, i)
             preds_class_inds = list_matches(predictions, i)
+            if len(label_class_inds) == 0:
+                print("warning, no data found for class {}".format(self.class_names[i]))
+                return True
             missing_classes = self.accumulate_class_data_with_inds(i, label_class_inds, preds_class_inds, feature_list,
                                                                    feature_names, bins_list)
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
@@ -251,6 +254,9 @@ class PhysEvaluator(PSDEvaluator):
         for i in range(self.n_classes):
             label_class_inds = list_matches(labels, i)
             preds_class_inds = list_matches(predictions, i)
+            if len(label_class_inds) == 0:
+                print("warning, no data found for class {}".format(self.class_names[i]))
+                return True
             missing_classes = self.accumulate_class_data_with_inds(i, label_class_inds, preds_class_inds, feature_list,
                                                                    feature_names, bins_list)
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
