@@ -227,7 +227,7 @@ class PhysEvaluator(PSDEvaluator):
 
     def __init__(self, class_names, logger, device):
         super(PhysEvaluator, self).__init__(class_names, logger, device)
-        self.emax = 20.
+        self.emax = 10.
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
