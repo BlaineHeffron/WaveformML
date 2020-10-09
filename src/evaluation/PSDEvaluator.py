@@ -248,9 +248,9 @@ class PhysEvaluator(PSDEvaluator):
         self.logger.experiment.add_histogram("evaluation/energy", f[:, 0] * 300., 0, max_bins=self.n_bins,
                                              bins=ene_bins)
         missing_classes = False
-        full_feature_list = [energy, dt, PEL, PER, z, psd, t0, np.ones((energy.shape[0],))]
+        full_feature_list = np.stack((energy, dt, PEL, PER, z, psd, t0, np.ones((energy.shape[0],))), axis=0)
         feature_names = ["energy", "rise_time", "PE", "PE", "z", "psd", "start_time", "multiplicity"]
-        feature_list = [zeros((predictions.shape[0],), dtype=np.float32) for i in range(len(full_feature_list))]
+        feature_list = zeros((full_feature_list.shape[0], predictions.shape[0]), dtype=np.float32)
         avg_coo, feature_list = weighted_average_quantities(c, full_feature_list, feature_list,
                                                             zeros((predictions.shape[0], 2)), 8)
         bins_list = [ene_bins, dt_bins, PE_bins, PE_bins, z_bins, psd_bins, t0_bins]
