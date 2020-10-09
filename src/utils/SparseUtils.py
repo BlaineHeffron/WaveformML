@@ -1,7 +1,6 @@
 import numba as nb
 from math import ceil, floor
 from numba.typed import List
-from numpy import divide, zeros_like
 
 
 # TODO: implement this with pytorch + cython so it can stay on the gpu
@@ -25,6 +24,12 @@ def find_matches(pred, lab, out):
             out[i] = 0
     return out
 
+@nb.jit(nopython=True)
+def vec_sum(a):
+    out = 0
+    for val in a:
+        out += val
+    return out
 
 @nb.jit(nopython=True)
 def metric_accumulate_1d(metric, category, output, out_n, xrange, nbins):
@@ -95,6 +100,8 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
     last_id = -1
     current_ind = -1
     n_current = 0
+    tot_l_current = 0
+    tot_r_current = 0
     psd_window_lo = -3
     psd_divider = 11
     psd_window_hi = 50
@@ -103,29 +110,33 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
         if coord[2] != last_id:
             if last_id > -1:
                 if n_current > 0:
-                    out_coords[current_ind] /= n_current
+                    out_coords[current_ind] /= (tot_l_current+tot_r_current)
+                    psdl[current_ind] /= tot_l_current
+                    psdr[current_ind] /= tot_r_current
                 multiplicity[current_ind] = n_current
-                pulseleft = out_pulses[current_ind,0:n_samples]
-                pulseright = out_pulses[current_ind,n_samples:2*n_samples]
-                psdl[current_ind] = calc_psd(pulseleft, calc_arrival(pulseleft),
-                                            psd_window_lo, psd_window_hi, psd_divider)
-                psdr[current_ind] = calc_psd(pulseright, calc_arrival(pulseright),
-                                         psd_window_lo, psd_window_hi, psd_divider)
             n_current = 0
+            tot_l_current = 0
+            tot_r_current = 0
             last_id = coord[2]
             current_ind += 1
         n_current += 1
-        out_coords[current_ind] += coord[0:2]
+        pulseleft = out_pulses[current_ind, 0:n_samples]
+        pulseright = out_pulses[current_ind, n_samples:2 * n_samples]
+        tot_l = vec_sum(pulseleft)
+        tot_r = vec_sum(pulseright)
+        tot_l_current += tot_l
+        tot_r_current += tot_r
+        psdl[current_ind] += calc_psd(pulseleft, calc_arrival(pulseleft),
+                                     psd_window_lo, psd_window_hi, psd_divider) * tot_l
+        psdr[current_ind] += calc_psd(pulseright, calc_arrival(pulseright),
+                                     psd_window_lo, psd_window_hi, psd_divider) * tot_r
+        out_coords[current_ind] += coord[0:2]*(tot_l+tot_r)
         out_pulses[current_ind] += pulses[current_ind]
     if n_current > 0:
-        out_coords[last_id] /= n_current
+        out_coords[current_ind] /= (tot_l_current + tot_r_current)
+        psdl[current_ind] /= tot_l_current
+        psdr[current_ind] /= tot_r_current
     multiplicity[current_ind] = n_current
-    pulseleft = out_pulses[current_ind, 0:n_samples]
-    pulseright = out_pulses[current_ind, n_samples:2 * n_samples]
-    psdl[current_ind] = calc_psd(pulseleft, calc_arrival(pulseleft),
-                                 psd_window_lo, psd_window_hi, psd_divider)
-    psdr[current_ind] = calc_psd(pulseright, calc_arrival(pulseright),
-                                 psd_window_lo, psd_window_hi, psd_divider)
     return out_coords, out_pulses, multiplicity, psdl, psdr
 
 
