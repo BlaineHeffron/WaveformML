@@ -453,8 +453,13 @@ def get_model_folder(config):
         path_create(model_folder)
     return model_name, model_folder
 
+
+def list_matches(mylist, match):
+    return np.asarray(mylist == match).nonzero()
+
+
 def extract_values(all_values, labels, criterion):
-    inds = np.asarray(labels == criterion).nonzero()
+    inds = list_matches(labels, criterion)
     if inds[0].size > 0:
         return all_values[inds]
     else:

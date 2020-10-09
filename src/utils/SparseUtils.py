@@ -91,21 +91,26 @@ def metric_accumulate_2d(metric, category, output, out_n, xrange, yrange, nbinsx
 
 
 @nb.jit(nopython=True)
-def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psd):
+def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, psdr):
     last_id = -1
     current_ind = -1
     n_current = 0
     psd_window_lo = -3
     psd_divider = 11
     psd_window_hi = 50
+    n_samples = 150
     for coord in coords:
         if coord[2] != last_id:
             if last_id > -1:
                 if n_current > 0:
                     out_coords[current_ind] /= n_current
                 multiplicity[current_ind] = n_current
-                psd[current_ind] = calc_psd(out_pulses[current_ind], calc_arrival(out_pulses[current_ind]),
+                pulseleft = out_pulses[current_ind,0:n_samples]
+                pulseright = out_pulses[current_ind,n_samples:2*n_samples]
+                psdl[current_ind] = calc_psd(pulseleft, calc_arrival(pulseleft),
                                             psd_window_lo, psd_window_hi, psd_divider)
+                psdr[current_ind] = calc_psd(pulseright, calc_arrival(pulseright),
+                                         psd_window_lo, psd_window_hi, psd_divider)
             n_current = 0
             last_id = coord[2]
             current_ind += 1
@@ -115,9 +120,13 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psd):
     if n_current > 0:
         out_coords[last_id] /= n_current
     multiplicity[current_ind] = n_current
-    psd[current_ind] = calc_psd(out_pulses[current_ind], calc_arrival(out_pulses[current_ind]), psd_window_lo,
-                                psd_window_hi, psd_divider)
-    return out_coords, out_pulses, multiplicity, psd
+    pulseleft = out_pulses[current_ind, 0:n_samples]
+    pulseright = out_pulses[current_ind, n_samples:2 * n_samples]
+    psdl[current_ind] = calc_psd(pulseleft, calc_arrival(pulseleft),
+                                 psd_window_lo, psd_window_hi, psd_divider)
+    psdr[current_ind] = calc_psd(pulseright, calc_arrival(pulseright),
+                                 psd_window_lo, psd_window_hi, psd_divider)
+    return out_coords, out_pulses, multiplicity, psdl, psdr
 
 
 @nb.jit(nopython=True)
