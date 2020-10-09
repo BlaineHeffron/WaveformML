@@ -96,9 +96,9 @@ def plot_hist2d(xedges,yedges,vals,title,xlabel,ylabel):
     xs = np.zeros((tot,))
     ys = np.zeros((tot,))
     n = 0
-    for i in range(len(xedges)):
+    for i in range(len(xedges)-1):
         x = xwidth * i + xwidth / 2.
-        for j in range(len(yedges)):
+        for j in range(len(yedges)-1):
             y = ywidth * j + ywidth/2.
             w[n] = vals[i,j]
             xs[n] = x
