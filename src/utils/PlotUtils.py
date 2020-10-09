@@ -145,7 +145,7 @@ def plot_wfs(data, n, labels, plot_errors=False):
                      color=tab_colors[i % 10],
                      ls=category_styles[i % len(category_styles)],
                      linewidth=lw,
-                     yerr=errors[i] / tot)
+                     yerr=safe_divide(errors[i], tot))
         else:
             plt.plot(x, safe_divide(y, tot),
                      label=labels[i],
