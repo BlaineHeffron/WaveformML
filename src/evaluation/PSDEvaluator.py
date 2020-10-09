@@ -1,7 +1,7 @@
 import numpy as np
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list
-from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar
+from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d
 from src.utils.util import list_matches, safe_divide
 from numpy import zeros
 
@@ -39,6 +39,9 @@ class PSDEvaluator:
             "ene_psd_acc": (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
         }
+        for c in self.class_names:
+            self.results["ene_psd_prec_{}".format(c)] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
+                                                         zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -70,6 +73,7 @@ class PSDEvaluator:
         feature_names = ["energy", "psd", "psd", "multiplicity"]
         bins_list = [ene_bins, psd_bins, psd_bins, mult_bins]
         missing_classes = False
+        results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
             label_class_inds = list_matches(labels, i)
             preds_class_inds = list_matches(predictions, i)
@@ -83,14 +87,22 @@ class PSDEvaluator:
             if len(preds_class_inds) > 0:
                 self.n_labelled_wfs[i] += np.sum(multiplicity[preds_class_inds])
                 self.summed_labelled_waveforms[i] += np.sum(summed_pulses[preds_class_inds], axis=0)
+            metric_accumulate_2d(results[label_class_inds],
+                                 np.stack((energy[label_class_inds], psdl[label_class_inds]), axis=1),
+                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
+                                 get_typed_list([self.emin, self.emax]),
+                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
+            metric_accumulate_2d(results[label_class_inds],
+                                 np.stack((energy[label_class_inds], psdr[label_class_inds]), axis=1),
+                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
+                                 get_typed_list([self.emin, self.emax]),
+                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
             this_prc = self.pr(output, labels)
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
-
-        results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
 
         metric_accumulate_1d(results, multiplicity, *self.results["mult_acc"], get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
@@ -133,13 +145,21 @@ class PSDEvaluator:
                                                    "multiplicity",
                                                    "accuracy"))
 
+        xwidth = (self.emax - self.emin) / self.n_bins
+        xedges = np.arange(np.self.emin, np.self.emax + xwidth, self.n_bins)
+        ywidth = (1.) / self.n_bins
+        yedges = np.arange(0, 1.0 + ywidth, self.n_bins)
         self.logger.experiment.add_figure("evaluation/EPSD",
-                                          plot_hist2d(self.calc_axis(self.emin, self.emax, self.n_bins),
-                                                      self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
-                                                      self.results["ene_psd_acc"][1][1:self.n_bins + 1,1:self.n_bins + 1],
-                                                      "energy [arb]", "psd", "accuracy"))
-        self.logger.experiment.add_figure()
-
+                                          plot_hist2d(xedges, yedges,
+                                                      self.results["ene_psd_acc"][1][1:self.n_bins + 1,
+                                                      1:self.n_bins + 1],
+                                                      "Total", "Energy [arb]", "PSD [arb]"))
+        for i in range(len(self.class_names)):
+            self.logger.experiment.add_figure("evaluation/EPSD_{}".format(self.class_names[i]),
+                                              plot_hist2d(xedges, yedges,
+                                                          self.results["ene_psd_prec_{}".format(self.class_names[i])][
+                                                              1][1:self.n_bins + 1, 1:self.n_bins + 1],
+                                                          self.class_names[i], "Energy [arb]", "PSD [arb]"))
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
         self.logger.experiment.add_figure("evaluation/average_pulses",
@@ -227,19 +247,25 @@ class PhysEvaluator(PSDEvaluator):
         feature_list = [energy, dt, PEL, PER, z, psd, t0]
         feature_names = ["energy", "rise_time", "PE", "PE", "z", "psd", "start_time"]
         bins_list = [ene_bins, dt_bins, PE_bins, PE_bins, z_bins, psd_bins, t0_bins]
+        results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
-            missing_classes = self.accumulate_class_data(i, labels, predictions, feature_list,
-                                                         feature_names, bins_list)
+            label_class_inds = list_matches(labels, i)
+            preds_class_inds = list_matches(predictions, i)
+            missing_classes = self.accumulate_class_data_with_inds(i, label_class_inds, preds_class_inds, feature_list,
+                                                                   feature_names, bins_list)
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
                                                  max_bins=self.n_bins, bins='fd')
+            metric_accumulate_2d(results[label_class_inds],
+                                 np.stack((energy[label_class_inds], psd[label_class_inds]), axis=1),
+                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
+                                 get_typed_list([self.emin, self.emax]),
+                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
             this_prc = self.pr(output, labels)
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
-
-        results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
 
         """
         print("energy sample: {}".format(energy[0:100]))
@@ -262,6 +288,22 @@ class PhysEvaluator(PSDEvaluator):
                                                                     self.results["ene_psd_acc"][1][1:self.n_bins + 1,
                                                                     1:self.n_bins + 1]),
                                                         "energy [arb]", "psd", "accuracy"))
+
+        xwidth = (self.emax - self.emin) / self.n_bins
+        xedges = np.arange(np.self.emin, np.self.emax + xwidth, self.n_bins)
+        ywidth = (1.) / self.n_bins
+        yedges = np.arange(0, 1.0 + ywidth, self.n_bins)
+        self.logger.experiment.add_figure("evaluation/EPSD",
+                                          plot_hist2d(xedges, yedges,
+                                                      self.results["ene_psd_acc"][1][1:self.n_bins + 1,
+                                                      1:self.n_bins + 1],
+                                                      "Total", "Energy [arb]", "PSD [arb]"))
+        for i in range(len(self.class_names)):
+            self.logger.experiment.add_figure("evaluation/EPSD_{}".format(self.class_names[i]),
+                                              plot_hist2d(xedges, yedges,
+                                                          self.results["ene_psd_prec_{}".format(self.class_names[i])][
+                                                              1][1:self.n_bins + 1, 1:self.n_bins + 1],
+                                                          self.class_names[i], "Energy [arb]", "PSD [arb]"))
         self._init_results()
 
     def calc_axis(self, min, max, n):
