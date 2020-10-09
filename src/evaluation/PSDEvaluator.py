@@ -19,7 +19,7 @@ class PSDEvaluator:
         self.n_bins = 40
         self.n_mult = 20
         self.emin = 0.0
-        self.emax = 5.0
+        self.emax = 400.0
         self.psd_min = 0.0
         self.psd_max = 1.0
         self.nx = 14
@@ -66,7 +66,7 @@ class PSDEvaluator:
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
         energy = np.sum(summed_pulses, axis=1)
         # print("first 10 energy: {}".format(energy[0:10]))
-        ene_bins = np.arange(0,400,10)
+        ene_bins = np.arange(self.emin,self.emax,10)
         psd_bins = np.arange(0.0,1.0,0.025)
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins,bins=ene_bins)
         missing_classes = False
@@ -171,6 +171,7 @@ class PhysEvaluator(PSDEvaluator):
 
     def __init__(self, class_names, logger, device):
         super(PhysEvaluator, self).__init__(class_names, logger, device)
+        self.emax = 20.
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -196,36 +197,39 @@ class PhysEvaluator(PSDEvaluator):
                 missing_classes = True
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
-            self.logger.experiment.add_histogram("evaluation/energy_{}".format(self.class_names[i]),
-                                                 vals, 0, bins=ene_bins)
-            self.logger.experiment.add_histogram("evaluation/psd_{}".format(self.class_names[i]),
-                                                 extract_values(psd, labels, i), 0, bins=psd_bins)
-            self.logger.experiment.add_histogram("evaluation/energy_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(energy, predictions, i), 0, bins=ene_bins)
-            self.logger.experiment.add_histogram("evaluation/psd_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(psd, predictions, i), 0, bins=psd_bins)
-            self.logger.experiment.add_histogram("evaluation/PEL_{}".format(self.class_names[i]),
-                                                 extract_values(PEL, labels, i), 0, bins=PE_bins)
-            self.logger.experiment.add_histogram("evaluation/PER_{}".format(self.class_names[i]),
-                                                 extract_values(PER, labels, i), 0, bins=PE_bins)
-            self.logger.experiment.add_histogram("evaluation/dt_{}".format(self.class_names[i]),
-                                                 extract_values(dt, labels, i), 0, bins=dt_bins)
-            self.logger.experiment.add_histogram("evaluation/z_{}".format(self.class_names[i]),
-                                                 extract_values(z, labels, i), 0, bins=z_bins)
-            self.logger.experiment.add_histogram("evaluation/t0_{}".format(self.class_names[i]),
-                                                 extract_values(t0, labels, i), 0, bins=t0_bins)
-            self.logger.experiment.add_histogram("evaluation/PEL_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(PEL, predictions, i), 0, bins=PE_bins)
-            self.logger.experiment.add_histogram("evaluation/PER_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(PER, predictions, i), 0, bins=PE_bins)
-            self.logger.experiment.add_histogram("evaluation/dt_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(dt, predictions, i), 0, bins=dt_bins)
-            self.logger.experiment.add_histogram("evaluation/z_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(z, predictions, i), 0, bins=z_bins)
-            self.logger.experiment.add_histogram("evaluation/t0_labelled_{}".format(self.class_names[i]),
-                                                 extract_values(t0, predictions, i), 0, bins=t0_bins)
-            self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
-                                                 max_bins=self.n_bins, bins='fd')
+            try:
+                self.logger.experiment.add_histogram("evaluation/energy_{}".format(self.class_names[i]),
+                                                     vals, 0, bins=ene_bins)
+                self.logger.experiment.add_histogram("evaluation/psd_{}".format(self.class_names[i]),
+                                                     extract_values(psd, labels, i), 0, bins=psd_bins)
+                self.logger.experiment.add_histogram("evaluation/energy_labelled_{}".format(self.class_names[i]),
+                                                     extract_values(energy, predictions, i), 0, bins=ene_bins)
+                self.logger.experiment.add_histogram("evaluation/psd_labelled_{}".format(self.class_names[i]),
+                                                     extract_values(psd, predictions, i), 0, bins=psd_bins)
+                self.logger.experiment.add_histogram("evaluation/PEL_{}".format(self.class_names[i]),
+                                                     extract_values(PEL, labels, i), 0, bins=PE_bins)
+                self.logger.experiment.add_histogram("evaluation/PER_{}".format(self.class_names[i]),
+                                                     extract_values(PER, labels, i), 0, bins=PE_bins)
+                self.logger.experiment.add_histogram("evaluation/dt_{}".format(self.class_names[i]),
+                                                     extract_values(dt, labels, i), 0, bins=dt_bins)
+                self.logger.experiment.add_histogram("evaluation/z_{}".format(self.class_names[i]),
+                                                     extract_values(z, labels, i), 0, bins=z_bins)
+                self.logger.experiment.add_histogram("evaluation/t0_{}".format(self.class_names[i]),
+                                                     extract_values(t0, labels, i), 0, bins=t0_bins)
+                self.logger.experiment.add_histogram("evaluation/PEL_labelled_{}".format(self.class_names[i]),
+                                                     extract_values(PEL, predictions, i), 0, bins=PE_bins)
+                self.logger.experiment.add_histogram("evaluation/PER_labelled_{}".format(self.class_names[i]),
+                                                     extract_values(PER, predictions, i), 0, bins=PE_bins)
+                self.logger.experiment.add_histogram("evaluation/dt_labelled_{}".format(self.class_names[i]),
+                                                     extract_values(dt, predictions, i), 0, bins=dt_bins)
+                self.logger.experiment.add_histogram("evaluation/z_labelled_{}".format(self.class_names[i]),
+                                                     extract_values(z, predictions, i), 0, bins=z_bins)
+                self.logger.experiment.add_histogram("evaluation/t0_labelled_{}".format(self.class_names[i]),
+                                                     extract_values(t0, predictions, i), 0, bins=t0_bins)
+                self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
+                                                     max_bins=self.n_bins, bins='fd')
+            except ValueError as e:
+                print(e)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -254,27 +258,6 @@ class PhysEvaluator(PSDEvaluator):
                                                         safe_divide(self.results["ene_psd_acc"][0][1:self.n_bins + 1,1:self.n_bins + 1],
                                                                   self.results["ene_psd_acc"][1][1:self.n_bins + 1, 1:self.n_bins + 1]),
                                                         "energy [arb]", "psd", "accuracy"))
-        self.logger.experiment.add_figure("evaluation/position_accuracy",
-                                          plot_countour(np.arange(1, self.nx + 1, 1), np.arange(1, self.ny + 1, 1),
-                                                        safe_divide(self.results["pos_acc"][0][1:self.nx + 1, 1:self.ny + 1],
-                                                        self.results["pos_acc"][1][1:self.nx + 1, 1:self.ny + 1]),
-                                                        "x", "y", "accuracy"))
-        self.logger.experiment.add_figure("evaluation/multiplicity_accuracy",
-                                          plot_bar(np.arange(1, self.n_mult + 1),
-                                                   safe_divide(self.results["mult_acc"][0][1:self.n_mult + 1],
-                                                   self.results["mult_acc"][1][1:self.n_mult + 1]),
-                                                   "multiplicity",
-                                                   "accuracy"))
-
-        #print("n_wfs  is {0}".format(self.n_wfs))
-        #print("summed waveforms shape is {0}".format(self.summed_waveforms))
-        self.logger.experiment.add_figure("evaluation/average_pulses",
-                                          plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names))
-        self.logger.experiment.add_figure("evaluation/average_pulses_labelled",
-                                          plot_wfs(self.summed_labelled_waveforms, self.n_labelled_wfs[1:], self.class_names))
-        self.logger.experiment.add_figure("evaluation/pulse",
-                                          plot_wfs(np.expand_dims(self.summed_waveforms[0],axis=0), [self.n_wfs[0]],
-                                                   ["total"], plot_errors=True))
         self._init_results()
 
     def calc_axis(self, min, max, n):

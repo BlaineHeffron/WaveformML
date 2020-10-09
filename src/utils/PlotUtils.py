@@ -69,7 +69,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
 def plot_countour(X, Y, Z, xlabel, ylabel, zlabel):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
-    CS = ax.contour(X, Y, Z, cmap=plt.cm.PiYG)
+    CS = ax.contour(X, Y, Z, cmap=plt.cm.BrBG)
     ax.clabel(CS, inline=True, fontsize=12)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
