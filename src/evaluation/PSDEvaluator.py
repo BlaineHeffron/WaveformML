@@ -267,7 +267,7 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
                                                  max_bins=self.n_bins, bins='fd')
             metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((energy[label_class_inds], psd[label_class_inds]), axis=1),
+                                 np.stack((feature_list[0][label_class_inds], feature_list[5][label_class_inds]), axis=1),
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
@@ -278,18 +278,10 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
 
-        """
-        print("energy sample: {}".format(energy[0:100]))
-        print("psd sample: {}".format(psd[0:100]))
-        print("maximum en is ", np.amax(energy))
-        print("maximum psd is ", np.amax(psd))
-        print("minimum en is ", np.amin(energy))
-        print("minimum psd is ", np.amin(psd))
-        """
         metric_accumulate_1d(results, feature_list[7], *self.results["mult_acc"],
                              get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
-        metric_accumulate_2d(results, np.stack((energy, psd), axis=1), *self.results["ene_psd_acc"],
+        metric_accumulate_2d(results, np.stack((feature_list[0], feature_list[5]), axis=1), *self.results["ene_psd_acc"],
                              get_typed_list([self.emin, self.emax]),
                              get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
         metric_accumulate_2d(results, avg_coo, *self.results["pos_acc"], get_typed_list([0.0, float(self.nx)]),
