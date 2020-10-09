@@ -42,7 +42,9 @@ class PSDEvaluator:
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
-        c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), output.detach().cpu().numpy()
+        c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), \
+                                            labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), \
+                                            output.detach().cpu().numpy()
         avg_coo, summed_pulses, multiplicity, psdl, psdr = average_pulse(c, f,
                                                                          zeros((predictions.shape[0], 2)),
                                                                          zeros((predictions.shape[0], f.shape[1],),
@@ -64,7 +66,6 @@ class PSDEvaluator:
         psd_bins = np.arange(0.0, 1.0, 0.025)
         mult_bins = np.arange(0, 20, 1)
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins, bins=ene_bins)
-        missing_classes = False
         feature_list = [energy, psdl, psdr, multiplicity]
         feature_names = ["energy", "psd", "psd", "multiplicity"]
         bins_list = [ene_bins, psd_bins, psd_bins, mult_bins]
@@ -168,15 +169,15 @@ class PSDEvaluator:
         returns: whether or not there are missing classes in either labels or predictions
         """
         missing_classes = False
-        for feat, bins, featnames in zip(feature_list, bins_list, feature_names):
-            self.logger.experiment.add_histogram("evaluation/{0}_{1}".format(feature_names[i], self.class_names[i]),
+        for feat, bins, featname in zip(feature_list, bins_list, feature_names):
+            self.logger.experiment.add_histogram("evaluation/{0}_{1}".format(featname, self.class_names[i]),
                                                  feat[label_class_inds], 0, bins=bins)
             if len(preds_class_inds) == 0:
                 missing_classes = True
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
             self.logger.experiment.add_histogram(
-                "evaluation/{0}_labelled_{1}".format(feature_names, self.class_names[i]),
+                "evaluation/{0}_labelled_{1}".format(featname, self.class_names[i]),
                 feat[preds_class_inds], 0, bins=bins)
         return missing_classes
 
