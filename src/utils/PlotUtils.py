@@ -104,11 +104,11 @@ def plot_hist2d(xedges,yedges,vals,title,xlabel,ylabel):
             xs[n] = x
             ys[n] = y
             n += 1
-    plt.hist2d(xs,ys,bins=[xedges,yedges],weights=w,cmap=plt.cm.BrBG)
+    h = plt.hist2d(xs,ys,bins=[xedges,yedges],weights=w,cmap=plt.cm.BrBG)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    plt.legend(loc="upper right")
+    plt.colorbar(h[3])
     return fig
 
 def plot_roc(data, class_names):
