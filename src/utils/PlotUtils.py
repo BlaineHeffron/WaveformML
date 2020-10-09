@@ -88,7 +88,7 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 
 def plot_hist2d(xedges,yedges,vals,title,xlabel,ylabel):
-    fix, ax = plt.subplots()
+    fig, ax = plt.subplots()
     xwidth = xedges[1]-xedges[0]
     ywidth = yedges[1]-yedges[0]
     tot = vals.shape[0]*vals.shape[1]
