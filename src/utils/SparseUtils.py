@@ -106,12 +106,15 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
     psd_divider = 11
     psd_window_hi = 50
     n_samples = 150
+    pulse_ind = 0
     for coord in coords:
         if coord[2] != last_id:
             if last_id > -1:
-                if n_current > 0:
-                    out_coords[current_ind] /= (tot_l_current+tot_r_current)
+                if (tot_l_current > 0 and tot_r_current > 0):
+                    out_coords[current_ind] /= (tot_l_current + tot_r_current)
+                if (tot_l_current > 0):
                     psdl[current_ind] /= tot_l_current
+                if (tot_r_current > 0):
                     psdr[current_ind] /= tot_r_current
                 multiplicity[current_ind] = n_current
             n_current = 0
@@ -120,8 +123,8 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
             last_id = coord[2]
             current_ind += 1
         n_current += 1
-        pulseleft = out_pulses[current_ind, 0:n_samples]
-        pulseright = out_pulses[current_ind, n_samples:2 * n_samples]
+        pulseleft = pulses[pulse_ind, 0:n_samples]
+        pulseright = pulses[pulse_ind, n_samples:2 * n_samples]
         tot_l = vec_sum(pulseleft)
         tot_r = vec_sum(pulseright)
         tot_l_current += tot_l
@@ -131,14 +134,51 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
         psdr[current_ind] += calc_psd(pulseright, calc_arrival(pulseright),
                                      psd_window_lo, psd_window_hi, psd_divider) * tot_r
         out_coords[current_ind] += coord[0:2]*(tot_l+tot_r)
-        out_pulses[current_ind] += pulses[current_ind]
-    if n_current > 0:
+        out_pulses[current_ind] += pulses[pulse_ind]
+        pulse_ind += 1
+    if(tot_l_current > 0 and tot_r_current > 0):
         out_coords[current_ind] /= (tot_l_current + tot_r_current)
+    if(tot_l_current > 0):
         psdl[current_ind] /= tot_l_current
+    if(tot_r_current > 0):
         psdr[current_ind] /= tot_r_current
     multiplicity[current_ind] = n_current
     return out_coords, out_pulses, multiplicity, psdl, psdr
 
+@nb.jit(nopython=True)
+def weighted_average_quantities(coords, full_quantities, out_quantities, out_coords, n):
+    """
+    out_quantities is list of np.zeros arrays of length batch size
+    out_coords is array of zeros of shape (batch size, 2)
+    n is number of features in full_quantities/out_quantities list
+    """
+    last_id = -1
+    current_ind = -1
+    n_current = 0
+    ene_current = 0
+    quant_ind = 0
+    for coord in coords:
+        if coord[2] != last_id:
+            if last_id > -1:
+                if ene_current > 0:
+                    out_coords[current_ind] /= ene_current
+                    for j in range(n):
+                        out_quantities[j][n_current] /= ene_current
+            n_current = 0
+            ene_current = 0
+            last_id = coord[2]
+            current_ind += 1
+        n_current += 1
+        ene_current += full_quantities[0][quant_ind]
+        out_coords[current_ind] += coord[0:2]*ene_current
+        for j in range(n):
+            out_quantities[j][n_current] += full_quantities[j][quant_ind]
+        quant_ind += 1
+    if ene_current > 0:
+        out_coords[current_ind] /= ene_current
+        for j in range(n):
+            out_quantities[j][n_current] /= ene_current
+    return out_coords, out_quantities
 
 @nb.jit(nopython=True)
 def calc_arrival(fdat):

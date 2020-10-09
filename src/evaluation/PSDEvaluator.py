@@ -1,6 +1,6 @@
 import numpy as np
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
-    get_typed_list
+    get_typed_list, weighted_average_quantities
 from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d
 from src.utils.util import list_matches, safe_divide
 from numpy import zeros
@@ -248,8 +248,11 @@ class PhysEvaluator(PSDEvaluator):
         self.logger.experiment.add_histogram("evaluation/energy", f[:, 0] * 300., 0, max_bins=self.n_bins,
                                              bins=ene_bins)
         missing_classes = False
-        feature_list = [energy, dt, PEL, PER, z, psd, t0]
-        feature_names = ["energy", "rise_time", "PE", "PE", "z", "psd", "start_time"]
+        full_feature_list = [energy, dt, PEL, PER, z, psd, t0, np.ones((energy.shape[0],))]
+        feature_names = ["energy", "rise_time", "PE", "PE", "z", "psd", "start_time", "multiplicity"]
+        feature_list = [zeros((predictions.shape[0],), dtype=np.float32) for i in range(len(full_feature_list))]
+        avg_coo, feature_list = weighted_average_quantities(c, full_feature_list, feature_list,
+                                                            zeros((predictions.shape[0], 2)), 8)
         bins_list = [ene_bins, dt_bins, PE_bins, PE_bins, z_bins, psd_bins, t0_bins]
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
@@ -283,9 +286,14 @@ class PhysEvaluator(PSDEvaluator):
         print("minimum en is ", np.amin(energy))
         print("minimum psd is ", np.amin(psd))
         """
+        metric_accumulate_1d(results, feature_list[8], *self.results["mult_acc"],
+                             get_typed_list([0.5, self.n_mult + 0.5]),
+                             self.n_mult)
         metric_accumulate_2d(results, np.stack((energy, psd), axis=1), *self.results["ene_psd_acc"],
                              get_typed_list([self.emin, self.emax]),
                              get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
+        metric_accumulate_2d(results, avg_coo, *self.results["pos_acc"], get_typed_list([0.0, float(self.nx)]),
+                             get_typed_list([0.0, float(self.ny)]), self.nx, self.ny)
 
     def dump(self):
         self.logger.experiment.add_figure("evaluation/energy_psd_accuracy",
@@ -296,7 +304,18 @@ class PhysEvaluator(PSDEvaluator):
                                                                     self.results["ene_psd_acc"][1][1:self.n_bins + 1,
                                                                     1:self.n_bins + 1]),
                                                         "energy [arb]", "psd", "accuracy"))
-
+        self.logger.experiment.add_figure("evaluation/position_accuracy",
+                                          plot_countour(np.arange(1, self.nx + 1, 1), np.arange(1, self.ny + 1, 1),
+                                                        safe_divide(
+                                                            self.results["pos_acc"][0][1:self.nx + 1, 1:self.ny + 1],
+                                                            self.results["pos_acc"][1][1:self.nx + 1, 1:self.ny + 1]),
+                                                        "x", "y", "accuracy"))
+        self.logger.experiment.add_figure("evaluation/multiplicity_accuracy",
+                                          plot_bar(np.arange(1, self.n_mult + 1),
+                                                   safe_divide(self.results["mult_acc"][0][1:self.n_mult + 1],
+                                                               self.results["mult_acc"][1][1:self.n_mult + 1]),
+                                                   "multiplicity",
+                                                   "accuracy"))
         xwidth = (self.emax - self.emin) / self.n_bins
         xedges = np.arange(self.emin, self.emax + xwidth, xwidth)
         ywidth = (1.) / self.n_bins
