@@ -2,7 +2,7 @@ from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
 from torch import argmax, sum
-from src.evaluation.PSDEvaluator import PSDEvaluator
+from src.evaluation.PSDEvaluator import PSDEvaluator, PhysEvaluator
 import logging
 
 N_CHANNELS = 14
@@ -40,7 +40,10 @@ class LitPSD(pl.LightningModule):
         self.softmax = LogSoftmax(dim=1)
         self.accuracy = Accuracy(num_classes=self.n_type)
         self.confusion = ConfusionMatrix()
-        self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
+        if self.config.dataset_config.dataset_class == "PulseDataset":
+            self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
+        else:
+            self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
