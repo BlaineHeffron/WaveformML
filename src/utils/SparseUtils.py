@@ -155,7 +155,7 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
     last_id = -1
     current_ind = -1
     n_current = 0
-    ene_current = 0
+    ene_current = 0.0
     quant_ind = 0
     for coord in coords:
         if coord[2] != last_id:
@@ -163,21 +163,21 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
                 if ene_current > 0:
                     out_coords[current_ind] /= ene_current
                     for j in range(n):
-                        out_quantities[j,n_current] /= ene_current
+                        out_quantities[j,current_ind] /= ene_current
             n_current = 0
-            ene_current = 0
+            ene_current = 0.0
             last_id = coord[2]
             current_ind += 1
         n_current += 1
         ene_current += full_quantities[0,quant_ind]
         out_coords[current_ind] += coord[0:2]*ene_current
         for j in range(n):
-            out_quantities[j,n_current] += full_quantities[j,quant_ind]
+            out_quantities[j,current_ind] += full_quantities[j,quant_ind]
         quant_ind += 1
     if ene_current > 0:
         out_coords[current_ind] /= ene_current
         for j in range(n):
-            out_quantities[j,n_current] /= ene_current
+            out_quantities[j,current_ind] /= ene_current
     return out_coords, out_quantities
 
 @nb.jit(nopython=True)
