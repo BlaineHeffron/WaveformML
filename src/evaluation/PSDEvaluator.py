@@ -137,7 +137,7 @@ class PSDEvaluator:
         self.logger.experiment.add_figure("evaluation/average_pulses",
                                           plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names))
         self.logger.experiment.add_figure("evaluation/average_pulses_labelled",
-                                          plot_wfs(self.summed_labelled_waveforms, self.n_labelled_wfs[1:],
+                                          plot_wfs(self.summed_labelled_waveforms, self.n_labelled_wfs,
                                                    self.class_names))
         self.logger.experiment.add_figure("evaluation/pulse",
                                           plot_wfs(np.expand_dims(self.summed_waveforms[0], axis=0), [self.n_wfs[0]],
