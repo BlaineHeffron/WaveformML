@@ -2,14 +2,10 @@ import numpy as np
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list
 from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar
-from src.utils.util import list_matches
+from src.utils.util import list_matches, safe_divide
 from numpy import zeros
 
 from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecallCurve
-
-
-def safe_divide(a, b):
-    return np.divide(a, b, out=np.zeros_like(a), where=b != 0)
 
 
 class PSDEvaluator:

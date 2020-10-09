@@ -478,3 +478,6 @@ def replace_file_pattern(fname, pattern, newpattern):
         newstr = newstr.replace(p1, p2, 1)
     return newstr
 
+
+def safe_divide(a, b):
+    return np.divide(a, b, out=np.zeros_like(a), where=b != 0)

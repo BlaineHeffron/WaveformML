@@ -4,6 +4,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 
+from src.utils.util import safe_divide
+
 mpl.use('Agg')
 
 # initialize globals
@@ -138,14 +140,14 @@ def plot_wfs(data, n, labels, plot_errors=False):
         tot = n[i]
         if plot_errors:
             errors = np.sqrt(y)
-            plt.plot(x, y / tot,
+            plt.plot(x, safe_divide(y, tot),
                      label=labels[i],
                      color=tab_colors[i % 10],
                      ls=category_styles[i % len(category_styles)],
                      linewidth=lw,
                      yerr=errors[i] / tot)
         else:
-            plt.plot(x, y / tot,
+            plt.plot(x, safe_divide(y, tot),
                      label=labels[i],
                      color=tab_colors[i % 10],
                      ls=category_styles[i % len(category_styles)],
