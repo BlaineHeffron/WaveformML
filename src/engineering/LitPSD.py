@@ -40,7 +40,7 @@ class LitPSD(pl.LightningModule):
         self.softmax = LogSoftmax(dim=1)
         self.accuracy = Accuracy(num_classes=self.n_type)
         self.confusion = ConfusionMatrix()
-        if self.config.dataset_config.dataset_class == "PulseDataset":
+        if self.config.dataset_config.dataset_class == "PulseDatasetDet":
             self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
         else:
             self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
