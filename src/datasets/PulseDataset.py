@@ -647,7 +647,8 @@ class PulseDatasetDet(PulseDataset):
                          model_dir=model_dir,
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
-                         use_half=use_half)
+                         use_half=use_half,
+                         normalize=False)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
