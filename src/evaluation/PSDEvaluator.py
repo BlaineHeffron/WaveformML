@@ -150,9 +150,9 @@ class PSDEvaluator:
                                                    "accuracy"))
 
         xwidth = (self.emax - self.emin) / self.n_bins
-        xedges = np.arange(self.emin, self.emax + xwidth, self.n_bins)
+        xedges = np.arange(self.emin, self.emax + xwidth, xwidth)
         ywidth = (1.) / self.n_bins
-        yedges = np.arange(0, 1.0 + ywidth, self.n_bins)
+        yedges = np.arange(0, 1.0 + ywidth, ywidth)
         self.logger.experiment.add_figure("evaluation/EPSD",
                                           plot_hist2d(xedges, yedges,
                                                       self.results["ene_psd_acc"][1][1:self.n_bins + 1,
@@ -298,9 +298,9 @@ class PhysEvaluator(PSDEvaluator):
                                                         "energy [arb]", "psd", "accuracy"))
 
         xwidth = (self.emax - self.emin) / self.n_bins
-        xedges = np.arange(self.emin, self.emax + xwidth, self.n_bins)
+        xedges = np.arange(self.emin, self.emax + xwidth, xwidth)
         ywidth = (1.) / self.n_bins
-        yedges = np.arange(0, 1.0 + ywidth, self.n_bins)
+        yedges = np.arange(0, 1.0 + ywidth, ywidth)
         self.logger.experiment.add_figure("evaluation/EPSD",
                                           plot_hist2d(xedges, yedges,
                                                       self.results["ene_psd_acc"][1][1:self.n_bins + 1,
