@@ -149,7 +149,7 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
 def weighted_average_quantities(coords, full_quantities, out_quantities, out_coords, n):
     """
     full_quantities is  features vector with first dimension the feature, second dimension the entries
-    assumed energy is at index 0 and psd at 1
+    assumed energy is at index 0 and psd at 1, multiplicity (vector of 1s) at index n-1
     out_quantities is np.array of shape (number features, batch size)
     out_coords is array of zeros of shape (batch size, 2)
     n is number of features in full_quantities/out_quantities list
@@ -164,8 +164,10 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
             if last_id > -1:
                 if ene_current > 0:
                     out_coords[current_ind] /= ene_current
-                    for j in range(2,n):
+                    for j in range(1,n-1):
                         out_quantities[j,current_ind] /= ene_current
+                    out_quantities[n - 1, current_ind] = n_current
+                    out_quantities[0, current_ind] = ene_current
             n_current = 0
             ene_current = 0.0
             last_id = coord[2]
@@ -173,13 +175,15 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
         n_current += 1
         ene_current += full_quantities[0,quant_ind]
         out_coords[current_ind] += coord[0:2]*ene_current
-        for j in range(n):
-            out_quantities[j,current_ind] += full_quantities[j,quant_ind]
+        for j in range(1,n-1):
+            out_quantities[j,current_ind] += full_quantities[j,quant_ind]*full_quantities[0,quant_ind]
         quant_ind += 1
     if ene_current > 0:
         out_coords[current_ind] /= ene_current
-        for j in range(2,n):
+        for j in range(1,n-1):
             out_quantities[j,current_ind] /= ene_current
+        out_quantities[n - 1, current_ind] = n_current
+        out_quantities[0, current_ind] = ene_current
     return out_coords, out_quantities
 
 @nb.jit(nopython=True)
