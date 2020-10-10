@@ -177,8 +177,8 @@ class PSDEvaluator:
                                                    ["total"], plot_errors=True))
         self._init_results()
 
-    def calc_axis(self, min, max, n):
-        return np.arange(min, max, (max - min) / n) + (max - min) / (2 * n)
+    def calc_axis(self, amin, amax, n):
+        return np.arange(amin, amax, (amax - amin) / n) + (amax - amin) / (2 * n)
 
     def accumulate_class_data(self, i, labels, predictions, feature_list, feature_names, bins_list):
         label_class_inds = list_matches(labels, i)
@@ -268,7 +268,7 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
                                                  max_bins=self.n_bins, bins='fd')
             metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((feature_list[0][label_class_inds], feature_list[5][label_class_inds]),
+                                 np.stack((feature_list[0, label_class_inds], feature_list[5, label_class_inds]),
                                           axis=1),
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
@@ -328,5 +328,5 @@ class PhysEvaluator(PSDEvaluator):
                                                           self.class_names[i], "Energy [arb]", "PSD [arb]"))
         self._init_results()
 
-    def calc_axis(self, min, max, n):
-        return np.arange(min, max, (max - min) / n) + (max - min) / (2 * n)
+    def calc_axis(self, amin, max, n):
+        return np.arange(amin, max, (max - amin) / n) + (max - amin) / (2 * n)
