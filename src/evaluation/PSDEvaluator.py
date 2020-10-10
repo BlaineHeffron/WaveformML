@@ -165,6 +165,17 @@ class PSDEvaluator:
                                                           self.results["ene_psd_prec_{}".format(self.class_names[i])][
                                                               1][1:self.n_bins + 1, 1:self.n_bins + 1],
                                                           self.class_names[i], "Energy [arb]", "PSD [arb]"))
+            self.logger.experiment.add_figure("evaluation/energy_psd_precision_{}".format(self.class_names[i]),
+                                          plot_countour(self.calc_axis(self.emin, self.emax, self.n_bins),
+                                                        self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
+                                                        safe_divide(
+                                                            self.results["ene_psd_prec_{}".format(self.class_names[i])][
+                                                                0][1:self.n_bins + 1,
+                                                            1:self.n_bins + 1],
+                                                            self.results["ene_psd_prec_{}".format(self.class_names[i])][
+                                                                1][1:self.n_bins + 1,
+                                                            1:self.n_bins + 1]),
+                                                        "energy [MeV]", "psd", "accuracy"))
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
         self.logger.experiment.add_figure("evaluation/average_pulses",
@@ -249,8 +260,8 @@ class PhysEvaluator(PSDEvaluator):
         self.logger.experiment.add_histogram("evaluation/energy", f[:, 0] * 300., 0, max_bins=self.n_bins,
                                              bins=ene_bins)
         missing_classes = False
-        full_feature_list = np.stack((energy, dt, PEL, PER, z, psd, t0, np.ones((energy.shape[0],))), axis=0)
-        feature_names = ["energy", "rise_time", "PE", "PE", "z", "psd", "start_time", "multiplicity"]
+        full_feature_list = np.stack((energy, psd, dt, PEL, PER, z, t0, np.ones((energy.shape[0],))), axis=0)
+        feature_names = ["energy", "psd", "rise_time", "PE", "PE", "z", "start_time", "multiplicity"]
         feature_list = zeros((full_feature_list.shape[0], predictions.shape[0]), dtype=np.float32)
         avg_coo, feature_list = weighted_average_quantities(c, full_feature_list, feature_list,
                                                             zeros((predictions.shape[0], 2)), 8)
@@ -268,7 +279,7 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
                                                  max_bins=self.n_bins, bins='fd')
             metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((feature_list[0][label_class_inds], feature_list[5][label_class_inds]),
+                                 np.stack((feature_list[0][label_class_inds], feature_list[1][label_class_inds]),
                                           axis=1),
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
@@ -283,7 +294,7 @@ class PhysEvaluator(PSDEvaluator):
         metric_accumulate_1d(results, feature_list[7], *self.results["mult_acc"],
                              get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
-        metric_accumulate_2d(results, np.stack((feature_list[0], feature_list[5]), axis=1),
+        metric_accumulate_2d(results, np.stack((feature_list[0], feature_list[1]), axis=1),
                              *self.results["ene_psd_acc"],
                              get_typed_list([self.emin, self.emax]),
                              get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
@@ -298,7 +309,7 @@ class PhysEvaluator(PSDEvaluator):
                                                                     1:self.n_bins + 1],
                                                                     self.results["ene_psd_acc"][1][1:self.n_bins + 1,
                                                                     1:self.n_bins + 1]),
-                                                        "energy [arb]", "psd", "accuracy"))
+                                                        "energy [MeV]", "psd", "accuracy"))
         self.logger.experiment.add_figure("evaluation/position_accuracy",
                                           plot_countour(np.arange(1, self.nx + 1, 1), np.arange(1, self.ny + 1, 1),
                                                         safe_divide(
@@ -319,13 +330,22 @@ class PhysEvaluator(PSDEvaluator):
                                           plot_hist2d(xedges, yedges,
                                                       self.results["ene_psd_acc"][1][1:self.n_bins + 1,
                                                       1:self.n_bins + 1],
-                                                      "Total", "Energy [arb]", "PSD [arb]"))
+                                                      "Total", "Energy [MeV]", "PSD [arb]"))
         for i in range(len(self.class_names)):
             self.logger.experiment.add_figure("evaluation/EPSD_{}".format(self.class_names[i]),
                                               plot_hist2d(xedges, yedges,
                                                           self.results["ene_psd_prec_{}".format(self.class_names[i])][
                                                               1][1:self.n_bins + 1, 1:self.n_bins + 1],
-                                                          self.class_names[i], "Energy [arb]", "PSD [arb]"))
+                                                          self.class_names[i], "Energy [MeV]", "PSD [arb]"))
+
+            self.logger.experiment.add_figure("evaluation/energy_psd_precision_{}".format(self.class_names[i]),
+                                          plot_countour(self.calc_axis(self.emin, self.emax, self.n_bins),
+                                                        self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
+                                                        safe_divide(self.results["ene_psd_prec_{}".format(self.class_names[i])][0][1:self.n_bins + 1,
+                                                                    1:self.n_bins + 1],
+                                                                    self.results["ene_psd_prec_{}".format(self.class_names[i])][1][1:self.n_bins + 1,
+                                                                    1:self.n_bins + 1]),
+                                                        "energy [MeV]", "psd", "accuracy"))
         self._init_results()
 
     def calc_axis(self, amin, max, n):

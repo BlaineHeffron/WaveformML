@@ -148,6 +148,8 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
 @nb.jit(nopython=True)
 def weighted_average_quantities(coords, full_quantities, out_quantities, out_coords, n):
     """
+    full_quantities is  features vector with first dimension the feature, second dimension the entries
+    assumed energy is at index 0 and psd at 1
     out_quantities is np.array of shape (number features, batch size)
     out_coords is array of zeros of shape (batch size, 2)
     n is number of features in full_quantities/out_quantities list
@@ -162,7 +164,7 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
             if last_id > -1:
                 if ene_current > 0:
                     out_coords[current_ind] /= ene_current
-                    for j in range(1,n):
+                    for j in range(2,n):
                         out_quantities[j,current_ind] /= ene_current
             n_current = 0
             ene_current = 0.0
@@ -176,7 +178,7 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
         quant_ind += 1
     if ene_current > 0:
         out_coords[current_ind] /= ene_current
-        for j in range(1,n):
+        for j in range(2,n):
             out_quantities[j,current_ind] /= ene_current
     return out_coords, out_quantities
 
