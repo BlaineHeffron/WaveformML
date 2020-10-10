@@ -175,7 +175,7 @@ class PSDEvaluator:
                                                             self.results["ene_psd_prec_{}".format(self.class_names[i])][
                                                                 1][1:self.n_bins + 1,
                                                             1:self.n_bins + 1]),
-                                                        "energy [MeV]", "psd", "accuracy"))
+                                                        "energy [MeV]", "psd", "precision"))
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
         self.logger.experiment.add_figure("evaluation/average_pulses",
@@ -345,7 +345,7 @@ class PhysEvaluator(PSDEvaluator):
                                                                     1:self.n_bins + 1],
                                                                     self.results["ene_psd_prec_{}".format(self.class_names[i])][1][1:self.n_bins + 1,
                                                                     1:self.n_bins + 1]),
-                                                        "energy [MeV]", "psd", "accuracy"))
+                                                        "energy [MeV]", "psd", "precision"))
         self._init_results()
 
     def calc_axis(self, amin, max, n):
