@@ -265,7 +265,7 @@ class PhysEvaluator(PSDEvaluator):
         feature_list = zeros((full_feature_list.shape[0], predictions.shape[0]), dtype=np.float32)
         avg_coo, feature_list = weighted_average_quantities(c, full_feature_list, feature_list,
                                                             zeros((predictions.shape[0], 2)), 8)
-        bins_list = [ene_bins, dt_bins, PE_bins, PE_bins, z_bins, psd_bins, t0_bins, np.arange(0, 21, 1)]
+        bins_list = [ene_bins, psd_bins, dt_bins, PE_bins, PE_bins, z_bins, t0_bins, np.arange(0, 21, 1)]
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
             label_class_inds = list_matches(labels, i)
