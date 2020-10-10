@@ -268,7 +268,7 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
                                                  max_bins=self.n_bins, bins='fd')
             metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((feature_list[0, label_class_inds], feature_list[5, label_class_inds]),
+                                 np.stack((feature_list[0][label_class_inds], feature_list[5][label_class_inds]),
                                           axis=1),
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
