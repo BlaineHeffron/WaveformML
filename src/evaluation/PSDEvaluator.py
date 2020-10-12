@@ -260,11 +260,11 @@ class PhysEvaluator(PSDEvaluator):
         self.logger.experiment.add_histogram("evaluation/energy", f[:, 0] * 300., 0, max_bins=self.n_bins,
                                              bins=ene_bins)
         missing_classes = False
-        full_feature_list = np.stack((energy, psd, dt, PEL, PER, z, t0, np.ones((energy.shape[0],))), axis=0)
-        feature_names = ["energy", "psd", "rise_time", "PE", "PE", "z", "start_time", "multiplicity"]
+        full_feature_list = np.stack((energy, psd, dt, PEL, PER, z, t0), axis=0)
+        feature_names = ["energy", "psd", "rise_time", "PE", "PE", "z", "start_time"]
         feature_list = zeros((full_feature_list.shape[0], predictions.shape[0]), dtype=np.float32)
-        avg_coo, feature_list = weighted_average_quantities(c, full_feature_list, feature_list,
-                                                            zeros((predictions.shape[0], 2)), 8)
+        avg_coo, feature_list, mult = weighted_average_quantities(c, full_feature_list, feature_list,
+                                                            zeros((predictions.shape[0], 2)), zeros((predictions.shape[0], 2)), 8)
         bins_list = [ene_bins, psd_bins, dt_bins, PE_bins, PE_bins, z_bins, t0_bins, np.arange(0, 21, 1)]
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
@@ -291,7 +291,7 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
 
-        metric_accumulate_1d(results, feature_list[7], *self.results["mult_acc"],
+        metric_accumulate_1d(results, mult, *self.results["mult_acc"],
                              get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
         metric_accumulate_2d(results, np.stack((feature_list[0], feature_list[1]), axis=1),
