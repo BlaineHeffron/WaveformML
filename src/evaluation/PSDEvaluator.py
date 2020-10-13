@@ -1,7 +1,7 @@
 import numpy as np
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list, weighted_average_quantities
-from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d
+from src.utils.PlotUtils import plot_countour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d
 from src.utils.util import list_matches, safe_divide, get_bins
 from numpy import zeros
 
@@ -270,6 +270,8 @@ class PhysEvaluator(PSDEvaluator):
         avg_coo, feature_list, mult = weighted_average_quantities(c, full_feature_list, feature_list,
                                                                   zeros((predictions.shape[0], 2)),
                                                                   zeros((predictions.shape[0],)), 8)
+        feature_list.append(mult)
+        feature_names.append("multiplicity")
         bins_list = [ene_bins, psd_bins, dt_bins, PE_bins, PE_bins, z_bins, t0_bins, np.arange(0, 21, 1)]
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
@@ -335,19 +337,20 @@ class PhysEvaluator(PSDEvaluator):
                                           plot_hist2d(xedges, yedges,
                                                       self.results["ene_psd_acc"][1][1:self.n_bins + 1,
                                                       1:self.n_bins + 1],
-                                                      "Total", "Energy [MeV]", "PSD [arb]"))
+                                                      "Total", "Energy [MeV]", "PSD [arb]",
+                                                      r'# Pulses [$MeV^{-1}PSD^{-1}$'))
 
-        self.logger.experiment.add_figure("evaluation/EPSD",
-                                          plot_hist1d(xedges, yedges,
-                                                      self.results["ene_psd_acc"][1][1:self.n_bins + 1,
-                                                      1:self.n_bins + 1],
-                                                      "Total", "Energy [MeV]", "PSD [arb]"))
+        self.logger.experiment.add_figure("evaluation/multiplicity",
+                                          plot_hist1d(np.arange(0,21,1),
+                                                      self.results["mult_acc"][1][1:self.n_mult + 1],
+                                                      "Total", "Multiplicity", False))
         for i in range(len(self.class_names)):
             self.logger.experiment.add_figure("evaluation/EPSD_{}".format(self.class_names[i]),
                                               plot_hist2d(xedges, yedges,
                                                           self.results["ene_psd_prec_{}".format(self.class_names[i])][
                                                               1][1:self.n_bins + 1, 1:self.n_bins + 1],
-                                                          self.class_names[i], "Energy [MeV]", "PSD [arb]"))
+                                                          self.class_names[i], "Energy [MeV]", "PSD [arb]",
+                                                          r'# Pulses [$MeV^{-1}PSD^{-1}$'))
 
             self.logger.experiment.add_figure("evaluation/energy_psd_precision_{}".format(self.class_names[i]),
                                               plot_countour(self.calc_axis(self.emin, self.emax, self.n_bins),
