@@ -270,7 +270,7 @@ class PhysEvaluator(PSDEvaluator):
         avg_coo, feature_list, mult = weighted_average_quantities(c, full_feature_list, feature_list,
                                                                   zeros((predictions.shape[0], 2)),
                                                                   zeros((predictions.shape[0],)), 8)
-        feature_list.append(mult)
+        feature_list = np.stack((feature_list[0],feature_list[1],feature_list[2],feature_list[3],feature_list[4],feature_list[5],feature_list[6],mult), axis=0)
         feature_names.append("multiplicity")
         bins_list = [ene_bins, psd_bins, dt_bins, PE_bins, PE_bins, z_bins, t0_bins, np.arange(0, 21, 1)]
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
