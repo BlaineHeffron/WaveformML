@@ -24,7 +24,7 @@ class TBHelper:
 
     def get_best_value(self,scalar_name):
         if scalar_name not in self.ea.Tags()['scalars']:
-            raise RuntimeError("No {0} foound in file {1}".format(scalar_name,self.f))
+            return None
 
         else:
             best = 100000.

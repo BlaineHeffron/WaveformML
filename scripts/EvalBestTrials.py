@@ -15,9 +15,10 @@ def get_best_logfile(logfiles):
     for f in logfiles:
         t = TBHelper(str(f.resolve()))
         a = t.get_best_value("epoch_val_loss")
-        if a < best:
-            best = a
-            best_file = str(f.resolve())
+        if a is not None:
+            if a < best:
+                best = a
+                best_file = str(f.resolve())
     return best_file
 
 def peek(iterable):
