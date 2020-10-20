@@ -64,7 +64,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    fig.subplots_adjust(bottom=0.15)
+    fig.subplots_adjust(bottom=0.18)
     return fig
 
 
@@ -112,7 +112,7 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     cb = plt.colorbar(h[3])
-    cb.set_label(zlabel, rotation=270)
+    #cb.set_label(zlabel, rotation=270)
     return fig
 
 
