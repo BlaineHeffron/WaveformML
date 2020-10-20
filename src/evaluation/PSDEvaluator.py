@@ -16,9 +16,9 @@ class PSDEvaluator:
         self.n_bins = 100
         self.n_mult = 20
         self.emin = 0.0
-        self.emax = 20.0
+        self.emax = 5.0
         self.psd_min = 0.0
-        self.psd_max = 1.0
+        self.psd_max = 0.6
         self.nx = 14
         self.ny = 11
         self.class_names = class_names
