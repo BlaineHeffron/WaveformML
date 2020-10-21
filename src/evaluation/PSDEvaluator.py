@@ -365,7 +365,7 @@ class PhysEvaluator(PSDEvaluator):
                                                                         self.results["ene_psd_prec_{}".format(
                                                                             self.class_names[i])][1][1:self.n_bins + 1,
                                                                         1:self.n_bins + 1]),
-                                                            "energy [MeV]", "psd", "precision"))
+                                                            "energy [MeV]", "psd", "{0} precision".format(self.class_names[i])))
         self._init_results()
 
     def calc_axis(self, amin, max, n):

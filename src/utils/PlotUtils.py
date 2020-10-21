@@ -75,7 +75,7 @@ def plot_countour(X, Y, Z, xlabel, ylabel, zlabel):
     ax.clabel(CS, inline=True, fontsize=12)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title("{} distribution".format(zlabel))
+    ax.set_title(zlabel)
     return fig
 
 
