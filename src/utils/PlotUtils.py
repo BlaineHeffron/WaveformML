@@ -72,22 +72,24 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
 
 
 def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
-    nrows = len(title)
-    fig, axes = plt.subplots(ceil(nrows / 3), 3)
+    n_categories = len(title)
+    nrows = ceil((n_categories-1)/3)
+    fig_height = 6.0
+    fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height*3.9,fig_height*nrows))
     if suptitle is not None:
         fig.suptitle(suptitle, fontsize=TITLE_SIZE)
-    for z, t, i in zip(Z, title, range(nrows)):
+    for z, t, i in zip(Z, title, range(n_categories)):
         z = np.transpose(z)
         CS = axes[int(floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
         axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
         axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
         if i % 3 == 0:
             axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
-        if floor(i / 3) == floor(nrows / 3):
+        if floor(i / 3) == floor(n_categories / 3):
             axes[int(floor(i / 3)), i % 3].set_xlabel(xlabel)
     i = 0
     for ax in fig.get_axes():
-        if i == nrows:
+        if i == n_categories:
             break
         ax.label_outer()
         i += 1
@@ -114,13 +116,15 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 
 def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
-    nrows = len(title)
-    fig, axes = plt.subplots(ceil(nrows / 3), 3)
+    n_categories = len(title)
+    nrows = ceil((n_categories-1)/3)
+    fig_height = 6.0
+    fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height*3.9,fig_height*nrows))
     if suptitle is not None:
         fig.suptitle(suptitle, fontsize=TITLE_SIZE)
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
-    for m in range(nrows):
+    for m in range(n_categories):
         if norm_to_bin_width:
             vals[m] = vals[m].astype(np.float32)
             vals[m] *= 1. / (xwidth * ywidth)
@@ -138,7 +142,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
                 ys[n] = y
                 n += 1
         h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
-        if floor(m / 3) == floor(nrows / 3):
+        if floor(m / 3) == floor(n_categories / 3):
             axes[floor(m / 3), m % 3].set_xlabel(xlabel)
         if m % 3 == 0:
             axes[floor(m / 3), m % 3].set_ylabel(ylabel)
@@ -147,7 +151,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
     i = 0
 
     for ax in fig.get_axes():
-        if i == nrows:
+        if i == n_categories:
             break
         ax.label_outer()
         i += 1
