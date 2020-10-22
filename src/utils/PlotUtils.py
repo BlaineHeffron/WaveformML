@@ -2,6 +2,7 @@ import itertools
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from math import ceil, floor
 from collections import OrderedDict
 
 from src.utils.util import safe_divide
@@ -71,20 +72,20 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
 
 def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
     nrows = len(title)
-    fig, axes = plt.subplots(np.ceil(nrows / 3), 3)
+    fig, axes = plt.subplots(ceil(nrows / 3), 3)
     if suptitle is not None:
         fig.suptitle(suptitle)
     for z, t, i in zip(Z, title, range(nrows)):
         z = np.transpose(z)
-        CS = axes[int(np.floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
-        axes[int(np.floor(i / 3)), i % 3].clabel(CS, inline=True)
-        axes[int(np.floor(i / 3)), i % 3].set_title(t)
+        CS = axes[int(floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
+        axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
+        axes[int(floor(i / 3)), i % 3].set_title(t)
         if i % 3 == 0:
-            axes[int(np.floor(i / 3)), i % 3].set_ylabel(ylabel)
-        if np.floor(i / 3) == np.floor(nrows / 3):
-            axes[int(np.floor(i / 3)), i % 3].set_xlabel(xlabel)
+            axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
+        if floor(i / 3) == floor(nrows / 3):
+            axes[int(floor(i / 3)), i % 3].set_xlabel(xlabel)
     i = 0
-    for ax in axes:
+    for ax in fig.get_axes():
         if i == nrows:
             break
         ax.label_outer()
@@ -113,7 +114,7 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
     nrows = len(title)
-    fig, axes = plt.subplots(np.ceil(nrows / 3), 3)
+    fig, axes = plt.subplots(ceil(nrows / 3), 3)
     if suptitle is not None:
         fig.suptitle(suptitle)
     xwidth = xedges[1] - xedges[0]
@@ -135,11 +136,18 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
                 xs[n] = x
                 ys[n] = y
                 n += 1
-        h = axes[np.floor(i / 3), i % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
-        axes[np.floor(i / 3), i % 3].set_xlabel(xlabel)
-        axes[np.floor(i / 3), i % 3].set_ylabel(ylabel)
-        axes[np.floor(i / 3), i % 3].set_title(title[i])
-        cb = plt.colorbar(h[3])
+        h = axes[floor(i / 3), i % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+        axes[floor(i / 3), i % 3].set_xlabel(xlabel)
+        axes[floor(i / 3), i % 3].set_ylabel(ylabel)
+        axes[floor(i / 3), i % 3].set_title(title[i])
+        axes[floor(i / 3), i % 3].colorbar(h[3])
+    i = 0
+
+    for ax in fig.get_axes():
+        if i == nrows:
+            break
+        ax.label_outer()
+        i += 1
     # cb.set_label(zlabel, rotation=270)
     return fig
 
