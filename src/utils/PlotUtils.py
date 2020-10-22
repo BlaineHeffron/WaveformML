@@ -7,6 +7,7 @@ from collections import OrderedDict
 from src.utils.util import safe_divide
 
 mpl.use('Agg')
+plt.rcParams['font.size'] = '18'
 
 # initialize globals
 cmaps = OrderedDict()
@@ -69,20 +70,19 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
 
 
 def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
-    fontsize = 18
     nrows = len(title)
-    fig, axes = plt.subplots(np.ceil(nrows / 3), 3, fontsize=fontsize)
+    fig, axes = plt.subplots(np.ceil(nrows / 3), 3)
     if suptitle is not None:
         fig.suptitle(suptitle)
     for z, t, i in zip(Z, title, range(nrows)):
         z = np.transpose(z)
         CS = axes[int(np.floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
-        axes[int(np.floor(i / 3)), i % 3].clabel(CS, inline=True, fontsize=fontsize)
-        axes[int(np.floor(i / 3)), i % 3].set_title(t, fontsize=fontsize)
+        axes[int(np.floor(i / 3)), i % 3].clabel(CS, inline=True)
+        axes[int(np.floor(i / 3)), i % 3].set_title(t)
         if i % 3 == 0:
-            axes[int(np.floor(i / 3)), i % 3].set_ylabel(ylabel, fontsize=fontsize)
+            axes[int(np.floor(i / 3)), i % 3].set_ylabel(ylabel)
         if np.floor(i / 3) == np.floor(nrows / 3):
-            axes[int(np.floor(i / 3)), i % 3].set_xlabel(xlabel, fontsize=fontsize)
+            axes[int(np.floor(i / 3)), i % 3].set_xlabel(xlabel)
     i = 0
     for ax in axes:
         if i == nrows:
@@ -94,7 +94,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
 
 def plot_contour(X, Y, Z, xlabel, ylabel, title):
     Z = np.transpose(Z)
-    fig, ax = plt.subplots(fontsize=18)
+    fig, ax = plt.subplots()
     CS = ax.contour(X, Y, Z, cmap=plt.cm.BrBG)
     ax.clabel(CS, inline=True, fontsize=12)
     ax.set_xlabel(xlabel)
@@ -104,7 +104,7 @@ def plot_contour(X, Y, Z, xlabel, ylabel, title):
 
 
 def plot_bar(X, Y, xlabel, ylabel):
-    fig, ax = plt.subplots(fontsize=18)
+    fig, ax = plt.subplots()
     plt.bar(X, Y)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -112,9 +112,8 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 
 def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
-    fontsize = 18
     nrows = len(title)
-    fig, axes = plt.subplots(np.ceil(nrows / 3), 3, fontsize=fontsize)
+    fig, axes = plt.subplots(np.ceil(nrows / 3), 3)
     if suptitle is not None:
         fig.suptitle(suptitle)
     xwidth = xedges[1] - xedges[0]
@@ -146,7 +145,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
 
 
 def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True):
-    fig, ax = plt.subplots(fontsize=18)
+    fig, ax = plt.subplots()
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
     if norm_to_bin_width:
@@ -175,7 +174,7 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
 
 
 def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
-    fig, ax = plt.subplots(fontsize=18)
+    fig, ax = plt.subplots()
     xwidth = xedges[1] - xedges[0]
     if norm_to_bin_width:
         vals = vals.astype(np.float32)
@@ -198,7 +197,7 @@ def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
 def plot_roc(data, class_names):
     # Plot all ROC curves
     lw = 4
-    fig, ax = plt.subplots(fontsize=18)
+    fig, ax = plt.subplots()
     for i, classd in enumerate(data):
         plt.plot(classd[0], classd[1],
                  label=class_names[i],
@@ -218,7 +217,7 @@ def plot_roc(data, class_names):
 def plot_pr(data, class_names):
     # Plot all ROC curves
     lw = 4
-    fig, ax = plt.subplots(fontsize=18)
+    fig, ax = plt.subplots()
     for i, classd in enumerate(data):
         plt.plot(classd[1], classd[0],
                  label=class_names[i],
@@ -238,7 +237,7 @@ def plot_pr(data, class_names):
 def plot_wfs(data, n, labels, plot_errors=False):
     lw = 2
     data *= (2 ** 14 - 1)
-    fig, ax = plt.subplots(fontsize=18)
+    fig, ax = plt.subplots()
     x = np.arange(2, 600, 4)
     for i in range(len(labels)):
         if data.shape[1] == 2 * x.shape[0]:
