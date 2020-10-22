@@ -68,27 +68,85 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     return fig
 
 
-def plot_countour(X, Y, Z, xlabel, ylabel, zlabel):
+def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
+    fontsize = 18
+    nrows = len(title)
+    fig, axes = plt.subplots(np.ceil(nrows / 3), 3, fontsize=fontsize)
+    if suptitle is not None:
+        fig.suptitle(suptitle)
+    for z, t, i in zip(Z, title, range(nrows)):
+        z = np.transpose(z)
+        CS = axes[int(np.floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
+        axes[int(np.floor(i / 3)), i % 3].clabel(CS, inline=True, fontsize=fontsize)
+        axes[int(np.floor(i / 3)), i % 3].set_title(t, fontsize=fontsize)
+        if i % 3 == 0:
+            axes[int(np.floor(i / 3)), i % 3].set_ylabel(ylabel, fontsize=fontsize)
+        if np.floor(i / 3) == np.floor(nrows / 3):
+            axes[int(np.floor(i / 3)), i % 3].set_xlabel(xlabel, fontsize=fontsize)
+    i = 0
+    for ax in axes:
+        if i == nrows:
+            break
+        ax.label_outer()
+        i += 1
+    return fig
+
+
+def plot_contour(X, Y, Z, xlabel, ylabel, title):
     Z = np.transpose(Z)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(fontsize=18)
     CS = ax.contour(X, Y, Z, cmap=plt.cm.BrBG)
     ax.clabel(CS, inline=True, fontsize=12)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(zlabel)
+    ax.set_title(title)
     return fig
 
 
 def plot_bar(X, Y, xlabel, ylabel):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(fontsize=18)
     plt.bar(X, Y)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     return fig
 
 
+def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
+    fontsize = 18
+    nrows = len(title)
+    fig, axes = plt.subplots(np.ceil(nrows / 3), 3, fontsize=fontsize)
+    if suptitle is not None:
+        fig.suptitle(suptitle)
+    xwidth = xedges[1] - xedges[0]
+    ywidth = yedges[1] - yedges[0]
+    for i in range(len(title)):
+        if norm_to_bin_width:
+            vals[i] = vals[i].astype(np.float32)
+            vals[i] *= 1. / (xwidth * ywidth)
+        tot = vals[i].shape[0] * vals[i].shape[1]
+        w = np.zeros((tot,))
+        xs = np.zeros((tot,))
+        ys = np.zeros((tot,))
+        n = 0
+        for i in range(len(xedges) - 1):
+            x = xwidth * i + xwidth / 2.
+            for j in range(len(yedges) - 1):
+                y = ywidth * j + ywidth / 2.
+                w[n] = vals[i][i, j]
+                xs[n] = x
+                ys[n] = y
+                n += 1
+        h = axes[np.floor(i / 3), i % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+        axes[np.floor(i / 3), i % 3].set_xlabel(xlabel)
+        axes[np.floor(i / 3), i % 3].set_ylabel(ylabel)
+        axes[np.floor(i / 3), i % 3].set_title(title[i])
+        cb = plt.colorbar(h[3])
+    # cb.set_label(zlabel, rotation=270)
+    return fig
+
+
 def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(fontsize=18)
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
     if norm_to_bin_width:
@@ -112,12 +170,12 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     cb = plt.colorbar(h[3])
-    #cb.set_label(zlabel, rotation=270)
+    # cb.set_label(zlabel, rotation=270)
     return fig
 
 
 def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(fontsize=18)
     xwidth = xedges[1] - xedges[0]
     if norm_to_bin_width:
         vals = vals.astype(np.float32)
@@ -140,7 +198,7 @@ def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
 def plot_roc(data, class_names):
     # Plot all ROC curves
     lw = 4
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(fontsize=18)
     for i, classd in enumerate(data):
         plt.plot(classd[0], classd[1],
                  label=class_names[i],
@@ -160,7 +218,7 @@ def plot_roc(data, class_names):
 def plot_pr(data, class_names):
     # Plot all ROC curves
     lw = 4
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(fontsize=18)
     for i, classd in enumerate(data):
         plt.plot(classd[1], classd[0],
                  label=class_names[i],
@@ -180,7 +238,7 @@ def plot_pr(data, class_names):
 def plot_wfs(data, n, labels, plot_errors=False):
     lw = 2
     data *= (2 ** 14 - 1)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(fontsize=18)
     x = np.arange(2, 600, 4)
     for i in range(len(labels)):
         if data.shape[1] == 2 * x.shape[0]:
