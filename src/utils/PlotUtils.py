@@ -81,12 +81,13 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
     for z, t, i in zip(Z, title, range(n_categories)):
         z = np.transpose(z)
         CS = axes[int(floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
-        axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
+        #axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
         axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
         if i % 3 == 0:
             axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
         if floor(i / 3) == floor(n_categories / 3):
             axes[int(floor(i / 3)), i % 3].set_xlabel(xlabel)
+        plt.colorbar(CS, ax=axes[floor(i / 3), i % 3])
     i = 0
     for ax in fig.get_axes():
         if i == n_categories:
