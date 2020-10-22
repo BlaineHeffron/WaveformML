@@ -8,7 +8,8 @@ from collections import OrderedDict
 from src.utils.util import safe_divide
 
 mpl.use('Agg')
-plt.rcParams['font.size'] = '18'
+plt.rcParams['font.size'] = '14'
+TITLE_SIZE = 16
 
 # initialize globals
 cmaps = OrderedDict()
@@ -74,12 +75,12 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
     nrows = len(title)
     fig, axes = plt.subplots(ceil(nrows / 3), 3)
     if suptitle is not None:
-        fig.suptitle(suptitle)
+        fig.suptitle(suptitle, fontsize=TITLE_SIZE)
     for z, t, i in zip(Z, title, range(nrows)):
         z = np.transpose(z)
         CS = axes[int(floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
         axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
-        axes[int(floor(i / 3)), i % 3].set_title(t)
+        axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
         if i % 3 == 0:
             axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
         if floor(i / 3) == floor(nrows / 3):
@@ -100,7 +101,7 @@ def plot_contour(X, Y, Z, xlabel, ylabel, title):
     ax.clabel(CS, inline=True, fontsize=12)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
+    ax.set_title(title, fontsize=TITLE_SIZE)
     return fig
 
 
@@ -116,7 +117,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
     nrows = len(title)
     fig, axes = plt.subplots(ceil(nrows / 3), 3)
     if suptitle is not None:
-        fig.suptitle(suptitle)
+        fig.suptitle(suptitle, fontsize=TITLE_SIZE)
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
     for m in range(nrows):
@@ -141,8 +142,8 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             axes[floor(m / 3), m % 3].set_xlabel(xlabel)
         if m % 3 == 0:
             axes[floor(m / 3), m % 3].set_ylabel(ylabel)
-        axes[floor(m / 3), m % 3].set_title(title[m])
-        plt.colorbar(h[3], cax=axes[floor(m / 3), m % 3])
+        axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
+        plt.colorbar(h[3])
     i = 0
 
     for ax in fig.get_axes():
@@ -177,7 +178,7 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
     h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
+    ax.set_title(title, fontsize=TITLE_SIZE)
     plt.colorbar(h[3])
     # cb.set_label(zlabel, rotation=270)
     return fig
@@ -199,7 +200,7 @@ def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
     h = plt.hist(xs, bins=xedges, weights=vals, cmap=plt.cm.BrBG)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
+    ax.set_title(title, fontsize=TITLE_SIZE)
     plt.colorbar(h[3])
     return fig
 
