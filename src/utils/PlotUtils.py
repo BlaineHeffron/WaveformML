@@ -142,7 +142,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
         if m % 3 == 0:
             axes[floor(m / 3), m % 3].set_ylabel(ylabel)
         axes[floor(m / 3), m % 3].set_title(title[m])
-        axes[floor(m / 3), m % 3].colorbar(h[3])
+        plt.colorbar(h[3], cax=axes[floor(m / 3), m % 3])
     i = 0
 
     for ax in fig.get_axes():
@@ -178,7 +178,7 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    cb = plt.colorbar(h[3])
+    plt.colorbar(h[3])
     # cb.set_label(zlabel, rotation=270)
     return fig
 
