@@ -68,7 +68,7 @@ class PSDEvaluator:
         # print("first 10 energy: {}".format(energy[0:10]))
 
         ene_bins = get_bins(self.emin, self.emax, self.n_bins)
-        psd_bins = get_bins(0., 1., self.n_bins)
+        psd_bins = get_bins(self.psd_min, self.psd_max, self.n_bins)
         mult_bins = np.arange(0, 21, 1)
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins, bins=ene_bins)
         feature_list = [energy, psdl, psdr, multiplicity]
@@ -153,8 +153,8 @@ class PSDEvaluator:
 
         xwidth = (self.emax - self.emin) / self.n_bins
         xedges = np.arange(self.emin, self.emax + xwidth, xwidth)
-        ywidth = (1.) / self.n_bins
-        yedges = np.arange(0, 1.0 + ywidth, ywidth)
+        ywidth = (self.psd_max - self.psd_min) / self.n_bins
+        yedges = np.arange(self.psd_min, self.psd_max + ywidth, ywidth)
         self.logger.experiment.add_figure("evaluation/EPSD",
                                           plot_hist2d(xedges, yedges,
                                                       self.results["ene_psd_acc"][1][1:self.n_bins + 1,
@@ -254,7 +254,7 @@ class PhysEvaluator(PSDEvaluator):
         (c, f), labels = batch
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), output.detach().cpu().numpy()
         ene_bins = get_bins(self.emin, self.emax, self.n_bins)
-        psd_bins = get_bins(0., 1., self.n_bins)
+        psd_bins = get_bins(self.psd_min, self.psd_max, self.n_bins)
         PE_bins = np.arange(0, 500, 10)
         z_bins = np.arange(-1000, 1000, 10)
         dt_bins = np.arange(-90., 90., 10)
@@ -337,8 +337,8 @@ class PhysEvaluator(PSDEvaluator):
                                                    "accuracy"))
         xwidth = (self.emax - self.emin) / self.n_bins
         xedges = np.arange(self.emin, self.emax + xwidth, xwidth)
-        ywidth = (1.) / self.n_bins
-        yedges = np.arange(0, 1.0 + ywidth, ywidth)
+        ywidth = (self.psd_max - self.psd_min) / self.n_bins
+        yedges = np.arange(self.psd_min, self.psd_max + ywidth, ywidth)
         self.logger.experiment.add_figure("evaluation/EPSD",
                                           plot_hist2d(xedges, yedges,
                                                       self.results["ene_psd_acc"][1][1:self.n_bins + 1,
