@@ -119,11 +119,11 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
         fig.suptitle(suptitle)
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
-    for i in range(len(title)):
+    for m in range(nrows):
         if norm_to_bin_width:
-            vals[i] = vals[i].astype(np.float32)
-            vals[i] *= 1. / (xwidth * ywidth)
-        tot = vals[i].shape[0] * vals[i].shape[1]
+            vals[m] = vals[m].astype(np.float32)
+            vals[m] *= 1. / (xwidth * ywidth)
+        tot = vals[m].shape[0] * vals[m].shape[1]
         w = np.zeros((tot,))
         xs = np.zeros((tot,))
         ys = np.zeros((tot,))
@@ -132,15 +132,17 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             x = xwidth * i + xwidth / 2.
             for j in range(len(yedges) - 1):
                 y = ywidth * j + ywidth / 2.
-                w[n] = vals[i][i, j]
+                w[n] = vals[m][i, j]
                 xs[n] = x
                 ys[n] = y
                 n += 1
-        h = axes[floor(i / 3), i % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
-        axes[floor(i / 3), i % 3].set_xlabel(xlabel)
-        axes[floor(i / 3), i % 3].set_ylabel(ylabel)
-        axes[floor(i / 3), i % 3].set_title(title[i])
-        axes[floor(i / 3), i % 3].colorbar(h[3])
+        h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+        if floor(m / 3) == floor(nrows / 3):
+            axes[floor(m / 3), m % 3].set_xlabel(xlabel)
+        if m % 3 == 0:
+            axes[floor(m / 3), m % 3].set_ylabel(ylabel)
+        axes[floor(m / 3), m % 3].set_title(title[m])
+        axes[floor(m / 3), m % 3].colorbar(h[3])
     i = 0
 
     for ax in fig.get_axes():
