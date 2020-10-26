@@ -14,5 +14,5 @@ def get_gains(db_path, calgroup):
     for row in cursor:
         seg = int(row[0])
         gains[seg % 14, floor(seg / 14), 0] = abs(row[1])
-        gains[seg % 14, floor(seg / 14), 2] = abs(row[2])
+        gains[seg % 14, floor(seg / 14), 1] = abs(row[2])
     return gains
