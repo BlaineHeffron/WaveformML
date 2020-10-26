@@ -206,12 +206,10 @@ class PSDEvaluator:
         self.logger.experiment.add_figure("evaluation/energy_precision",
                                           plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),
                                                         [safe_divide(self.results["ene_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_bins + 1,
-                                                                     1:self.n_bins + 1],
+                                                            self.class_names[i])][0][1:self.n_bins + 1],
                                                                      self.results["ene_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_bins + 1,
-                                                                     1:self.n_bins + 1]) for i in
-                                                         range(len(self.class_names))],
+                                                                         self.class_names[i])][1][1:self.n_bins + 1]
+                                                                     ) for i in range(len(self.class_names))],
                                                         self.ene_label, "precision", self.class_names,
                                                         norm_to_bin_width=False))
 
@@ -409,15 +407,14 @@ class PhysEvaluator(PSDEvaluator):
                                                                       1:self.n_bins + 1]) for i in
                                                           range(len(self.class_names))],
                                                          "Energy [MeV]", "PSD", self.class_names))
+
         self.logger.experiment.add_figure("evaluation/energy_precision",
                                           plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),
                                                         [safe_divide(self.results["ene_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_bins + 1,
-                                                                     1:self.n_bins + 1],
+                                                            self.class_names[i])][0][1:self.n_bins + 1],
                                                                      self.results["ene_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_bins + 1,
-                                                                     1:self.n_bins + 1]) for i in
-                                                         range(len(self.class_names))],
+                                                                         self.class_names[i])][1][1:self.n_bins + 1]
+                                                                     ) for i in range(len(self.class_names))],
                                                         self.ene_label, "precision", self.class_names,
                                                         norm_to_bin_width=False))
 
