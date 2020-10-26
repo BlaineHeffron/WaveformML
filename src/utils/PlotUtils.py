@@ -2,6 +2,7 @@ import itertools
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 from math import ceil, floor
 from collections import OrderedDict
 
@@ -85,7 +86,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
         z = np.transpose(z)
         # axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
         if n_categories < 4:
-            CS = axes[i].contour(X, Y, z, cmap=plt.cm.BrBG)
+            CS = axes[i].contourf(X, Y, z, cmap=plt.cm.BrBG)
             axes[i].set_title(t, fontsize=TITLE_SIZE)
             if i == 0:
                 axes[i].set_ylabel(ylabel)
@@ -94,7 +95,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
             axes[i].set_xlabel(xlabel)
             plt.colorbar(CS, ax=axes[i])
         else:
-            CS = axes[int(floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
+            CS = axes[int(floor(i / 3)), i % 3].contourf(X, Y, z, cmap=plt.cm.BrBG)
             axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
             if i % 3 == 0:
                 axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
@@ -119,7 +120,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
 def plot_contour(X, Y, Z, xlabel, ylabel, title):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
-    CS = ax.contour(X, Y, Z, cmap=plt.cm.BrBG)
+    CS = ax.contourf(X, Y, Z, cmap=plt.cm.BrBG)
     ax.clabel(CS, inline=True, fontsize=12)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -184,7 +185,7 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
     return fig
 
 
-def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
+def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logz = True):
     n_categories = len(title)
     nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
@@ -214,7 +215,10 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
                 ys[n] = y
                 n += 1
         if n_categories < 4:
-            h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+            if logz:
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG, norm=LogNorm())
+            else:
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[m].set_xlabel(xlabel)
             else:
@@ -226,7 +230,10 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             axes[m].set_title(title[m], fontsize=TITLE_SIZE)
             plt.colorbar(h[3], ax=axes[m])
         else:
-            h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+            if logz:
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG, norm=LogNorm())
+            else:
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[floor(m / 3), m % 3].set_xlabel(xlabel)
             else:
@@ -249,7 +256,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
     return fig
 
 
-def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True):
+def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True, logz=True):
     fig, ax = plt.subplots()
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
@@ -269,7 +276,10 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
             xs[n] = x
             ys[n] = y
             n += 1
-    h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+    if logz:
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG, norm=LogNorm())
+    else:
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=TITLE_SIZE)
