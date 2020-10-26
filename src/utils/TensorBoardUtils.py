@@ -35,8 +35,12 @@ class TBHelper:
 
 
 
-def run_evaluation(log_folder,config,ckpt):
+def run_evaluation(log_folder,config,ckpt, calgroup=None):
     config = get_config(config)
+    if calgroup:
+        if hasattr(config.dataset_config, "calgroup"):
+            print("Warning: overriding calgroup {0} with user supplied calgroup {1}".format(config.dataset_config.calgroup,calgroup))
+        config.dataset_config.calgroup = calgroup
     vnum = get_tb_logdir_version(str(ckpt))
     logger = TensorBoardLogger(dirname(dirname(log_folder)), name=basename(dirname(log_folder)), version=vnum)
     print("Creating new log file in directory {}".format(logger.log_dir))

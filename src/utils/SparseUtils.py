@@ -96,7 +96,7 @@ def metric_accumulate_2d(metric, category, output, out_n, xrange, yrange, nbinsx
 
 
 @nb.jit(nopython=True)
-def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, psdr):
+def average_pulse(coords, pulses, gains, out_coords, out_pulses, multiplicity, psdl, psdr):
     last_id = -1
     current_ind = -1
     n_current = 0
@@ -123,8 +123,10 @@ def average_pulse(coords, pulses, out_coords, out_pulses, multiplicity, psdl, ps
             last_id = coord[2]
             current_ind += 1
         n_current += 1
-        pulseleft = pulses[pulse_ind, 0:n_samples]
-        pulseright = pulses[pulse_ind, n_samples:2 * n_samples]
+        pulseleft = pulses[pulse_ind, 0:n_samples]*gains[coord[0],coord[1],0]
+        pulseright = pulses[pulse_ind, n_samples:2 * n_samples]*gains[coord[0],coord[1],1]
+        pulses[pulse_ind, 0:n_samples] = pulseleft
+        pulses[pulse_ind, n_samples:2 * n_samples] = pulseright
         tot_l = vec_sum(pulseleft)
         tot_r = vec_sum(pulseright)
         tot_l_current += tot_l

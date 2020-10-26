@@ -1,9 +1,14 @@
+import os
+
 import numpy as np
+
+from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list, weighted_average_quantities
 from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
     plot_n_contour, plot_n_hist2d
 from src.utils.util import list_matches, safe_divide, get_bins
+from src.datasets.HDF5Dataset import MAX_RANGE
 from numpy import zeros
 
 from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecallCurve
@@ -11,7 +16,7 @@ from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPr
 
 class PSDEvaluator:
 
-    def __init__(self, class_names, logger, device):
+    def __init__(self, class_names, logger, device, calgroup=None):
         self.logger = logger
         self.device = device
         self.n_bins = 100
@@ -22,6 +27,7 @@ class PSDEvaluator:
         self.psd_max = 0.6
         self.nx = 14
         self.ny = 11
+        self.ene_label = "Energy [arb]"
         self.class_names = class_names
         self.n_classes = len(self.class_names)
         self.roc = MulticlassROC(num_classes=self.n_classes)
@@ -31,6 +37,18 @@ class PSDEvaluator:
         self.n_labelled_wfs = [0] * self.n_classes
         self.summed_labelled_waveforms = []
         self._init_results()
+        if calgroup is not None:
+            if "PROSPECT_CALDB" not in os.environ.keys():
+                raise ValueError(
+                    "Error: could not find PROSPECT_CALDB environment variable. Please set PROSPECT_CALDB to be the path of the sqlite3 calibration database.")
+            gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
+            self.gain_factor = np.divide(np.full((14, 11, 2), MAX_RANGE), gains)
+            self.calibrated = True
+            self.emax = 9.0
+            self.ene_label = "Energy [MeVee]"
+        else:
+            self.gain_factor = np.ones((14, 11, 2))
+            self.calibrated = False
 
     def _init_results(self):
         self.results = {
@@ -49,7 +67,7 @@ class PSDEvaluator:
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), \
                                             labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), \
                                             output.detach().cpu().numpy()
-        avg_coo, summed_pulses, multiplicity, psdl, psdr = average_pulse(c, f,
+        avg_coo, summed_pulses, multiplicity, psdl, psdr = average_pulse(c, f, self.gain_factor,
                                                                          zeros((predictions.shape[0], 2)),
                                                                          zeros((predictions.shape[0], f.shape[1],),
                                                                                dtype=np.float32),
@@ -137,7 +155,7 @@ class PSDEvaluator:
                                                                    1:self.n_bins + 1],
                                                                    self.results["ene_psd_acc"][1][1:self.n_bins + 1,
                                                                    1:self.n_bins + 1]),
-                                                       "energy [arb]", "psd", "accuracy"))
+                                                       self.ene_label, "psd", "accuracy"))
         self.logger.experiment.add_figure("evaluation/position_accuracy",
                                           plot_contour(np.arange(1, self.nx + 1, 1), np.arange(1, self.ny + 1, 1),
                                                        safe_divide(
@@ -159,7 +177,7 @@ class PSDEvaluator:
                                           plot_hist2d(xedges, yedges,
                                                       self.results["ene_psd_acc"][1][1:self.n_bins + 1,
                                                       1:self.n_bins + 1],
-                                                      "Total", "Energy [arb]", "PSD",
+                                                      "Total", self.ene_label, "PSD",
                                                       r'# Pulses [$MeV^{-1}PSD^{-1}$'))
 
         self.logger.experiment.add_figure("evaluation/EPSD_classes",
@@ -168,7 +186,7 @@ class PSDEvaluator:
                                                              1][1:self.n_bins + 1, 1:self.n_bins + 1] for i in
                                                          range(len(self.class_names))],
                                                         self.class_names,
-                                                        "Energy [arb]", "PSD"))
+                                                        self.ene_label, "PSD"))
 
         self.logger.experiment.add_figure("evaluation/energy_psd_precision",
                                           plot_n_contour(self.calc_axis(self.emin, self.emax, self.n_bins),
@@ -180,7 +198,7 @@ class PSDEvaluator:
                                                                           self.class_names[i])][1][1:self.n_bins + 1,
                                                                       1:self.n_bins + 1]) for i in
                                                           range(len(self.class_names))],
-                                                         "Energy [arb]", "PSD", self.class_names))
+                                                         self.ene_label, "PSD", self.class_names))
 
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
@@ -248,7 +266,8 @@ class PhysEvaluator(PSDEvaluator):
 
     def __init__(self, class_names, logger, device):
         super(PhysEvaluator, self).__init__(class_names, logger, device)
-        self.emax = 10.
+        self.ene_label = "Energy [MeV]"
+        self.emax = 9.
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch

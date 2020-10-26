@@ -50,6 +50,7 @@ def main():
     parser.add_argument("--config", "-c",
                         help="Use a config file to find best trials.",
                         type=str)
+    parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
     args = parser.parse_args()
     mydirs = []
     if (args.dir):
@@ -78,7 +79,10 @@ def main():
                 print("no log files found for {0}".format(logdir))
             conf, ckpt = get_corresponding_config_ckpt(best_file)
             print("Evaluating best trial from {}".format(s.resolve()))
-            run_evaluation(logdir, conf, ckpt)
+            if args.calgroup:
+                run_evaluation(logdir, conf, ckpt, args.calgroup)
+            else:
+                run_evaluation(logdir, conf, ckpt)
 
         #print("not implemented yet")
         # cpfiles = p.glob("**/*.ckpt")

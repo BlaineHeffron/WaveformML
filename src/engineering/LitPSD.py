@@ -43,7 +43,11 @@ class LitPSD(pl.LightningModule):
         if self.config.dataset_config.dataset_class == "PulseDatasetDet":
             self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
         else:
-            self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
+            if hasattr(self.config.dataset_config, "calgroup"):
+                self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device,
+                                              calgroup=self.config.dataset_config.calgroup)
+            else:
+                self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)

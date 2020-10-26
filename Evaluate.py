@@ -15,8 +15,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="path to config file")
     parser.add_argument("checkpoint", help="path to checkpoint file")
+    parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
     args = parser.parse_args()
     config = get_config(args.config)
+    if args.calgroup:
+        if hasattr(config.dataset_config, "calgroup"):
+            print("Warning: overriding calgroup {0} with user supplied calgroup {1}".format(config.dataset_config.calgroup,args.calgroup))
+        config.dataset_config.calgroup = args.calgroup
     log_folder = dirname(args.config)
     p = Path(log_folder)
     cp = p.glob('*.tfevents.*')
