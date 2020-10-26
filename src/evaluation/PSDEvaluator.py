@@ -6,7 +6,7 @@ from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list, weighted_average_quantities
 from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
-    plot_n_contour, plot_n_hist2d
+    plot_n_contour, plot_n_hist2d, plot_n_hist1d
 from src.utils.util import list_matches, safe_divide, get_bins
 from src.datasets.HDF5Dataset import MAX_RANGE
 from numpy import zeros
@@ -44,7 +44,7 @@ class PSDEvaluator:
             gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
             self.gain_factor = np.divide(np.full((14, 11, 2), MAX_RANGE), gains)
             self.calibrated = True
-            self.emax = 9.0
+            self.emax = 10.0
             self.ene_label = "Energy [MeVee]"
         else:
             self.gain_factor = np.ones((14, 11, 2))
@@ -53,6 +53,7 @@ class PSDEvaluator:
     def _init_results(self):
         self.results = {
             "mult_acc": (zeros((self.n_mult + 2,), dtype=np.float32), zeros((self.n_mult + 2,), dtype=np.int32)),
+            "ene_acc": (zeros((self.n_bins + 2,), dtype=np.float32), zeros((self.n_bins + 2,), dtype=np.int32)),
             "pos_acc": (
                 zeros((self.nx + 2, self.ny + 2), dtype=np.float32), zeros((self.nx + 2, self.ny + 2), dtype=np.int32)),
             "ene_psd_acc": (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
@@ -61,6 +62,8 @@ class PSDEvaluator:
         for c in self.class_names:
             self.results["ene_psd_prec_{}".format(c)] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
                                                          zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
+            self.results["ene_prec_{}".format(c)] = (zeros((self.n_bins + 2,), dtype=np.float32),
+                                                     zeros((self.n_bins + 2,), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -82,7 +85,7 @@ class PSDEvaluator:
                 np.zeros((self.n_classes, summed_pulses[1].size), np.float32)
         self.n_wfs[0] += np.sum(multiplicity)
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
-        energy = np.sum(summed_pulses, axis=1)
+        energy = np.sum(summed_pulses, axis=1) / 2.
         # print("first 10 energy: {}".format(energy[0:10]))
 
         ene_bins = get_bins(self.emin, self.emax, self.n_bins)
@@ -116,11 +119,11 @@ class PSDEvaluator:
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
-            metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((energy[label_class_inds], psdr[label_class_inds]), axis=1),
-                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
+            metric_accumulate_1d(results[label_class_inds],
+                                 energy[label_class_inds],
+                                 *self.results["ene_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
-                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
+                                 self.n_bins)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -200,6 +203,18 @@ class PSDEvaluator:
                                                           range(len(self.class_names))],
                                                          self.ene_label, "PSD", self.class_names))
 
+        self.logger.experiment.add_figure("evaluation/energy_precision",
+                                          plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),
+                                                        [safe_divide(self.results["ene_prec_{}".format(
+                                                            self.class_names[i])][0][1:self.n_bins + 1,
+                                                                     1:self.n_bins + 1],
+                                                                     self.results["ene_prec_{}".format(
+                                                                         self.class_names[i])][1][1:self.n_bins + 1,
+                                                                     1:self.n_bins + 1]) for i in
+                                                         range(len(self.class_names))],
+                                                        self.ene_label, "precision", self.class_names,
+                                                        norm_to_bin_width=False))
+
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
         self.logger.experiment.add_figure("evaluation/average_pulses",
@@ -267,7 +282,7 @@ class PhysEvaluator(PSDEvaluator):
     def __init__(self, class_names, logger, device):
         super(PhysEvaluator, self).__init__(class_names, logger, device)
         self.ene_label = "Energy [MeV]"
-        self.emax = 9.
+        self.emax = 10.
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -316,6 +331,11 @@ class PhysEvaluator(PSDEvaluator):
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
+            metric_accumulate_1d(results[label_class_inds],
+                                 feature_list[0][label_class_inds],
+                                 *self.results["ene_prec_{}".format(self.class_names[i])],
+                                 get_typed_list([self.emin, self.emax]),
+                                 self.n_bins)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -389,6 +409,17 @@ class PhysEvaluator(PSDEvaluator):
                                                                       1:self.n_bins + 1]) for i in
                                                           range(len(self.class_names))],
                                                          "Energy [MeV]", "PSD", self.class_names))
+        self.logger.experiment.add_figure("evaluation/energy_precision",
+                                          plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),
+                                                        [safe_divide(self.results["ene_prec_{}".format(
+                                                            self.class_names[i])][0][1:self.n_bins + 1,
+                                                                     1:self.n_bins + 1],
+                                                                     self.results["ene_prec_{}".format(
+                                                                         self.class_names[i])][1][1:self.n_bins + 1,
+                                                                     1:self.n_bins + 1]) for i in
+                                                         range(len(self.class_names))],
+                                                        self.ene_label, "precision", self.class_names,
+                                                        norm_to_bin_width=False))
 
         self._init_results()
 

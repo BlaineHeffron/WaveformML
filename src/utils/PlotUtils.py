@@ -116,6 +116,43 @@ def plot_bar(X, Y, xlabel, ylabel):
     return fig
 
 
+def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
+    n_categories = len(title)
+    nrows = ceil((n_categories-1)/3)
+    fig_height = 4.0
+    fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height*3.9,fig_height*nrows))
+    if suptitle is not None:
+        fig.suptitle(suptitle, fontsize=TITLE_SIZE)
+    xwidth = xedges[1] - xedges[0]
+    for m in range(n_categories):
+        if norm_to_bin_width:
+            vals[m] = vals[m].astype(np.float32)
+            vals[m] /= xwidth
+        tot = vals[m].shape[0]
+        w = np.zeros((tot,))
+        xs = np.zeros((tot,))
+        n = 0
+        for i in range(len(xedges) - 1):
+            x = xwidth * i + xwidth / 2.
+            w[n] = vals[m][i]
+            xs[n] = x
+            n += 1
+        h = axes[floor(m / 3), m % 3].hist1d(xs, bins=xedges, weights=w, cmap=plt.cm.BrBG)
+        if floor(m / 3) == floor(n_categories / 3):
+            axes[floor(m / 3), m % 3].set_xlabel(xlabel)
+        if m % 3 == 0:
+            axes[floor(m / 3), m % 3].set_ylabel(ylabel)
+        axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
+        plt.colorbar(h[3], ax=axes[floor(m / 3), m % 3])
+    i = 0
+    for ax in fig.get_axes():
+        if i == n_categories:
+            break
+        ax.label_outer()
+        i += 1
+    # cb.set_label(zlabel, rotation=270)
+    return fig
+
 def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
     n_categories = len(title)
     nrows = ceil((n_categories-1)/3)
