@@ -85,7 +85,7 @@ class PSDEvaluator:
                 np.zeros((self.n_classes, summed_pulses[1].size), np.float32)
         self.n_wfs[0] += np.sum(multiplicity)
         self.summed_waveforms[0] += np.sum(summed_pulses, axis=0)
-        energy = np.sum(summed_pulses, axis=1) / 2.
+        energy = np.sum(summed_pulses, axis=1) * 0.5
         # print("first 10 energy: {}".format(energy[0:10]))
 
         ene_bins = get_bins(self.emin, self.emax, self.n_bins)
@@ -210,7 +210,7 @@ class PSDEvaluator:
                                                                      self.results["ene_prec_{}".format(
                                                                          self.class_names[i])][1][1:self.n_bins + 1]
                                                                      ) for i in range(len(self.class_names))],
-                                                        self.ene_label, "precision", self.class_names,
+                                                        self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False))
 
         # print("n_wfs  is {0}".format(self.n_wfs))
@@ -415,7 +415,7 @@ class PhysEvaluator(PSDEvaluator):
                                                                      self.results["ene_prec_{}".format(
                                                                          self.class_names[i])][1][1:self.n_bins + 1]
                                                                      ) for i in range(len(self.class_names))],
-                                                        self.ene_label, "precision", self.class_names,
+                                                        self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False))
 
         self._init_results()

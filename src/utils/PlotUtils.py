@@ -8,7 +8,7 @@ from collections import OrderedDict
 from src.utils.util import safe_divide
 
 mpl.use('Agg')
-plt.rcParams['font.size'] = '14'
+plt.rcParams['font.size'] = '12'
 TITLE_SIZE = 16
 
 # initialize globals
@@ -73,27 +73,46 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
 
 def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
     n_categories = len(title)
-    nrows = ceil((n_categories-1)/3)
+    nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
-    fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height*3.9,fig_height*nrows))
+    if (n_categories < 3):
+        fig, axes = plt.subplots(ceil(n_categories / 3), n_categories, figsize=(fig_height * 3.9, fig_height * nrows))
+    else:
+        fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height * 3.9, fig_height * nrows))
     if suptitle is not None:
         fig.suptitle(suptitle, fontsize=TITLE_SIZE)
     for z, t, i in zip(Z, title, range(n_categories)):
         z = np.transpose(z)
-        CS = axes[int(floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
-        #axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
-        axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
-        if i % 3 == 0:
-            axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
-        if floor(i / 3) == floor(n_categories / 3):
-            axes[int(floor(i / 3)), i % 3].set_xlabel(xlabel)
-        plt.colorbar(CS, ax=axes[floor(i / 3), i % 3])
+        # axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
+        if n_categories < 4:
+            CS = axes[i].contour(X, Y, z, cmap=plt.cm.BrBG)
+            axes[i].set_title(t, fontsize=TITLE_SIZE)
+            if i == 0:
+                axes[i].set_ylabel(ylabel)
+            else:
+                axes[i].tick_params(axis='y', labelcolor='w')
+            axes[i].set_xlabel(xlabel)
+            plt.colorbar(CS, ax=axes[i])
+        else:
+            CS = axes[int(floor(i / 3)), i % 3].contour(X, Y, z, cmap=plt.cm.BrBG)
+            axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
+            if i % 3 == 0:
+                axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
+            else:
+                axes[int(floor(i / 3)), i % 3].tick_params(axis='y', labelcolor='w')
+            if floor(i / 3) == floor((n_categories - 1) / 3):
+                axes[int(floor(i / 3)), i % 3].set_xlabel(xlabel)
+            else:
+                axes[int(floor(i / 3)), i % 3].tick_params(axis='x', labelcolor='w')
+            plt.colorbar(CS, ax=axes[floor(i / 3), i % 3])
     i = 0
     for ax in fig.get_axes():
         if i == n_categories:
             break
         ax.label_outer()
         i += 1
+    if n_categories < 4:
+        fig.subplots_adjust(bottom=0.18)
     return fig
 
 
@@ -118,16 +137,19 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
     n_categories = len(title)
-    nrows = ceil((n_categories-1)/3)
+    nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
-    fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height*3.9,fig_height*nrows))
+    if (n_categories < 3):
+        fig, axes = plt.subplots(ceil(n_categories / 3), n_categories, figsize=(fig_height * 3.9, fig_height * nrows))
+    else:
+        fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height * 3.9, fig_height * nrows))
     if suptitle is not None:
         fig.suptitle(suptitle, fontsize=TITLE_SIZE)
     xwidth = xedges[1] - xedges[0]
     for m in range(n_categories):
         if norm_to_bin_width:
             vals[m] = vals[m].astype(np.float32)
-            vals[m] /= xwidth
+            vals[m] *= (1. / xwidth)
         tot = vals[m].shape[0]
         w = np.zeros((tot,))
         xs = np.zeros((tot,))
@@ -137,26 +159,39 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
             w[n] = vals[m][i]
             xs[n] = x
             n += 1
-        h = axes[floor(m / 3), m % 3].hist(xs, bins=xedges, weights=w)
-        if floor(m / 3) == floor(n_categories / 3):
-            axes[floor(m / 3), m % 3].set_xlabel(xlabel)
-        if m % 3 == 0:
-            axes[floor(m / 3), m % 3].set_ylabel(ylabel)
-        axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
+        if (n_categories < 4):
+            axes[m].hist(xs, bins=xedges, weights=w)
+            axes[m].set_xlabel(xlabel)
+            if m == 0:
+                axes[m].set_ylabel(ylabel)
+            axes[m].set_title(title[m], fontsize=TITLE_SIZE)
+        else:
+            axes[floor(m / 3), m % 3].hist(xs, bins=xedges, weights=w)
+            if floor(m / 3) == floor((n_categories - 1) / 3):
+                axes[floor(m / 3), m % 3].set_xlabel(xlabel)
+            if m % 3 == 0:
+                axes[floor(m / 3), m % 3].set_ylabel(ylabel)
+            axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
     i = 0
     for ax in fig.get_axes():
         if i == n_categories:
             break
         ax.label_outer()
         i += 1
+    if n_categories < 4:
+        fig.subplots_adjust(bottom=0.18)
     # cb.set_label(zlabel, rotation=270)
     return fig
 
+
 def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
     n_categories = len(title)
-    nrows = ceil((n_categories-1)/3)
+    nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
-    fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height*3.9,fig_height*nrows))
+    if n_categories < 3:
+        fig, axes = plt.subplots(ceil(n_categories / 3), n_categories, figsize=(fig_height * 3.9, fig_height * nrows))
+    else:
+        fig, axes = plt.subplots(ceil(n_categories / 3), 3, figsize=(fig_height * 3.9, fig_height * nrows))
     if suptitle is not None:
         fig.suptitle(suptitle, fontsize=TITLE_SIZE)
     xwidth = xedges[1] - xedges[0]
@@ -178,13 +213,30 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
                 xs[n] = x
                 ys[n] = y
                 n += 1
-        h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
-        if floor(m / 3) == floor(n_categories / 3):
-            axes[floor(m / 3), m % 3].set_xlabel(xlabel)
-        if m % 3 == 0:
-            axes[floor(m / 3), m % 3].set_ylabel(ylabel)
-        axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
-        plt.colorbar(h[3], ax=axes[floor(m / 3), m % 3])
+        if n_categories < 4:
+            h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+            if floor(m / 3) == floor((n_categories - 1) / 3):
+                axes[m].set_xlabel(xlabel)
+            else:
+                axes[m].tick_params(axis='x', labelcolor='w')
+            if m == 0:
+                axes[m].set_ylabel(ylabel)
+            else:
+                axes[m].tick_params(axis='y', labelcolor='w')
+            axes[m].set_title(title[m], fontsize=TITLE_SIZE)
+            plt.colorbar(h[3], ax=axes[m])
+        else:
+            h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.BrBG)
+            if floor(m / 3) == floor((n_categories - 1) / 3):
+                axes[floor(m / 3), m % 3].set_xlabel(xlabel)
+            else:
+                axes[floor(m / 3), m % 3].tick_params(axis='x', labelcolor='w')
+            if m % 3 == 0:
+                axes[floor(m / 3), m % 3].set_ylabel(ylabel)
+            else:
+                axes[floor(m / 3), m % 3].tick_params(axis='y', labelcolor='w')
+            axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
+            plt.colorbar(h[3], ax=axes[floor(m / 3), m % 3])
     i = 0
     for ax in fig.get_axes():
         if i == n_categories:
@@ -192,6 +244,8 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
         ax.label_outer()
         i += 1
     # cb.set_label(zlabel, rotation=270)
+    if n_categories < 4:
+        fig.subplots_adjust(bottom=0.18)
     return fig
 
 
