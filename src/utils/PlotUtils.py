@@ -137,13 +137,12 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
             w[n] = vals[m][i]
             xs[n] = x
             n += 1
-        h = axes[floor(m / 3), m % 3].hist(xs, bins=xedges, weights=w, cmap=plt.cm.BrBG)
+        h = axes[floor(m / 3), m % 3].hist(xs, bins=xedges, weights=w)
         if floor(m / 3) == floor(n_categories / 3):
             axes[floor(m / 3), m % 3].set_xlabel(xlabel)
         if m % 3 == 0:
             axes[floor(m / 3), m % 3].set_ylabel(ylabel)
         axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
-        plt.colorbar(h[3], ax=axes[floor(m / 3), m % 3])
     i = 0
     for ax in fig.get_axes():
         if i == n_categories:
