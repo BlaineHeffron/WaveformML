@@ -66,6 +66,8 @@ class PSDEvaluator:
                                                          zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
             self.results["ene_prec_{}".format(c)] = (zeros((self.n_bins + 2,), dtype=np.float32),
                                                      zeros((self.n_bins + 2,), dtype=np.int32))
+            self.results["mult_prec_{}".format(c)] = (zeros((self.n_mult + 2,), dtype=np.float32),
+                                                     zeros((self.n_mult + 2,), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -126,6 +128,11 @@ class PSDEvaluator:
                                  *self.results["ene_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  self.n_bins)
+            metric_accumulate_1d(results[label_class_inds],
+                                 energy[label_class_inds],
+                                 *self.results["mult_prec_{}".format(self.class_names[i])],
+                                 get_typed_list([0.5, self.n_mult + 0.5]),
+                                 self.n_mult)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -217,6 +224,21 @@ class PSDEvaluator:
                                                                      ) for i in range(len(self.class_names))],
                                                         self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False))
+        self.logger.experiment.add_figure("evaluation/multiplicity_precision",
+                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                                        [safe_divide(self.results["mult_prec_{}".format(
+                                                            self.class_names[i])][0][1:self.n_mult + 1],
+                                                                     self.results["mult_prec_{}".format(
+                                                                         self.class_names[i])][1][1:self.n_mult + 1]
+                                                                     ) for i in range(len(self.class_names))],
+                                                        self.class_names, "multiplicity", "precision",
+                                                        norm_to_bin_width=False))
+        self.logger.experiment.add_figure("evaluation/multiplicity_classes",
+                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                                        [self.results["mult_prec_{}".format(
+                                                            self.class_names[i])][1][1:self.n_mult + 1]
+                                                            for i in range(len(self.class_names))],
+                                                        self.class_names, "multiplicity", "total"))
 
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
@@ -346,6 +368,11 @@ class PhysEvaluator(PSDEvaluator):
                                  *self.results["ene_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  self.n_bins)
+            metric_accumulate_1d(results[label_class_inds],
+                                 energy[label_class_inds],
+                                 *self.results["mult_prec_{}".format(self.class_names[i])],
+                                 get_typed_list([0.5, self.n_mult + 0.5]),
+                                 self.n_mult)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -432,6 +459,21 @@ class PhysEvaluator(PSDEvaluator):
                                                                      ) for i in range(len(self.class_names))],
                                                         self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False))
+        self.logger.experiment.add_figure("evaluation/multiplicity_precision",
+                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                                        [safe_divide(self.results["mult_prec_{}".format(
+                                                            self.class_names[i])][0][1:self.n_mult + 1],
+                                                                     self.results["mult_prec_{}".format(
+                                                                         self.class_names[i])][1][1:self.n_mult + 1]
+                                                                     ) for i in range(len(self.class_names))],
+                                                        self.class_names, "multiplicity", "precision",
+                                                        norm_to_bin_width=False))
+        self.logger.experiment.add_figure("evaluation/multiplicity_classes",
+                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                                        [self.results["mult_prec_{}".format(
+                                                            self.class_names[i])][1][1:self.n_mult + 1]
+                                                         for i in range(len(self.class_names))],
+                                                        self.class_names, "multiplicity", "total"))
 
         for i in range(self.n_confusion):
             bin_width = self.emax / self.n_confusion
