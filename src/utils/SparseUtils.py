@@ -32,6 +32,26 @@ def vec_sum(a):
     return out
 
 @nb.jit(nopython=True)
+def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
+    # expects output to be of size nbins+2, 1 for overflow and underflow
+    xlen = xrange[1] - xrange[0]
+    bin_width = xlen / nbins
+    for i in range(metric.shape[0]):
+        bin = 0
+        find_bin = True
+        if metric[i] < xrange[0]:
+            find_bin = False
+        elif metric[i] > xrange[1]:
+            bin = nbins + 1
+            find_bin = False
+        if find_bin:
+            for j in range(1, nbins + 1):
+                if j * bin_width + xrange[0] > metric[i]:
+                    bin = j
+                    break
+            output[bin,label,prediction] += 1
+
+@nb.jit(nopython=True)
 def metric_accumulate_1d(metric, category, output, out_n, xrange, nbins):
     # expects output to be of size nbins+2, 1 for overflow and underflow
     xlen = xrange[1] - xrange[0]

@@ -4,9 +4,9 @@ import numpy as np
 
 from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
-    get_typed_list, weighted_average_quantities
+    get_typed_list, weighted_average_quantities, confusion_accumulate_1d
 from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
-    plot_n_contour, plot_n_hist2d, plot_n_hist1d
+    plot_n_contour, plot_n_hist2d, plot_n_hist1d, plot_confusion_matrix
 from src.utils.util import list_matches, safe_divide, get_bins
 from src.datasets.HDF5Dataset import MAX_RANGE
 from numpy import zeros
@@ -37,6 +37,7 @@ class PSDEvaluator:
         self.n_labelled_wfs = [0] * self.n_classes
         self.summed_labelled_waveforms = []
         self._init_results()
+        self.n_confusion = 10
         if calgroup is not None:
             if "PROSPECT_CALDB" not in os.environ.keys():
                 raise ValueError(
@@ -58,6 +59,7 @@ class PSDEvaluator:
                 zeros((self.nx + 2, self.ny + 2), dtype=np.float32), zeros((self.nx + 2, self.ny + 2), dtype=np.int32)),
             "ene_psd_acc": (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
+            "confusion_energy": zeros((self.n_confusion, self.n_classes, self.n_classes), dtype=np.int32)
         }
         for c in self.class_names:
             self.results["ene_psd_prec_{}".format(c)] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
@@ -141,6 +143,9 @@ class PSDEvaluator:
         print("minimum en is ", np.amin(energy))
         print("minimum psd is ", np.amin(psd))
         """
+        confusion_accumulate_1d(predictions, labels, energy, self.results["confusion_energy"],
+                                get_typed_list([0.0, self.emax]),
+                                self.n_confusion)
         metric_accumulate_2d(results, np.stack((energy, psdl), axis=1), *self.results["ene_psd_acc"],
                              get_typed_list([self.emin, self.emax]),
                              get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
@@ -223,6 +228,13 @@ class PSDEvaluator:
         self.logger.experiment.add_figure("evaluation/pulse",
                                           plot_wfs(np.expand_dims(self.summed_waveforms[0], axis=0), [self.n_wfs[0]],
                                                    ["total"], plot_errors=True))
+        for i in range(self.n_confusion):
+            bin_width = self.emax / self.n_confusion
+            title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
+            self.logger.experiment.add_figure("validation/confusion_matrix_energy{0}".format(i),
+                                              plot_confusion_matrix(self.results["confusion_energy"][i],
+                                                                    self.class_names,
+                                                                    normalize=True, title=title))
         self._init_results()
 
     def calc_axis(self, amin, amax, n):
@@ -341,6 +353,9 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
 
+        confusion_accumulate_1d(predictions, labels, energy, self.results["confusion_energy"],
+                                get_typed_list([0.0, self.emax]),
+                                self.n_confusion)
         metric_accumulate_1d(results, mult, *self.results["mult_acc"],
                              get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
@@ -418,6 +433,13 @@ class PhysEvaluator(PSDEvaluator):
                                                         self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False))
 
+        for i in range(self.n_confusion):
+            bin_width = self.emax / self.n_confusion
+            title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
+            self.logger.experiment.add_figure("validation/confusion_matrix_energy{0}".format(i),
+                                              plot_confusion_matrix(self.results["confusion_energy"][i],
+                                                                    self.class_names,
+                                                                    normalize=True, title=title))
         self._init_results()
 
     def calc_axis(self, amin, max, n):
