@@ -122,14 +122,13 @@ def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True):
     fig, ax = plt.subplots()
     if filled:
         CS = ax.contourf(X, Y, Z, cmap=plt.cm.viridis)
-        ax.clabel(CS, inline=True)
+        plt.colorbar(CS, ax=ax)
     else:
         CS = ax.contour(X, Y, Z, cmap=plt.cm.viridis)
+        ax.clabel(CS, inline=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=TITLE_SIZE)
-    if not filled:
-        plt.colorbar(CS, ax=ax)
     return fig
 
 
