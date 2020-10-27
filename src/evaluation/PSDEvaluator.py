@@ -169,7 +169,7 @@ class PSDEvaluator:
                                                        safe_divide(
                                                            self.results["pos_acc"][0][1:self.nx + 1, 1:self.ny + 1],
                                                            self.results["pos_acc"][1][1:self.nx + 1, 1:self.ny + 1]),
-                                                       "x", "y", "accuracy"))
+                                                       "x", "y", "accuracy"), filled=False)
         self.logger.experiment.add_figure("evaluation/multiplicity_accuracy",
                                           plot_bar(np.arange(1, self.n_mult + 1),
                                                    safe_divide(self.results["mult_acc"][0][1:self.n_mult + 1],

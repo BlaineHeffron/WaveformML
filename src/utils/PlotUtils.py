@@ -117,14 +117,19 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
     return fig
 
 
-def plot_contour(X, Y, Z, xlabel, ylabel, title):
+def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
-    CS = ax.contourf(X, Y, Z, cmap=plt.cm.viridis)
+    if filled:
+        CS = ax.contourf(X, Y, Z, cmap=plt.cm.viridis)
+        ax.clabel(CS, inline=True)
+    else:
+        CS = ax.contour(X, Y, Z, cmap=plt.cm.viridis)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=TITLE_SIZE)
-    plt.colorbar(CS, ax=ax)
+    if not filled:
+        plt.colorbar(CS, ax=ax)
     return fig
 
 
