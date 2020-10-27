@@ -53,7 +53,7 @@ class LinearBlock(Algorithm):
     def __str__(self):
         super().__str__()
 
-    def __init__(self, nin, nout, n, func):
+    def __init__(self, nin, nout, n):
         assert(n > 0)
         assert(nin > 0)
         self.alg = []
