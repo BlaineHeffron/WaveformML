@@ -10,6 +10,7 @@ from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_
 from src.utils.util import list_matches, safe_divide, get_bins
 from src.datasets.HDF5Dataset import MAX_RANGE
 from numpy import zeros
+import matplotlib.pyplot as plt
 
 from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecallCurve
 
@@ -213,7 +214,7 @@ class PSDEvaluator:
                                                                           self.class_names[i])][1][1:self.n_bins + 1,
                                                                       1:self.n_bins + 1]) for i in
                                                           range(len(self.class_names))],
-                                                         self.ene_label, "PSD", self.class_names))
+                                                         self.ene_label, "PSD", self.class_names, cm=plt.cm.hot))
 
         self.logger.experiment.add_figure("evaluation/energy_precision",
                                           plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),
@@ -448,7 +449,7 @@ class PhysEvaluator(PSDEvaluator):
                                                                           self.class_names[i])][1][1:self.n_bins + 1,
                                                                       1:self.n_bins + 1]) for i in
                                                           range(len(self.class_names))],
-                                                         "Energy [MeV]", "PSD", self.class_names))
+                                                         "Energy [MeV]", "PSD", self.class_names, cm=plt.cm.hot))
 
         self.logger.experiment.add_figure("evaluation/energy_precision",
                                           plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),

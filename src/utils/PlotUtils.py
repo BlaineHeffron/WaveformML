@@ -74,7 +74,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     return fig
 
 
-def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
+def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None, cm=plt.cm.cividis):
     n_categories = len(title)
     nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
@@ -88,7 +88,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
         z = np.transpose(z)
         # axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
         if n_categories < 4:
-            CS = axes[i].contourf(X, Y, z, cmap=plt.cm.viridis)
+            CS = axes[i].contourf(X, Y, z, cmap=cm)
             axes[i].set_title(t, fontsize=TITLE_SIZE)
             if i == 0:
                 axes[i].set_ylabel(ylabel)
@@ -97,7 +97,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
             axes[i].set_xlabel(xlabel)
             plt.colorbar(CS, ax=axes[i])
         else:
-            CS = axes[int(floor(i / 3)), i % 3].contourf(X, Y, z, cmap=plt.cm.viridis)
+            CS = axes[int(floor(i / 3)), i % 3].contourf(X, Y, z, cmap=cm)
             axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
             if i % 3 == 0:
                 axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
@@ -119,14 +119,14 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
     return fig
 
 
-def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True):
+def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True, cm=plt.cm.cividis):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
     if filled:
-        CS = ax.contourf(X, Y, Z, cmap=plt.cm.viridis)
+        CS = ax.contourf(X, Y, Z, cmap=cm)
         plt.colorbar(CS, ax=ax)
     else:
-        CS = ax.contour(X, Y, Z, cmap=plt.cm.viridis)
+        CS = ax.contour(X, Y, Z, cmap=cm)
         ax.clabel(CS, inline=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -195,7 +195,7 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
     return fig
 
 
-def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logz = True):
+def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logz = True, cm = plt.cm.cividis):
     n_categories = len(title)
     nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
@@ -226,9 +226,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
                 n += 1
         if n_categories < 4:
             if logz:
-                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=cm, norm=LogNorm())
             else:
-                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=cm)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[m].set_xlabel(xlabel)
             else:
@@ -241,9 +241,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             plt.colorbar(h[3], ax=axes[m])
         else:
             if logz:
-                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=cm, norm=LogNorm())
             else:
-                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=cm)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[floor(m / 3), m % 3].set_xlabel(xlabel)
             else:
@@ -266,7 +266,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
     return fig
 
 
-def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True, logz=True):
+def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True, logz=True, cm=plt.cm.cividis):
     fig, ax = plt.subplots()
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
@@ -287,9 +287,9 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
             ys[n] = y
             n += 1
     if logz:
-        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=cm, norm=LogNorm())
     else:
-        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=cm)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=TITLE_SIZE)
