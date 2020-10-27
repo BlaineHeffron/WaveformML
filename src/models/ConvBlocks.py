@@ -1,6 +1,4 @@
-import logging
 from math import floor, pow
-import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
 from src.models.Algorithm import *
@@ -55,15 +53,16 @@ class LinearBlock(Algorithm):
     def __str__(self):
         super().__str__()
 
-    def __init__(self, nin, nout, n):
+    def __init__(self, nin, nout, n, func):
         assert(n > 0)
         assert(nin > 0)
         self.alg = []
         self.log = logging.getLogger(__name__)
-        self.log.debug("Creating Linear block\n    nin: {0}\n   nout:{1}\n  n:{2}".format(nin, nout, n))
+        self.log.debug("Creating Linear block, nin: {0}, nout:{1}, n:{2}\n".format(nin, nout, n))
         factor = pow(float(nout) / nin, 1. / n)
         for i in range(n):
             self.alg.append(nn.Linear(int(round(nin * pow(factor, i))), int(round(nin * pow(factor, i + 1)))))
+            self.log.debug("Adding linear block {0} -> {1}\n".format(int(round(nin * pow(factor, i))), int(round(nin * pow(factor, i + 1)))))
         self.func = nn.Sequential(*self.alg)
 
 class Chomp1d(nn.Module):
