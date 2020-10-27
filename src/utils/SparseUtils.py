@@ -24,12 +24,14 @@ def find_matches(pred, lab, out):
             out[i] = 0
     return out
 
+
 @nb.jit(nopython=True)
 def vec_sum(a):
     out = 0
     for val in a:
         out += val
     return out
+
 
 @nb.jit(nopython=True)
 def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
@@ -47,9 +49,10 @@ def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
         if find_bin:
             for j in range(1, nbins + 1):
                 if j * bin_width + xrange[0] > metric[i]:
-                    bin = j
+                    bin = j - 1
                     break
-            output[bin,label,prediction] += 1
+            output[bin, label[i], prediction[i]] += 1
+
 
 @nb.jit(nopython=True)
 def metric_accumulate_1d(metric, category, output, out_n, xrange, nbins):
@@ -143,8 +146,8 @@ def average_pulse(coords, pulses, gains, out_coords, out_pulses, multiplicity, p
             last_id = coord[2]
             current_ind += 1
         n_current += 1
-        pulseleft = pulses[pulse_ind, 0:n_samples]*gains[coord[0],coord[1],0]
-        pulseright = pulses[pulse_ind, n_samples:2 * n_samples]*gains[coord[0],coord[1],1]
+        pulseleft = pulses[pulse_ind, 0:n_samples] * gains[coord[0], coord[1], 0]
+        pulseright = pulses[pulse_ind, n_samples:2 * n_samples] * gains[coord[0], coord[1], 1]
         pulses[pulse_ind, 0:n_samples] = pulseleft
         pulses[pulse_ind, n_samples:2 * n_samples] = pulseright
         tot_l = vec_sum(pulseleft)
@@ -152,20 +155,21 @@ def average_pulse(coords, pulses, gains, out_coords, out_pulses, multiplicity, p
         tot_l_current += tot_l
         tot_r_current += tot_r
         psdl[current_ind] += calc_psd(pulseleft, calc_arrival(pulseleft),
-                                     psd_window_lo, psd_window_hi, psd_divider) * tot_l
+                                      psd_window_lo, psd_window_hi, psd_divider) * tot_l
         psdr[current_ind] += calc_psd(pulseright, calc_arrival(pulseright),
-                                     psd_window_lo, psd_window_hi, psd_divider) * tot_r
-        out_coords[current_ind] += coord[0:2]*(tot_l+tot_r)
+                                      psd_window_lo, psd_window_hi, psd_divider) * tot_r
+        out_coords[current_ind] += coord[0:2] * (tot_l + tot_r)
         out_pulses[current_ind] += pulses[pulse_ind]
         pulse_ind += 1
-    if(tot_l_current > 0 and tot_r_current > 0):
+    if (tot_l_current > 0 and tot_r_current > 0):
         out_coords[current_ind] /= (tot_l_current + tot_r_current)
-    if(tot_l_current > 0):
+    if (tot_l_current > 0):
         psdl[current_ind] /= tot_l_current
-    if(tot_r_current > 0):
+    if (tot_r_current > 0):
         psdr[current_ind] /= tot_r_current
     multiplicity[current_ind] = n_current
     return out_coords, out_pulses, multiplicity, psdl, psdr
+
 
 @nb.jit(nopython=True)
 def weighted_average_quantities(coords, full_quantities, out_quantities, out_coords, out_mult, n):
@@ -186,8 +190,8 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
             if last_id > -1:
                 if ene_current > 0:
                     out_coords[current_ind] /= ene_current
-                    for j in range(1,n):
-                        out_quantities[j,current_ind] /= ene_current
+                    for j in range(1, n):
+                        out_quantities[j, current_ind] /= ene_current
                     out_mult[current_ind] = n_current
                     out_quantities[0, current_ind] = ene_current
             n_current = 0
@@ -195,18 +199,19 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
             last_id = coord[2]
             current_ind += 1
         n_current += 1
-        ene_current += full_quantities[0,quant_ind]
-        out_coords[current_ind] += coord[0:2]*ene_current
-        for j in range(1,n-1):
-            out_quantities[j,current_ind] += full_quantities[j,quant_ind]*full_quantities[0,quant_ind]
+        ene_current += full_quantities[0, quant_ind]
+        out_coords[current_ind] += coord[0:2] * ene_current
+        for j in range(1, n - 1):
+            out_quantities[j, current_ind] += full_quantities[j, quant_ind] * full_quantities[0, quant_ind]
         quant_ind += 1
     if ene_current > 0:
         out_coords[current_ind] /= ene_current
-        for j in range(1,n):
-            out_quantities[j,current_ind] /= ene_current
+        for j in range(1, n):
+            out_quantities[j, current_ind] /= ene_current
         out_mult[current_ind] = n_current
         out_quantities[0, current_ind] = ene_current
     return out_coords, out_quantities, out_mult
+
 
 @nb.jit(nopython=True)
 def calc_arrival(fdat):
