@@ -20,7 +20,7 @@ class PSDEvaluator:
         self.logger = logger
         self.device = device
         self.n_bins = 100
-        self.n_mult = 20
+        self.n_mult = 10
         self.emin = 0.0
         self.emax = 5.0
         self.psd_min = 0.0
