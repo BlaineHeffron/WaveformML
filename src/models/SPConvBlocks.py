@@ -68,6 +68,8 @@ class SparseConv2DBlock(Algorithm):
                 self.log.debug("added pointwise convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
             else:
                 self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                self.log.debug("added regular convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
+            self.log.debug("filter size: {0}, stride: {1}, pad: {2}, dil: {3}".format(fs, st, pd, dil))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
             self.alg.append(nn.ReLU())
             if self.dropout:
