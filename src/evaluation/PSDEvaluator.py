@@ -27,6 +27,7 @@ class PSDEvaluator:
         self.psd_max = 0.6
         self.nx = 14
         self.ny = 11
+        self.n_confusion = 10
         self.ene_label = "Energy [arb]"
         self.class_names = class_names
         self.n_classes = len(self.class_names)
@@ -37,7 +38,6 @@ class PSDEvaluator:
         self.n_labelled_wfs = [0] * self.n_classes
         self.summed_labelled_waveforms = []
         self._init_results()
-        self.n_confusion = 10
         if calgroup is not None:
             if "PROSPECT_CALDB" not in os.environ.keys():
                 raise ValueError(
