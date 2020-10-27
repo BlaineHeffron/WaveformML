@@ -231,7 +231,7 @@ class PSDEvaluator:
         for i in range(self.n_confusion):
             bin_width = self.emax / self.n_confusion
             title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
-            self.logger.experiment.add_figure("validation/confusion_matrix_energy{0}".format(i),
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_energy{0}".format(i),
                                               plot_confusion_matrix(self.results["confusion_energy"][i],
                                                                     self.class_names,
                                                                     normalize=True, title=title))
@@ -436,7 +436,7 @@ class PhysEvaluator(PSDEvaluator):
         for i in range(self.n_confusion):
             bin_width = self.emax / self.n_confusion
             title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
-            self.logger.experiment.add_figure("validation/confusion_matrix_energy{0}".format(i),
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_energy{0}".format(i),
                                               plot_confusion_matrix(self.results["confusion_energy"][i],
                                                                     self.class_names,
                                                                     normalize=True, title=title))
