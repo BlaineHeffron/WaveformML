@@ -56,7 +56,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     if title != '':
         plt.title(title)
-    plt.colorbar()
+    #plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
@@ -88,7 +88,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
         z = np.transpose(z)
         # axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
         if n_categories < 4:
-            CS = axes[i].contourf(X, Y, z, cmap=plt.cm.inferno)
+            CS = axes[i].contourf(X, Y, z, cmap=plt.cm.viridis)
             axes[i].set_title(t, fontsize=TITLE_SIZE)
             if i == 0:
                 axes[i].set_ylabel(ylabel)
@@ -97,7 +97,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
             axes[i].set_xlabel(xlabel)
             plt.colorbar(CS, ax=axes[i])
         else:
-            CS = axes[int(floor(i / 3)), i % 3].contourf(X, Y, z, cmap=plt.cm.inferno)
+            CS = axes[int(floor(i / 3)), i % 3].contourf(X, Y, z, cmap=plt.cm.viridis)
             axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
             if i % 3 == 0:
                 axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
@@ -123,10 +123,10 @@ def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
     if filled:
-        CS = ax.contourf(X, Y, Z, cmap=plt.cm.inferno)
+        CS = ax.contourf(X, Y, Z, cmap=plt.cm.viridis)
         plt.colorbar(CS, ax=ax)
     else:
-        CS = ax.contour(X, Y, Z, cmap=plt.cm.inferno)
+        CS = ax.contour(X, Y, Z, cmap=plt.cm.viridis)
         ax.clabel(CS, inline=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -226,9 +226,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
                 n += 1
         if n_categories < 4:
             if logz:
-                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno, norm=LogNorm())
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
             else:
-                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno)
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[m].set_xlabel(xlabel)
             else:
@@ -241,9 +241,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             plt.colorbar(h[3], ax=axes[m])
         else:
             if logz:
-                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno, norm=LogNorm())
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
             else:
-                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno)
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[floor(m / 3), m % 3].set_xlabel(xlabel)
             else:
@@ -287,9 +287,9 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
             ys[n] = y
             n += 1
     if logz:
-        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno, norm=LogNorm())
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
     else:
-        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno)
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=TITLE_SIZE)
