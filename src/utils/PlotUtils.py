@@ -48,8 +48,10 @@ cmaps['Miscellaneous'] = [
 
 
 def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Blues):
+    fontsize = 12
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        fontsize = 16
     fig = plt.figure()
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     if title != '':
@@ -63,7 +65,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+                 color="white" if cm[i, j] > thresh else "black", fontsize=fontsize)
 
     plt.tight_layout()
     plt.ylabel('True label')
@@ -86,7 +88,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
         z = np.transpose(z)
         # axes[int(floor(i / 3)), i % 3].clabel(CS, inline=True)
         if n_categories < 4:
-            CS = axes[i].contourf(X, Y, z, cmap=plt.cm.viridis)
+            CS = axes[i].contourf(X, Y, z, cmap=plt.cm.inferno)
             axes[i].set_title(t, fontsize=TITLE_SIZE)
             if i == 0:
                 axes[i].set_ylabel(ylabel)
@@ -95,7 +97,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None):
             axes[i].set_xlabel(xlabel)
             plt.colorbar(CS, ax=axes[i])
         else:
-            CS = axes[int(floor(i / 3)), i % 3].contourf(X, Y, z, cmap=plt.cm.viridis)
+            CS = axes[int(floor(i / 3)), i % 3].contourf(X, Y, z, cmap=plt.cm.inferno)
             axes[int(floor(i / 3)), i % 3].set_title(t, fontsize=TITLE_SIZE)
             if i % 3 == 0:
                 axes[int(floor(i / 3)), i % 3].set_ylabel(ylabel)
@@ -121,10 +123,10 @@ def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
     if filled:
-        CS = ax.contourf(X, Y, Z, cmap=plt.cm.viridis)
+        CS = ax.contourf(X, Y, Z, cmap=plt.cm.inferno)
         plt.colorbar(CS, ax=ax)
     else:
-        CS = ax.contour(X, Y, Z, cmap=plt.cm.viridis)
+        CS = ax.contour(X, Y, Z, cmap=plt.cm.inferno)
         ax.clabel(CS, inline=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -174,15 +176,19 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
             axes[floor(m / 3), m % 3].hist(xs, bins=xedges, weights=w)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[floor(m / 3), m % 3].set_xlabel(xlabel)
+            else:
+                axes[floor(m / 3), m % 3].tick_params(axis='x', labelcolor='w')
             if m % 3 == 0:
                 axes[floor(m / 3), m % 3].set_ylabel(ylabel)
             axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
+    """
     i = 0
     for ax in fig.get_axes():
         if i == n_categories:
             break
         ax.label_outer()
         i += 1
+    """
     if n_categories < 4:
         fig.subplots_adjust(bottom=0.18)
     # cb.set_label(zlabel, rotation=270)
@@ -220,9 +226,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
                 n += 1
         if n_categories < 4:
             if logz:
-                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno, norm=LogNorm())
             else:
-                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
+                h = axes[m].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[m].set_xlabel(xlabel)
             else:
@@ -235,9 +241,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             plt.colorbar(h[3], ax=axes[m])
         else:
             if logz:
-                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno, norm=LogNorm())
             else:
-                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
+                h = axes[floor(m / 3), m % 3].hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno)
             if floor(m / 3) == floor((n_categories - 1) / 3):
                 axes[floor(m / 3), m % 3].set_xlabel(xlabel)
             else:
@@ -281,9 +287,9 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
             ys[n] = y
             n += 1
     if logz:
-        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis, norm=LogNorm())
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno, norm=LogNorm())
     else:
-        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.viridis)
+        h = plt.hist2d(xs, ys, bins=[xedges, yedges], weights=w, cmap=plt.cm.inferno)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=TITLE_SIZE)
