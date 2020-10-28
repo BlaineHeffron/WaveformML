@@ -226,7 +226,7 @@ class PSDEvaluator:
                                                         self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_precision",
-                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                          plot_n_hist1d(self.calc_axis(0, self.n_mult + 1, self.n_mult),
                                                         [safe_divide(self.results["mult_prec_{}".format(
                                                             self.class_names[i])][0][1:self.n_mult + 1],
                                                                      self.results["mult_prec_{}".format(
@@ -235,7 +235,7 @@ class PSDEvaluator:
                                                         self.class_names, "multiplicity", "precision",
                                                         norm_to_bin_width=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_classes",
-                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                          plot_n_hist1d(self.calc_axis(0, self.n_mult + 1, self.n_mult),
                                                         [self.results["mult_prec_{}".format(
                                                             self.class_names[i])][1][1:self.n_mult + 1]
                                                             for i in range(len(self.class_names))],
@@ -461,7 +461,7 @@ class PhysEvaluator(PSDEvaluator):
                                                         self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_precision",
-                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                          plot_n_hist1d(self.calc_axis(0, self.n_mult + 1, self.n_mult),
                                                         [safe_divide(self.results["mult_prec_{}".format(
                                                             self.class_names[i])][0][1:self.n_mult + 1],
                                                                      self.results["mult_prec_{}".format(
@@ -470,7 +470,7 @@ class PhysEvaluator(PSDEvaluator):
                                                         self.class_names, "multiplicity", "precision",
                                                         norm_to_bin_width=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_classes",
-                                          plot_n_hist1d(self.calc_axis(0.5, self.n_mult + 0.5, self.n_mult),
+                                          plot_n_hist1d(self.calc_axis(0, self.n_mult + 1, self.n_mult),
                                                         [self.results["mult_prec_{}".format(
                                                             self.class_names[i])][1][1:self.n_mult + 1]
                                                          for i in range(len(self.class_names))],
