@@ -214,7 +214,7 @@ class PSDEvaluator:
                                                                           self.class_names[i])][1][1:self.n_bins + 1,
                                                                       1:self.n_bins + 1]) for i in
                                                           range(len(self.class_names))],
-                                                         self.ene_label, "PSD", self.class_names, cm=plt.cm.hot))
+                                                         self.ene_label, "PSD", self.class_names, cm=plt.cm.cividis))
 
         self.logger.experiment.add_figure("evaluation/energy_precision",
                                           plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),
@@ -449,7 +449,7 @@ class PhysEvaluator(PSDEvaluator):
                                                                           self.class_names[i])][1][1:self.n_bins + 1,
                                                                       1:self.n_bins + 1]) for i in
                                                           range(len(self.class_names))],
-                                                         "Energy [MeV]", "PSD", self.class_names, cm=plt.cm.hot))
+                                                         "Energy [MeV]", "PSD", self.class_names, cm=plt.cm.cividis))
 
         self.logger.experiment.add_figure("evaluation/energy_precision",
                                           plot_n_hist1d(self.calc_axis(self.emin, self.emax, self.n_bins),
