@@ -142,7 +142,7 @@ def plot_bar(X, Y, xlabel, ylabel):
     return fig
 
 
-def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True):
+def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logy=True):
     n_categories = len(title)
     nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
@@ -181,14 +181,14 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
             if m % 3 == 0:
                 axes[floor(m / 3), m % 3].set_ylabel(ylabel)
             axes[floor(m / 3), m % 3].set_title(title[m], fontsize=TITLE_SIZE)
-    """
     i = 0
-    for ax in fig.get_axes():
-        if i == n_categories:
-            break
-        ax.label_outer()
-        i += 1
-    """
+    if logy:
+        for ax in fig.get_axes():
+            if i == n_categories:
+                break
+            #ax.label_outer()
+            ax.set_yscale('log')
+            i += 1
     if n_categories < 4:
         fig.subplots_adjust(bottom=0.18)
     # cb.set_label(zlabel, rotation=270)
