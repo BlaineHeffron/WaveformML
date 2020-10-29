@@ -314,8 +314,7 @@ class PSDEvaluator:
         return np.arange(amin, amax, (amax - amin) / n) + (amax - amin) / (2 * n)
 
     def calc_bin_edges(self, amin, amax, n):
-        width = (amax - amin) / n
-        return np.arange(amin, amax + width, width)
+        return get_bins(amin,amax,n)
 
     def accumulate_class_data(self, i, labels, predictions, feature_list, feature_names, bins_list):
         label_class_inds = list_matches(labels, i)
