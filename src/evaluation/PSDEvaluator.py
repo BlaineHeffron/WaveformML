@@ -7,7 +7,7 @@ from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate
     get_typed_list, weighted_average_quantities, confusion_accumulate_1d
 from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
     plot_n_contour, plot_n_hist2d, plot_n_hist1d, plot_confusion_matrix
-from src.utils.StatsUtils import calc_moments
+from src.utils.StatsUtils import calc_photon_moments, calc_time_moments
 from src.utils.util import list_matches, safe_divide, get_bins
 from src.datasets.HDF5Dataset import MAX_RANGE
 from numpy import zeros
@@ -92,7 +92,8 @@ class PSDEvaluator:
                                                                                dtype=np.float32),
                                                                          zeros((predictions.shape[0],),
                                                                                dtype=np.float32))
-        moments = calc_moments(summed_pulses, self.n_moments)
+        #photon_moments = calc_time_moments(summed_pulses, self.n_moments)
+        moments = calc_photon_moments(summed_pulses, self.n_moments)
         if self.summed_waveforms is None:
             self.summed_waveforms = np.zeros((self.n_classes + 1, summed_pulses[1].size), np.float32)
             self.summed_labelled_waveforms = \
