@@ -92,8 +92,8 @@ class PSDEvaluator:
                                                                                dtype=np.float32),
                                                                          zeros((predictions.shape[0],),
                                                                                dtype=np.float32))
-        #photon_moments = calc_time_moments(summed_pulses, self.n_moments)
-        moments = calc_photon_moments(summed_pulses, self.n_moments)
+        moments = calc_time_moments(summed_pulses, self.n_moments)
+        #moments = calc_photon_moments(summed_pulses, self.n_moments)
         if self.summed_waveforms is None:
             self.summed_waveforms = np.zeros((self.n_classes + 1, summed_pulses[1].size), np.float32)
             self.summed_labelled_waveforms = \
