@@ -165,7 +165,7 @@ class PSDEvaluator:
                                  self.n_mult)
             for j in range(self.n_moments):
                 metric_accumulate_1d(results[label_class_inds],
-                                     moments[label_class_inds, j],
+                                     np.squeeze(moments[label_class_inds, j],axis=0),
                                      *self.results["moment_{0}_prec_{1}".format(j + 2, self.class_names[i])],
                                      get_typed_list([self.min_moment[j], self.max_moment[j]]), self.n_bins)
 
