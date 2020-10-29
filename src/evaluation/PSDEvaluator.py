@@ -75,8 +75,8 @@ class PSDEvaluator:
                                                       zeros((self.n_mult + 2,), dtype=np.int32))
             for j in range(self.n_moments):
                 self.results["moment_{0}_prec_{1}".format(j + 2, c)] = (
-                zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
-                zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
+                zeros((self.n_bins + 2,), dtype=np.float32),
+                zeros((self.n_bins + 2,), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
