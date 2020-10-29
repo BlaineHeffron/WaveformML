@@ -124,13 +124,18 @@ class PSDEvaluator:
                                  *self.results["ene_psd_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
+            metric_accumulate_2d(results[label_class_inds],
+                                 np.stack((energy[label_class_inds], psdr[label_class_inds]), axis=1),
+                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
+                                 get_typed_list([self.emin, self.emax]),
+                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
             metric_accumulate_1d(results[label_class_inds],
                                  energy[label_class_inds],
                                  *self.results["ene_prec_{}".format(self.class_names[i])],
                                  get_typed_list([self.emin, self.emax]),
                                  self.n_bins)
             metric_accumulate_1d(results[label_class_inds],
-                                 energy[label_class_inds],
+                                 multiplicity[label_class_inds],
                                  *self.results["mult_prec_{}".format(self.class_names[i])],
                                  get_typed_list([0.5, self.n_mult + 0.5]),
                                  self.n_mult)
@@ -374,7 +379,7 @@ class PhysEvaluator(PSDEvaluator):
                                  get_typed_list([self.emin, self.emax]),
                                  self.n_bins)
             metric_accumulate_1d(results[label_class_inds],
-                                 energy[label_class_inds],
+                                 mult[label_class_inds],
                                  *self.results["mult_prec_{}".format(self.class_names[i])],
                                  get_typed_list([0.5, self.n_mult + 0.5]),
                                  self.n_mult)
