@@ -1,4 +1,3 @@
-from scipy import stats
 import numpy as np
 
 def moment_prod(x, counts):
