@@ -7,6 +7,7 @@ from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate
     get_typed_list, weighted_average_quantities, confusion_accumulate_1d
 from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
     plot_n_contour, plot_n_hist2d, plot_n_hist1d, plot_confusion_matrix
+from src.utils.StatsUtils import calc_moments
 from src.utils.util import list_matches, safe_divide, get_bins
 from src.datasets.HDF5Dataset import MAX_RANGE
 from numpy import zeros
@@ -28,6 +29,9 @@ class PSDEvaluator:
         self.psd_max = 0.6
         self.nx = 14
         self.ny = 11
+        self.n_moments = 5
+        self.max_moment = [0.0] * self.n_moments
+        self.min_moment = [0.0] * self.n_moments
         self.n_confusion = 10
         self.ene_label = "Energy [arb]"
         self.class_names = class_names
@@ -68,13 +72,18 @@ class PSDEvaluator:
             self.results["ene_prec_{}".format(c)] = (zeros((self.n_bins + 2,), dtype=np.float32),
                                                      zeros((self.n_bins + 2,), dtype=np.int32))
             self.results["mult_prec_{}".format(c)] = (zeros((self.n_mult + 2,), dtype=np.float32),
-                                                     zeros((self.n_mult + 2,), dtype=np.int32))
+                                                      zeros((self.n_mult + 2,), dtype=np.int32))
+            for j in range(self.n_moments):
+                self.results["moment_{0}_prec_{1}".format(j + 1, c)] = (
+                zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
+                zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), \
                                             labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), \
                                             output.detach().cpu().numpy()
+        moments = calc_moments(f, self.n_moments)
         avg_coo, summed_pulses, multiplicity, psdl, psdr = average_pulse(c, f, self.gain_factor,
                                                                          zeros((predictions.shape[0], 2)),
                                                                          zeros((predictions.shape[0], f.shape[1],),
@@ -99,7 +108,22 @@ class PSDEvaluator:
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins, bins=ene_bins)
         feature_list = [energy, psdl, psdr, multiplicity]
         feature_names = ["energy", "psd", "psd", "multiplicity"]
-        bins_list = [ene_bins, psd_bins, psd_bins, mult_bins]
+        moment_bins = []
+        for i in range(self.n_moments):
+            feature_list.append(moments[:, i])
+            feature_names.append("moment {}".format(i + 1))
+            if self.max_moment[i] == 0.0:
+                self.max_moment[i] = 1.1 * np.amax(moments[:, i])
+                self.min_moment[i] = np.amin(moments[:, i])
+                if self.min_moment[i] < 0:
+                    self.min_moment[i] *= 1.1
+                else:
+                    if self.min_moment[i] < 1:
+                        self.min_moment[i] = 0
+                    else:
+                        self.min_moment[i] *= 0.9
+            moment_bins.append(get_bins(self.min_moment[i], self.max_moment[i], self.n_bins))
+        bins_list = [ene_bins, psd_bins, psd_bins, mult_bins, *moment_bins]
         missing_classes = False
         results = find_matches(predictions, labels, zeros((predictions.shape[0],)))
         for i in range(self.n_classes):
@@ -139,6 +163,11 @@ class PSDEvaluator:
                                  *self.results["mult_prec_{}".format(self.class_names[i])],
                                  get_typed_list([0.5, self.n_mult + 0.5]),
                                  self.n_mult)
+            for j in range(self.n_moments):
+                metric_accumulate_1d(results[label_class_inds],
+                                     moments[label_class_inds, j],
+                                     *self.results["moment_{0}_prec_{1}".format(j + 1, self.class_names[i])],
+                                     get_typed_list([self.min_moment[j], self.max_moment[j]]), self.n_bins)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -240,10 +269,10 @@ class PSDEvaluator:
                                                         self.class_names, "multiplicity", "precision",
                                                         norm_to_bin_width=False, logy=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_classes",
-                                          plot_n_hist1d(self.calc_bin_edges(0, self.n_mult, self.n_mult),
+                                          plot_n_hist1d(self.calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
                                                         [self.results["mult_prec_{}".format(
                                                             self.class_names[i])][1][1:self.n_mult + 1]
-                                                            for i in range(len(self.class_names))],
+                                                         for i in range(len(self.class_names))],
                                                         self.class_names, "multiplicity", "total"))
 
         # print("n_wfs  is {0}".format(self.n_wfs))
@@ -256,6 +285,22 @@ class PSDEvaluator:
         self.logger.experiment.add_figure("evaluation/pulse",
                                           plot_wfs(np.expand_dims(self.summed_waveforms[0], axis=0), [self.n_wfs[0]],
                                                    ["total"], plot_errors=True))
+        for j in range(self.n_moments):
+            self.logger.experiment.add_figure("evaluation/moment_{}_precision".format(j+1),
+                                              plot_n_hist1d(self.calc_bin_edges(self.min_moment[j],self.max_moment[j], self.n_bins),
+                                                            [safe_divide(self.results["moment_{0}_prec_{1}".format(j+1,
+                                                                self.class_names[i])][0][1:self.n_bins + 1],
+                                                                         self.results["moment_{0}_prec_{1}".format(j+1,
+                                                                             self.class_names[i])][1][1:self.n_bins + 1]
+                                                                         ) for i in range(len(self.class_names))],
+                                                            self.class_names, "moment {}".format(j+1), "precision",
+                                                            norm_to_bin_width=False, logy=False))
+            self.logger.experiment.add_figure("evaluation/moment_{}_classes".format(j+1),
+                                              plot_n_hist1d(self.calc_bin_edges(self.min_moment[j], self.max_moment[j], self.n_bins),
+                                                            [self.results["moment_{0}_prec_{1}".format(j+1,
+                                                                self.class_names[i])][1][1:self.n_bins + 1]
+                                                             for i in range(len(self.class_names))],
+                                                            self.class_names, "moment {}".format(j+1), "total"))
         for i in range(self.n_confusion):
             bin_width = self.emax / self.n_confusion
             title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
@@ -493,5 +538,3 @@ class PhysEvaluator(PSDEvaluator):
                                                                     self.class_names,
                                                                     normalize=True, title=title))
         self._init_results()
-
-
