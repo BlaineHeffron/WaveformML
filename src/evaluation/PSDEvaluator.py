@@ -29,7 +29,7 @@ class PSDEvaluator:
         self.psd_max = 0.6
         self.nx = 14
         self.ny = 11
-        self.n_moments = 5
+        self.n_moments = 3
         self.max_moment = [0.0] * self.n_moments
         self.min_moment = [0.0] * self.n_moments
         self.n_confusion = 10
@@ -74,7 +74,7 @@ class PSDEvaluator:
             self.results["mult_prec_{}".format(c)] = (zeros((self.n_mult + 2,), dtype=np.float32),
                                                       zeros((self.n_mult + 2,), dtype=np.int32))
             for j in range(self.n_moments):
-                self.results["moment_{0}_prec_{1}".format(j + 1, c)] = (
+                self.results["moment_{0}_prec_{1}".format(j + 2, c)] = (
                 zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
                 zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
 
@@ -83,7 +83,6 @@ class PSDEvaluator:
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), \
                                             labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), \
                                             output.detach().cpu().numpy()
-        moments = calc_moments(f, self.n_moments)
         avg_coo, summed_pulses, multiplicity, psdl, psdr = average_pulse(c, f, self.gain_factor,
                                                                          zeros((predictions.shape[0], 2)),
                                                                          zeros((predictions.shape[0], f.shape[1],),
@@ -93,6 +92,7 @@ class PSDEvaluator:
                                                                                dtype=np.float32),
                                                                          zeros((predictions.shape[0],),
                                                                                dtype=np.float32))
+        moments = calc_moments(summed_pulses, self.n_moments)
         if self.summed_waveforms is None:
             self.summed_waveforms = np.zeros((self.n_classes + 1, summed_pulses[1].size), np.float32)
             self.summed_labelled_waveforms = \
@@ -111,7 +111,7 @@ class PSDEvaluator:
         moment_bins = []
         for i in range(self.n_moments):
             feature_list.append(moments[:, i])
-            feature_names.append("moment {}".format(i + 1))
+            feature_names.append("moment {}".format(i + 2))
             if self.max_moment[i] == 0.0:
                 self.max_moment[i] = 1.1 * np.amax(moments[:, i])
                 self.min_moment[i] = np.amin(moments[:, i])
@@ -166,7 +166,7 @@ class PSDEvaluator:
             for j in range(self.n_moments):
                 metric_accumulate_1d(results[label_class_inds],
                                      moments[label_class_inds, j],
-                                     *self.results["moment_{0}_prec_{1}".format(j + 1, self.class_names[i])],
+                                     *self.results["moment_{0}_prec_{1}".format(j + 2, self.class_names[i])],
                                      get_typed_list([self.min_moment[j], self.max_moment[j]]), self.n_bins)
 
         if not missing_classes:
@@ -286,21 +286,21 @@ class PSDEvaluator:
                                           plot_wfs(np.expand_dims(self.summed_waveforms[0], axis=0), [self.n_wfs[0]],
                                                    ["total"], plot_errors=True))
         for j in range(self.n_moments):
-            self.logger.experiment.add_figure("evaluation/moment_{}_precision".format(j+1),
+            self.logger.experiment.add_figure("evaluation/moment_{}_precision".format(j+2),
                                               plot_n_hist1d(self.calc_bin_edges(self.min_moment[j],self.max_moment[j], self.n_bins),
-                                                            [safe_divide(self.results["moment_{0}_prec_{1}".format(j+1,
+                                                            [safe_divide(self.results["moment_{0}_prec_{1}".format(j+2,
                                                                 self.class_names[i])][0][1:self.n_bins + 1],
-                                                                         self.results["moment_{0}_prec_{1}".format(j+1,
+                                                                         self.results["moment_{0}_prec_{1}".format(j+2,
                                                                              self.class_names[i])][1][1:self.n_bins + 1]
                                                                          ) for i in range(len(self.class_names))],
-                                                            self.class_names, "moment {}".format(j+1), "precision",
+                                                            self.class_names, "moment {}".format(j+2), "precision",
                                                             norm_to_bin_width=False, logy=False))
-            self.logger.experiment.add_figure("evaluation/moment_{}_classes".format(j+1),
+            self.logger.experiment.add_figure("evaluation/moment_{}_classes".format(j+2),
                                               plot_n_hist1d(self.calc_bin_edges(self.min_moment[j], self.max_moment[j], self.n_bins),
-                                                            [self.results["moment_{0}_prec_{1}".format(j+1,
+                                                            [self.results["moment_{0}_prec_{1}".format(j+2,
                                                                 self.class_names[i])][1][1:self.n_bins + 1]
                                                              for i in range(len(self.class_names))],
-                                                            self.class_names, "moment {}".format(j+1), "total"))
+                                                            self.class_names, "moment {}".format(j+2), "total"))
         for i in range(self.n_confusion):
             bin_width = self.emax / self.n_confusion
             title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
