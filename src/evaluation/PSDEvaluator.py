@@ -135,7 +135,7 @@ class PSDEvaluator:
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 missing_classes = True
                 continue
-            self.metric_pairs.add(results[label_class_inds], output_stats[:, label_class_inds], self.class_names[i])
+            self.metric_pairs.add(results[label_class_inds], output_stats[:, label_class_inds].squeeze(), self.class_names[i])
             missing_classes = self.accumulate_class_data_with_inds(i, label_class_inds, preds_class_inds, feature_list,
                                                                    feature_names, bins_list)
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,

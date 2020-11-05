@@ -95,11 +95,11 @@ class MetricPairAggregator:
                 self.metric_pairs["{0}_{1}".format(i, j)] = Metric2DAggregator(metric_list[i], metric_list[j])
 
     def add(self, results, metrics, category_name):
-        for i in range(len(metrics) - 1):
-            self.metric_list[i].add(results, metrics[i], category_name)
-            for j in range(i + 1, len(metrics)):
-                self.metric_pairs["{0}_{1}".format(i, j)].add(results, metrics[i], metrics[j], category_name)
-        self.metric_list[-1].add(results, metrics[-1], category_name)
+        for i in range(metrics.shape[0] - 1):
+            self.metric_list[i].add(results, metrics[i,:], category_name)
+            for j in range(i + 1, metrics.shape[0]):
+                self.metric_pairs["{0}_{1}".format(i, j)].add(results, metrics[i,:], metrics[j,:], category_name)
+        self.metric_list[-1].add(results, metrics[-1,:], category_name)
 
     def plot(self, logger):
         for m in self.metric_list:
