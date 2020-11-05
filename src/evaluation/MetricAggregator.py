@@ -20,7 +20,7 @@ class MetricAggregator:
                                       np.zeros((self.n_bins + 2,), dtype=np.int32))
 
     def add(self, results, metric, category_name):
-        metric_accumulate_1d(results, metric, *self.results_dict[self.name.format(category_name)],
+        metric_accumulate_1d(results, metric, *self.results_dict[category_name],
                              get_typed_list([self.bin_edges[0], self.bin_edges[-1]]), self.n_bins)
 
     @property
