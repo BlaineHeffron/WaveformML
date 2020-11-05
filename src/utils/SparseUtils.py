@@ -13,19 +13,19 @@ def moment(data, n, weights=None):
     s = 0.
     weightsum = 0.
     for j in range(n):
-        if weights:
+        if weights is not None:
             s += data[j]*weights[j]
             weightsum += weights[j]
         else:
             s += data[j]
-    if weights:
+    if weights is not None:
         ave = s / weightsum
     else:
         ave = s / n
     for j in range(n):
         if data[j]:
             s = data[j] - ave
-            if weights:
+            if weights is not None:
                 adev += abs(s)*weights[j]
                 p = s * s
                 svar += p*weights[j]
@@ -40,7 +40,7 @@ def moment(data, n, weights=None):
                 skew += p
                 curt += p * s
 
-    if weights:
+    if weights is not None:
         adev /= weightsum
         if weightsum > 1:
             svar /= (weightsum - 1)
