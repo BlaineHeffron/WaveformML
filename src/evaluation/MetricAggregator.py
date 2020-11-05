@@ -92,7 +92,7 @@ class MetricPairAggregator:
         self.metric_pairs = {}
         for i in range(len(metric_list) - 1):
             for j in range(i + 1, len(metric_list)):
-                self.metric_pairs["{0}_{1}".format(i, j)].append(Metric2DAggregator(metric_list[i], metric_list[j]))
+                self.metric_pairs["{0}_{1}".format(i, j)] = Metric2DAggregator(metric_list[i], metric_list[j])
 
     def add(self, results, metrics, category_name):
         for i in range(len(metrics) - 1):
@@ -104,5 +104,5 @@ class MetricPairAggregator:
     def plot(self, logger):
         for m in self.metric_list:
             m.plot(logger)
-        for mp in self.metric_pairs:
-            mp.plot(logger)
+        for key in self.metric_pairs.keys():
+            self.metric_pairs[key].plot(logger)
