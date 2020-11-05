@@ -23,7 +23,6 @@ class MetricAggregator:
         metric_accumulate_1d(results, metric, *self.results_dict[category_name],
                              get_typed_list([self.bin_edges[0], self.bin_edges[-1]]), self.n_bins)
 
-    @property
     def bin_midpoints(self):
         return get_bin_midpoints(self.bin_edges[0], self.bin_edges[-1], self.n_bins),
 
@@ -76,7 +75,7 @@ class Metric2DAggregator:
                                                    self.metric1.name, self.metric2.name))
 
         logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
-                                     plot_n_contour(self.metric1.bin_midpoints.squeeze(), self.metric2.bin_midpoints.squeeze(),
+                                     plot_n_contour(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
                                                     [safe_divide(self.results_dict[self.metric1.class_names[i]][0][
                                                                  1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1],
                                                                  self.results_dict[self.metric1.class_names[i]][1][
