@@ -59,7 +59,7 @@ class Metric2DAggregator:
 
     def add(self, results, metric1, metric2, category_name):
         metric_accumulate_2d(results,
-                             np.stack(metric1, metric2, axis=1),
+                             np.stack((metric1, metric2), axis=1),
                              *self.results_dict[category_name],
                              get_typed_list([self.metric1.bin_edges[0], self.metric1.bin_edges[1]]),
                              get_typed_list([self.metric2.bin_edges[0], self.metric2.bin_edges[1]]),
