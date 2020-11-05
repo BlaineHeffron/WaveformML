@@ -486,4 +486,8 @@ def safe_divide(a, b):
 
 def get_bins(start, stop, n):
     width = (stop - start) / n
-    return np.arange(start, stop + width/2, width)
+    return np.arange(start, stop + width / 2, width)
+
+
+def get_bin_midpoints(amin, amax, n):
+    return np.arange(amin, amax, (amax - amin) / n) + (amax - amin) / (2 * n)
