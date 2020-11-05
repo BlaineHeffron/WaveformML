@@ -267,7 +267,7 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
                                       psd_window_lo, psd_window_hi, psd_divider) * tot_l
         psdr[current_ind] += calc_psd(pulseright, calc_arrival(pulseright),
                                       psd_window_lo, psd_window_hi, psd_divider) * tot_r
-        dt_current += calc_time(pulseright) - calc_time(pulseleft)
+        dt_current += calc_time(pulseright, n_samples) - calc_time(pulseleft, n_samples)
         out_coords[current_ind] += coord[0:2] * (tot_l + tot_r)
         out_pulses[current_ind] += pulses[pulse_ind]
         pulse_ind += 1
