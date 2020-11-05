@@ -9,7 +9,7 @@ from numba.typed import List
 def moment(data, n, weights=None):
     ave, adev, sdev, svar, skew, curt = 0, 0, 0, 0, 0, 0
     if n <= 1:
-        return ave, adev, sdev, svar, skew, curt
+        return svar, skew, curt
     s = 0.
     weightsum = 0.
     for j in range(n):
