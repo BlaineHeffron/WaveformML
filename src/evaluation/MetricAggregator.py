@@ -76,7 +76,7 @@ class Metric2DAggregator:
                                                    self.metric1.name, self.metric2.name))
 
         logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
-                                     plot_n_contour(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
+                                     plot_n_contour(self.metric1.bin_midpoints, self.metric2.bin_midpoints,
                                                     [safe_divide(self.results_dict[self.metric1.class_names[i]][0][
                                                                  1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1],
                                                                  self.results_dict[self.metric1.class_names[i]][1][
