@@ -24,7 +24,7 @@ class MetricAggregator:
                              get_typed_list([self.bin_edges[0], self.bin_edges[-1]]), self.n_bins)
 
     def bin_midpoints(self):
-        return get_bin_midpoints(self.bin_edges[0], self.bin_edges[-1], self.n_bins),
+        return get_bin_midpoints(self.bin_edges[0], self.bin_edges[-1], self.n_bins)
 
     def plot(self, logger):
         logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
