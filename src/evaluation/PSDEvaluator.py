@@ -99,7 +99,7 @@ class PSDEvaluator:
                                                                          zeros((predictions.shape[0],
                                                                                 f.shape[1],),
                                                                                dtype=np.float32), \
-                                                                         zeros((predictions.shape[0], 6),
+                                                                         zeros((predictions.shape[0], 9),
                                                                                dtype=np.float32), \
                                                                          zeros((predictions.shape[0],),
                                                                                dtype=np.int32), \
