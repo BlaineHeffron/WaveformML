@@ -63,9 +63,8 @@ class PSDEvaluator:
             self.calibrated = False
 
     def _init_results(self):
-        metric_names = ["energy","psd","multiplicity","dx", "dy", "ddt", "t_variance", "t_skew", "t_kurtosis", "n_variance", "n_skew", "n_kurtosis"]
-        metric_params = [[0.0,10.0,40],[0.0,0.6,40],[0.5,10.5,10],[0., 7., 20], [0., 6., 20], [0., 175., 20], [0., 1000.0, 40], [0.0, 10., 40], [0.0, 100., 40], [0.0, 0.25, 40],
-                         [0.0, 10.0, 40], [0.0, 100.0, 40]]
+        metric_names = ["energy","psd","multiplicity","dx", "dy", "ddt", "t_variance", "n_variance"]
+        metric_params = [[0.0,10.0,40],[0.0,0.6,40],[0.5,10.5,10],[0., 7., 20], [0., 6., 20], [0., 175., 20], [0., 1000.0, 40], [0.0, 0.25, 40]]
         i = 0
         for name in metric_names:
             self.metrics.append(MetricAggregator(name, *metric_params[i], self.class_names))
@@ -81,13 +80,6 @@ class PSDEvaluator:
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
             "confusion_energy": zeros((self.n_confusion, self.n_classes, self.n_classes), dtype=np.int32)
         }
-        for c in self.class_names:
-            self.results["ene_psd_prec_{}".format(c)] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
-                                                         zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
-            self.results["ene_prec_{}".format(c)] = (zeros((self.n_bins + 2,), dtype=np.float32),
-                                                     zeros((self.n_bins + 2,), dtype=np.int32))
-            self.results["mult_prec_{}".format(c)] = (zeros((self.n_mult + 2,), dtype=np.float32),
-                                                      zeros((self.n_mult + 2,), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -99,7 +91,7 @@ class PSDEvaluator:
                                                                          zeros((predictions.shape[0],
                                                                                 f.shape[1],),
                                                                                dtype=np.float32), \
-                                                                         zeros((9,predictions.shape[0]),
+                                                                         zeros((5,predictions.shape[0]),
                                                                                dtype=np.float32), \
                                                                          zeros((predictions.shape[0],),
                                                                                dtype=np.int32), \
@@ -147,26 +139,6 @@ class PSDEvaluator:
             if len(preds_class_inds) > 0:
                 self.n_labelled_wfs[i] += np.sum(multiplicity[preds_class_inds])
                 self.summed_labelled_waveforms[i] += np.sum(summed_pulses[preds_class_inds], axis=0)
-            metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((energy[label_class_inds], psdl[label_class_inds]), axis=1),
-                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([self.emin, self.emax]),
-                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
-            metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((energy[label_class_inds], psdr[label_class_inds]), axis=1),
-                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([self.emin, self.emax]),
-                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
-            metric_accumulate_1d(results[label_class_inds],
-                                 energy[label_class_inds],
-                                 *self.results["ene_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([self.emin, self.emax]),
-                                 self.n_bins)
-            metric_accumulate_1d(results[label_class_inds],
-                                 multiplicity[label_class_inds],
-                                 *self.results["mult_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([0.5, self.n_mult + 0.5]),
-                                 self.n_mult)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -217,67 +189,12 @@ class PSDEvaluator:
                                                                self.results["mult_acc"][1][1:self.n_mult + 1]),
                                                    "multiplicity",
                                                    "accuracy"))
-
-        xwidth = (self.emax - self.emin) / self.n_bins
-        xedges = np.arange(self.emin, self.emax + xwidth, xwidth)
-        ywidth = (self.psd_max - self.psd_min) / self.n_bins
-        yedges = np.arange(self.psd_min, self.psd_max + ywidth, ywidth)
-        self.logger.experiment.add_figure("evaluation/EPSD",
-                                          plot_hist2d(xedges, yedges,
-                                                      self.results["ene_psd_acc"][1][1:self.n_bins + 1,
-                                                      1:self.n_bins + 1],
-                                                      "Total", self.ene_label, "PSD",
-                                                      r'# Pulses [$MeV^{-1}PSD^{-1}$'))
-
-        self.logger.experiment.add_figure("evaluation/EPSD_classes",
-                                          plot_n_hist2d(xedges, yedges,
-                                                        [self.results["ene_psd_prec_{}".format(self.class_names[i])][
-                                                             1][1:self.n_bins + 1, 1:self.n_bins + 1] for i in
-                                                         range(len(self.class_names))],
-                                                        self.class_names,
-                                                        self.ene_label, "PSD"))
-
-        self.logger.experiment.add_figure("evaluation/energy_psd_precision",
-                                          plot_n_contour(calc_axis(self.emin, self.emax, self.n_bins),
-                                                         calc_axis(self.psd_min, self.psd_max, self.n_bins),
-                                                         [safe_divide(self.results["ene_psd_prec_{}".format(
-                                                             self.class_names[i])][0][1:self.n_bins + 1,
-                                                                      1:self.n_bins + 1],
-                                                                      self.results["ene_psd_prec_{}".format(
-                                                                          self.class_names[i])][1][1:self.n_bins + 1,
-                                                                      1:self.n_bins + 1]) for i in
-                                                          range(len(self.class_names))],
-                                                         self.ene_label, "PSD", self.class_names, cm=plt.cm.cividis))
-
-        self.logger.experiment.add_figure("evaluation/energy_precision",
-                                          plot_n_hist1d(calc_bin_edges(self.emin, self.emax, self.n_bins),
-                                                        [safe_divide(self.results["ene_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_bins + 1],
-                                                                     self.results["ene_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_bins + 1]
-                                                                     ) for i in range(len(self.class_names))],
-                                                        self.class_names, self.ene_label, "precision",
-                                                        norm_to_bin_width=False, logy=False))
-        self.logger.experiment.add_figure("evaluation/multiplicity_precision",
-                                          plot_n_hist1d(calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
-                                                        [safe_divide(self.results["mult_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_mult + 1],
-                                                                     self.results["mult_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_mult + 1]
-                                                                     ) for i in range(len(self.class_names))],
-                                                        self.class_names, "multiplicity", "precision",
-                                                        norm_to_bin_width=False, logy=False))
-        self.logger.experiment.add_figure("evaluation/multiplicity_classes",
-                                          plot_n_hist1d(calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
-                                                        [self.results["mult_prec_{}".format(
-                                                            self.class_names[i])][1][1:self.n_mult + 1]
-                                                         for i in range(len(self.class_names))],
-                                                        self.class_names, "multiplicity", "total"))
-
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
         self.logger.experiment.add_figure("evaluation/average_pulses",
                                           plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names))
+        self.logger.experiment.add_figure("evaluation/average_pulses_normalized",
+                                          plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names, normalize=True))
         self.logger.experiment.add_figure("evaluation/average_pulses_labelled",
                                           plot_wfs(self.summed_labelled_waveforms, self.n_labelled_wfs,
                                                    self.class_names))

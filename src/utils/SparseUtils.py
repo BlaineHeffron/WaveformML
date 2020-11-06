@@ -245,8 +245,8 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
                     coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
                     n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current)
                 pulse = out_pulses[current_ind,0:n_samples]+out_pulses[current_ind,n_samples:]
-                out_stats[3, current_ind], out_stats[4, current_ind], out_stats[5, current_ind] = moment(times, n_samples, weights=pulse)
-                out_stats[6, current_ind], out_stats[7, current_ind], out_stats[8, current_ind] = moment(pulse, n_samples)
+                out_stats[3, current_ind], _, _ = moment(times, n_samples, weights=pulse)
+                out_stats[4, current_ind], _, _ = moment(pulse, n_samples)
                 multiplicity[current_ind] = n_current
             n_current = 0
             tot_l_current = 0
@@ -278,8 +278,8 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
         coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
         n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current)
     pulse = out_pulses[current_ind, 0:n_samples] + out_pulses[current_ind, n_samples:]
-    out_stats[3, current_ind], out_stats[4, current_ind], out_stats[5, current_ind] = moment(times, n_samples, weights=pulse)
-    out_stats[6, current_ind], out_stats[7, current_ind], out_stats[8, current_ind] = moment(pulse, n_samples)
+    out_stats[3, current_ind], _, _ = moment(times, n_samples, weights=pulse)
+    out_stats[4, current_ind], _, _ = moment(pulse, n_samples)
     multiplicity[current_ind] = n_current
 
 

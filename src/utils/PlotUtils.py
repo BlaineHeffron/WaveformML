@@ -366,7 +366,7 @@ def plot_pr(data, class_names):
     return fig
 
 
-def plot_wfs(data, n, labels, plot_errors=False):
+def plot_wfs(data, n, labels, plot_errors=False, normalize=False):
     lw = 2
     data *= (2 ** 14 - 1)
     fig, ax = plt.subplots()
@@ -377,16 +377,19 @@ def plot_wfs(data, n, labels, plot_errors=False):
         else:
             y = data[i]
         tot = n[i]
+        y = safe_divide(y,tot)
+        if normalize:
+            y = safe_divide(y,sum(y))
         if plot_errors:
             errors = np.sqrt(y)
-            plt.errorbar(x, safe_divide(y, tot),
+            plt.errorbar(x, y,
                          label=labels[i],
                          color=tab_colors[i % 10],
                          ls=category_styles[i % len(category_styles)],
                          linewidth=lw,
                          yerr=safe_divide(errors[i], tot))
         else:
-            plt.plot(x, safe_divide(y, tot),
+            plt.plot(x, y,
                      label=labels[i],
                      color=tab_colors[i % 10],
                      ls=category_styles[i % len(category_styles)],
