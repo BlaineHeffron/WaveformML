@@ -221,6 +221,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             for j in range(len(yedges) - 1):
                 y = ywidth * j + ywidth / 2.
                 w[n] = vals[m][i, j]
+                if w[n] < 0 and logz:
+                    print("WARNING, bin ({0},{1}) is set to {2} with log z specified. Setting to 0.\n")
+                    w[n] = 0
                 xs[n] = x
                 ys[n] = y
                 n += 1

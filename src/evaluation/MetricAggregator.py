@@ -68,9 +68,9 @@ class Metric2DAggregator:
         logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
                                      plot_n_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                    [self.results_dict[self.metric1.class_names[i]][
-                                                        1][1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1] for i
-                                                    in
-                                                    range(len(self.metric1.class_names))],
+                                                        1][1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1]
+                                                   for i in
+                                                   range(len(self.metric1.class_names))],
                                                    self.metric1.class_names,
                                                    self.metric1.name, self.metric2.name))
 
