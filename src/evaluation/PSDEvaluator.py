@@ -64,7 +64,7 @@ class PSDEvaluator:
 
     def _init_results(self):
         metric_names = ["energy","psd","multiplicity","dx", "dy", "ddt", "t_variance", "t_skew", "t_kurtosis", "n_variance", "n_skew", "n_kurtosis"]
-        metric_params = [[0.0,10.0,40],[0.0,0.6,40],[0.5,10.5,10],[0., 7., 20], [0., 6., 20], [0., 175., 20], [0., 10.0, 40], [0.0, 10., 40], [0.0, 10., 40], [0.0, 0.25, 40],
+        metric_params = [[0.0,10.0,40],[0.0,0.6,40],[0.5,10.5,10],[0., 7., 20], [0., 6., 20], [0., 175., 20], [0., 1000.0, 40], [0.0, 10., 40], [0.0, 100., 40], [0.0, 0.25, 40],
                          [0.0, 10.0, 40], [0.0, 100.0, 40]]
         i = 0
         for name in metric_names:
