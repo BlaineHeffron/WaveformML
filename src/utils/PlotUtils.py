@@ -6,7 +6,7 @@ from matplotlib.colors import LogNorm
 from math import ceil, floor
 from collections import OrderedDict
 
-from src.utils.util import safe_divide
+from src.utils.util import safe_divide, write_x_y_csv
 
 mpl.use('Agg')
 plt.rcParams['font.size'] = '12'
@@ -366,7 +366,7 @@ def plot_pr(data, class_names):
     return fig
 
 
-def plot_wfs(data, n, labels, plot_errors=False, normalize=False):
+def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=False):
     lw = 2
     data *= (2 ** 14 - 1)
     fig, ax = plt.subplots()
@@ -394,6 +394,9 @@ def plot_wfs(data, n, labels, plot_errors=False, normalize=False):
                      color=tab_colors[i % 10],
                      ls=category_styles[i % len(category_styles)],
                      linewidth=lw)
+        if write_pulses:
+            write_x_y_csv("pulse_{}.csv".format(labels[i]), "time [ns]", "counts", x,y)
+
     ax.set_xlabel('t [ns]')
     ax.set_ylabel('rate [counts/ns]')
     plt.legend(loc="upper right")
