@@ -63,9 +63,9 @@ class PSDEvaluator:
             self.calibrated = False
 
     def _init_results(self):
-        metric_names = ["dx", "dy", "ddt", "t_variance", "t_skew", "t_kurtosis", "n_variance", "n_skew", "n_kurtosis"]
-        metric_params = [[0., 7., 20], [0., 6., 20], [0., 100., 20], [0., 1.0e3, 40], [0.0, 1.0e4, 40], [0.0, 1.0e5, 40], [0.0, 10, 40],
-                         [0.0, 100, 40], [0.0, 100, 40]]
+        metric_names = ["energy","psd","multiplicity","dx", "dy", "ddt", "t_variance", "t_skew", "t_kurtosis", "n_variance", "n_skew", "n_kurtosis"]
+        metric_params = [[0.0,10.0,40],[0.0,0.6,40],[0.5,10.5,10],[0., 7., 20], [0., 6., 20], [0., 200., 20], [0., 1.0e3, 40], [0.0, 1.0e4, 40], [0.0, 1.0e5, 40], [0.0, 1.0, 40],
+                         [0.0, 10.0, 40], [0.0, 100.0, 40]]
         i = 0
         for name in metric_names:
             self.metrics.append(MetricAggregator(name, *metric_params[i], self.class_names))
@@ -135,7 +135,8 @@ class PSDEvaluator:
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 missing_classes = True
                 continue
-            self.metric_pairs.add(results[label_class_inds], output_stats[:, label_class_inds].squeeze(), self.class_names[i])
+            #todo, combine psdl and psdr before adding here
+            self.metric_pairs.add(results[label_class_inds], np.concatenate((np.expand_dims(energy[label_class_inds],axis=0),np.expand_dims(psdl[label_class_inds],axis=0),np.expand_dims(multiplicity[label_class_inds],axis=0), output_stats[:, label_class_inds].squeeze()),axis=0), self.class_names[i])
             missing_classes = self.accumulate_class_data_with_inds(i, label_class_inds, preds_class_inds, feature_list,
                                                                    feature_names, bins_list)
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,

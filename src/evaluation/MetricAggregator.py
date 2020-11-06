@@ -60,8 +60,8 @@ class Metric2DAggregator:
         metric_accumulate_2d(results,
                              np.stack((metric1, metric2), axis=1),
                              *self.results_dict[category_name],
-                             get_typed_list([self.metric1.bin_edges[0], self.metric1.bin_edges[1]]),
-                             get_typed_list([self.metric2.bin_edges[0], self.metric2.bin_edges[1]]),
+                             get_typed_list([self.metric1.bin_edges[0], self.metric1.bin_edges[-1]]),
+                             get_typed_list([self.metric2.bin_edges[0], self.metric2.bin_edges[-1]]),
                              self.metric1.n_bins, self.metric2.n_bins)
 
     def plot(self, logger):
@@ -82,7 +82,7 @@ class Metric2DAggregator:
                                                                  1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1])
                                                      for i in
                                                      range(len(self.metric1.class_names))],
-                                                    "Energy [MeV]", "PSD", self.metric1.class_names))
+                                                    self.metric1.name, self.metric2.name, self.metric1.class_names))
 
 
 class MetricPairAggregator:
