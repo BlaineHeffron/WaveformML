@@ -16,8 +16,8 @@ class MetricAggregator:
         self.results_dict = {}
         self.is_discreet = is_discreet
         for nam in class_names:
-            self.results_dict[nam] = (np.zeros((self.n_bins + 2,), dtype=np.float32),
-                                      np.zeros((self.n_bins + 2,), dtype=np.int32))
+            self.results_dict[nam] = (np.zeros((self.n_bins + 2,), dtype=np.double),
+                                      np.zeros((self.n_bins + 2,), dtype=np.long))
 
     def add(self, results, metric, category_name):
         metric_accumulate_1d(results, metric, *self.results_dict[category_name],
@@ -53,8 +53,8 @@ class Metric2DAggregator:
         self.name = "{0}_{1}".format(metric1.name, metric2.name)
         for nam in metric1.class_names:
             self.results_dict[nam] = \
-                (np.zeros((self.metric1.n_bins + 2, self.metric2.n_bins + 2), dtype=np.float32),
-                 np.zeros((self.metric1.n_bins + 2, self.metric2.n_bins + 2), dtype=np.int32))
+                (np.zeros((self.metric1.n_bins + 2, self.metric2.n_bins + 2), dtype=np.double),
+                 np.zeros((self.metric1.n_bins + 2, self.metric2.n_bins + 2), dtype=np.long))
 
     def add(self, results, metric1, metric2, category_name):
         metric_accumulate_2d(results,
