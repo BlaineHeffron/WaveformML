@@ -204,11 +204,11 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt):
         for j in range(nsamp * 2):
             if j < nsamp:
                 timel += pulses[i, j] * (j + 0.5)
-                tot += pulses[i, j]
             else:
                 timer += pulses[i, j] * (j + 0.5)
-                tot += pulses[i, j]
-        ddt += abs((timer - timel) / tot - dt)
+            tot += pulses[i, j]
+        if tot > 0:
+            ddt += abs((timer - timel) / tot - dt)
     return dx / mult, dy / mult, ddt / mult
 
 
