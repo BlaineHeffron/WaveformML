@@ -196,7 +196,7 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
     ddt = 0
     dE = 0
     tot = 0
-    if mult == 0:
+    if mult < 2:
         return dx, dy, ddt, dE
     for i in range(mult):
         totl = 0
