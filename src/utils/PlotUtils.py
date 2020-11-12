@@ -220,8 +220,8 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             x = xwidth * i + xwidth / 2.
             for j in range(len(yedges) - 1):
                 y = ywidth * j + ywidth / 2.
-                if vals[m][i,j] < 0 and logz:
-                    w[n] = 0
+                if vals[m][i,j] <= 0 and logz:
+                    w[n] = 1./(xwidth*ywidth) if norm_to_bin_width else 1.
                 else:
                     w[n] = vals[m][i, j]
                 xs[n] = x

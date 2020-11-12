@@ -208,7 +208,7 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
                 timel += pulses[i, j] * (j + 0.5)
                 totl += pulses[i, j]
             else:
-                timer += pulses[i, j] * (j + 0.5)
+                timer += pulses[i, j] * (j - nsamp + 0.5)
                 totr += pulses[i, j]
         tot += totl + totr
         if totl > 0 and totr > 0:
