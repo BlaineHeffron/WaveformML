@@ -212,17 +212,20 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
                 totr += pulses[i, j]
         tot += totl + totr
         if totl > 0 and totr > 0:
-            ddt += abs((timer/totr - timel/totl) - dt)*(totl + totr)
+            ddt += abs((timer / totr - timel / totl) - dt) * (totl + totr)
             dE += abs(E - (totl + totr))
         elif totl > 0:
-            ddt += abs(timel / totl - dt)*totr
+            ddt += abs(timel / totl - dt) * totr
             dE += abs(E - totl)
         elif totr > 0:
-            ddt += abs(timer / totr - dt)*totr
+            ddt += abs(timer / totr - dt) * totr
             dE += abs(E - totr)
-        dx += abs(coords[i, 0] - x)*(totl + totr)
-        dy += abs(coords[i, 1] - y)*(totl + totr)
-    return dx / tot, dy / tot, ddt / tot, dE / mult
+        dx += abs(coords[i, 0] - x) * (totl + totr)
+        dy += abs(coords[i, 1] - y) * (totl + totr)
+    if tot > 0:
+        return dx / tot, dy / tot, ddt / tot, dE / mult
+    else:
+        return 0, 0, 0, 0
 
 
 @nb.jit(nopython=True)
@@ -262,7 +265,8 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
                 out_coords[current_ind], psdl[current_ind], psdr[current_ind], dt_current = normalize_coords(
                     out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind],
                     dt_current)
-                out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[3, current_ind] = calc_spread(
+                out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[
+                    3, current_ind] = calc_spread(
                     coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
                     n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current, E_current)
                 pulse = out_pulses[current_ind, 0:n_samples] + out_pulses[current_ind, n_samples:]
@@ -298,7 +302,8 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
     E_current /= n_current
     out_coords[current_ind], psdl[current_ind], psdr[current_ind], dt_current = normalize_coords(
         out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind], dt_current)
-    out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[3, current_ind] = calc_spread(
+    out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[
+        3, current_ind] = calc_spread(
         coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
         n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current, E_current)
     pulse = out_pulses[current_ind, 0:n_samples] + out_pulses[current_ind, n_samples:]
