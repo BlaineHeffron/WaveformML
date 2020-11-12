@@ -64,8 +64,8 @@ class PSDEvaluator:
             self.calibrated = False
 
     def _init_results(self):
-        metric_names = ["energy", "psd", "multiplicity", "dx", "dy", "ddt", "t_variance", "n_variance"]
-        metric_params = [[0.0, 10.0, 40], [0.0, 0.6, 40], [0.5, 10.5, 10], [0., 7., 20], [0., 6., 20], [0., 175., 20],
+        metric_names = ["energy", "psd", "multiplicity", "x_dev", "y_dev", "$\Delta$t_dev", "E_dev", "t_variance", "n_variance"]
+        metric_params = [[0.0, 10.0, 40], [0.0, 0.6, 40], [0.5, 10.5, 10], [0., 7., 20], [0., 6., 20], [0., 10., 20], [0.,2.,40],
                          [0., 1000.0, 40], [0.0, 0.25, 40]]
         i = 0
         for name in metric_names:
@@ -93,7 +93,7 @@ class PSDEvaluator:
                                                                          zeros((predictions.shape[0],
                                                                                 f.shape[1],),
                                                                                dtype=np.float32), \
-                                                                         zeros((5, predictions.shape[0]),
+                                                                         zeros((6, predictions.shape[0]),
                                                                                dtype=np.float32), \
                                                                          zeros((predictions.shape[0],),
                                                                                dtype=np.int32), \

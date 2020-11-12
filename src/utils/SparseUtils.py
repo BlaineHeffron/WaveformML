@@ -15,7 +15,7 @@ def moment(data, n, weights=None):
     for j in range(n):
         if weights is not None:
             if weights[j] > 0:
-                s += data[j]*weights[j]
+                s += data[j] * weights[j]
                 weightsum += weights[j]
         else:
             s += data[j]
@@ -27,12 +27,12 @@ def moment(data, n, weights=None):
         if data[j]:
             s = data[j] - ave
             if weightsum > 0.0 and weights is not None:
-                adev += abs(s)*weights[j]
+                adev += abs(s) * weights[j]
                 p = s * s
-                svar += p*weights[j]
+                svar += p * weights[j]
                 p *= s
-                skew += p*weights[j]
-                curt += (p * s)*weights[j]
+                skew += p * weights[j]
+                curt += (p * s) * weights[j]
             else:
                 adev += abs(s)
                 p = s * s
@@ -50,7 +50,7 @@ def moment(data, n, weights=None):
         sdev = sqrt(svar)
         if svar:
             skew /= (weightsum * svar * sdev)
-            curt = (curt/(weightsum*svar*svar)) - 3.0
+            curt = (curt / (weightsum * svar * svar)) - 3.0
     else:
         adev /= n
         if n > 1:
@@ -60,7 +60,7 @@ def moment(data, n, weights=None):
         sdev = sqrt(svar)
         if svar:
             skew /= (n * svar * sdev)
-            curt = (curt/(n * svar * svar)) - 3.0
+            curt = (curt / (n * svar * svar)) - 3.0
     return svar, skew, curt
 
 
@@ -190,36 +190,51 @@ def normalize_coords(out_coord, tot_l_current, tot_r_current, psdl, psdr, dt):
 
 
 @nb.jit(nopython=True)
-def calc_spread(coords, pulses, nsamp, mult, x, y, dt):
+def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
     dx = 0
     dy = 0
     ddt = 0
+    dE = 0
     if mult == 0:
         return dx, dy, ddt
     for i in range(mult):
         dx += abs(coords[i, 0] - x)
         dy += abs(coords[i, 1] - y)
-        tot = 0
+        totl = 0
+        totr = 0
         timel = 0
         timer = 0
         for j in range(nsamp * 2):
             if j < nsamp:
                 timel += pulses[i, j] * (j + 0.5)
+                totl += pulses[i, j]
             else:
                 timer += pulses[i, j] * (j + 0.5)
-            tot += pulses[i, j]
-        if tot > 0:
-            ddt += abs((timer - timel) / tot - dt)
-    return dx / mult, dy / mult, ddt / mult
+                totr += pulses[i, j]
+        if totl > 0 and totr > 0:
+            ddt += abs((timer/totr - timel/totl) - dt)
+            dE += abs(E - (totl + totr))
+        elif totl > 0:
+            ddt += timel / totl - dt
+            dE += abs(E - totl)
+        elif totr > 0:
+            ddt += timer / totr - dt
+            dE += abs(E - totr)
+    return dx / mult, dy / mult, ddt / mult, dE / mult
 
 
 @nb.jit(nopython=True)
 def calc_time(pulse, nsamp):
     """ returns energy weighted time in units of samples"""
     t = 0.0
+    sum = 0.0
     for i in range(nsamp):
         t += pulse[i] * (i + 0.5)
-    return t
+        sum += pulse[i]
+    if sum != 0.0:
+        return t / sum
+    else:
+        return 0
 
 
 @nb.jit(nopython=True)
@@ -232,6 +247,7 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
     tot_l_current = 0
     tot_r_current = 0
     dt_current = 0
+    E_current = 0
     psd_window_lo = -3
     psd_divider = 11
     psd_window_hi = 50
@@ -240,19 +256,22 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
     for coord in coords:
         if coord[2] != last_id:
             if last_id > -1:
+                E_current /= n_current
                 out_coords[current_ind], psdl[current_ind], psdr[current_ind], dt_current = normalize_coords(
-                    out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind], dt_current)
-                out_stats[0,current_ind], out_stats[1,current_ind], out_stats[2,current_ind] = calc_spread(
+                    out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind],
+                    dt_current)
+                out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[3, current_ind] = calc_spread(
                     coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
-                    n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current)
-                pulse = out_pulses[current_ind,0:n_samples]+out_pulses[current_ind,n_samples:]
-                out_stats[3, current_ind], _, _ = moment(times, n_samples, weights=pulse)
-                out_stats[4, current_ind], _, _ = moment(pulse, n_samples)
+                    n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current, E_current)
+                pulse = out_pulses[current_ind, 0:n_samples] + out_pulses[current_ind, n_samples:]
+                out_stats[4, current_ind], _, _ = moment(times, n_samples, weights=pulse)
+                out_stats[5, current_ind], _, _ = moment(pulse, n_samples)
                 multiplicity[current_ind] = n_current
             n_current = 0
             tot_l_current = 0
             tot_r_current = 0
             dt_current = 0
+            E_current = 0
             last_id = coord[2]
             current_ind += 1
         n_current += 1
@@ -268,19 +287,21 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
                                       psd_window_lo, psd_window_hi, psd_divider) * tot_l
         psdr[current_ind] += calc_psd(pulseright, calc_arrival(pulseright),
                                       psd_window_lo, psd_window_hi, psd_divider) * tot_r
-        dt_current += calc_time(pulseright, n_samples) - calc_time(pulseleft, n_samples)
+        dt_current += (calc_time(pulseright, n_samples) - calc_time(pulseleft, n_samples)) * (tot_l + tot_r)
+        E_current += tot_l + tot_r
         out_coords[current_ind] += coord[0:2] * (tot_l + tot_r)
         out_pulses[current_ind] += pulses[pulse_ind]
         pulse_ind += 1
 
+    E_current /= n_current
     out_coords[current_ind], psdl[current_ind], psdr[current_ind], dt_current = normalize_coords(
-        out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind], dt_current)
-    out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind] = calc_spread(
+        out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind], dt_current, E_current)
+    out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[3, current_ind] = calc_spread(
         coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
-        n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current)
+        n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current, E_current)
     pulse = out_pulses[current_ind, 0:n_samples] + out_pulses[current_ind, n_samples:]
-    out_stats[3, current_ind], _, _ = moment(times, n_samples, weights=pulse)
-    out_stats[4, current_ind], _, _ = moment(pulse, n_samples)
+    out_stats[4, current_ind], _, _ = moment(times, n_samples, weights=pulse)
+    out_stats[5, current_ind], _, _ = moment(pulse, n_samples)
     multiplicity[current_ind] = n_current
 
 
