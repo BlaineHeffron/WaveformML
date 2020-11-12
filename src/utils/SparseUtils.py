@@ -195,11 +195,10 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
     dy = 0
     ddt = 0
     dE = 0
+    tot = 0
     if mult == 0:
         return dx, dy, ddt, dE
     for i in range(mult):
-        dx += abs(coords[i, 0] - x)
-        dy += abs(coords[i, 1] - y)
         totl = 0
         totr = 0
         timel = 0
@@ -211,16 +210,19 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
             else:
                 timer += pulses[i, j] * (j + 0.5)
                 totr += pulses[i, j]
+        tot += totl + totr
         if totl > 0 and totr > 0:
-            ddt += abs((timer/totr - timel/totl) - dt)
+            ddt += abs((timer/totr - timel/totl) - dt)*(totl + totr)
             dE += abs(E - (totl + totr))
         elif totl > 0:
-            ddt += timel / totl - dt
+            ddt += abs(timel / totl - dt)*totr
             dE += abs(E - totl)
         elif totr > 0:
-            ddt += timer / totr - dt
+            ddt += abs(timer / totr - dt)*totr
             dE += abs(E - totr)
-    return dx / mult, dy / mult, ddt / mult, dE / mult
+        dx += abs(coords[i, 0] - x)*(totl + totr)
+        dy += abs(coords[i, 1] - y)*(totl + totr)
+    return dx / tot, dy / tot, ddt / tot, dE / mult
 
 
 @nb.jit(nopython=True)
