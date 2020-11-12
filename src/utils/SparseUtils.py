@@ -215,7 +215,7 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
             ddt += abs((timer / totr - timel / totl) - dt) * (totl + totr)
             dE += abs(E - (totl + totr))
         elif totl > 0:
-            ddt += abs(timel / totl - dt) * totr
+            ddt += abs(-1.0*timel / totl - dt) * totl
             dE += abs(E - totl)
         elif totr > 0:
             ddt += abs(timer / totr - dt) * totr
