@@ -2,6 +2,7 @@
 import logging
 from torch import nn
 
+
 class BasicNetwork(nn.Module):
     def __init__(self, config):
         super(BasicNetwork, self).__init__()
@@ -9,5 +10,5 @@ class BasicNetwork(nn.Module):
         self.config = config
 
     def forward(self, x):
-        if hasattr(self,"model"):
+        if hasattr(self, "model"):
             return self.model(x)
