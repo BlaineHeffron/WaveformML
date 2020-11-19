@@ -20,12 +20,12 @@ class SparseConv2DBlock(Algorithm):
                  version=0):
         if version == 0:
             self._version0(nin, nout, n, size, to_dense,
-                 size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
-                 pointwise_factor=0, depth_factor=0, dropout=0, trainable_weights=False)
+                 size_factor=size_factor, pad_factor=pad_factor, stride_factor=stride_factor, dil_factor=dil_factor,
+                 pointwise_factor=pointwise_factor, depth_factor=depth_factor, dropout=dropout, trainable_weights=trainable_weights)
         else:
             self._version1(nin, nout, n, size, to_dense,
-                           size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
-                           pointwise_factor=0, depth_factor=0, dropout=0, trainable_weights=False)
+                           size_factor=size_factor, pad_factor=pad_factor, stride_factor=stride_factor, dil_factor=dil_factor,
+                           pointwise_factor=pointwise_factor, depth_factor=depth_factor, dropout=dropout, trainable_weights=trainable_weights)
 
     def _version0(self, nin, nout, n, size, to_dense,
                  size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
