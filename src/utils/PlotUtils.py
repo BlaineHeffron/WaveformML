@@ -6,7 +6,7 @@ from matplotlib.colors import LogNorm
 from math import ceil, floor
 from collections import OrderedDict
 
-from src.utils.util import safe_divide
+from src.utils.util import safe_divide, write_x_y_csv
 
 mpl.use('Agg')
 plt.rcParams['font.size'] = '12'
@@ -220,7 +220,10 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             x = xwidth * i + xwidth / 2.
             for j in range(len(yedges) - 1):
                 y = ywidth * j + ywidth / 2.
-                w[n] = vals[m][i, j]
+                if vals[m][i,j] <= 0 and logz:
+                    w[n] = 1./(xwidth*ywidth) if norm_to_bin_width else 1.
+                else:
+                    w[n] = vals[m][i, j]
                 xs[n] = x
                 ys[n] = y
                 n += 1
@@ -359,7 +362,7 @@ def plot_pr(data, class_names):
     return fig
 
 
-def plot_wfs(data, n, labels, plot_errors=False):
+def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=False):
     lw = 2
     data *= (2 ** 14 - 1)
     fig, ax = plt.subplots()
@@ -370,20 +373,26 @@ def plot_wfs(data, n, labels, plot_errors=False):
         else:
             y = data[i]
         tot = n[i]
+        y = safe_divide(y,tot)
+        if normalize:
+            y = safe_divide(y,sum(y))
         if plot_errors:
             errors = np.sqrt(y)
-            plt.errorbar(x, safe_divide(y, tot),
+            plt.errorbar(x, y,
                          label=labels[i],
                          color=tab_colors[i % 10],
                          ls=category_styles[i % len(category_styles)],
                          linewidth=lw,
                          yerr=safe_divide(errors[i], tot))
         else:
-            plt.plot(x, safe_divide(y, tot),
+            plt.plot(x, y,
                      label=labels[i],
                      color=tab_colors[i % 10],
                      ls=category_styles[i % len(category_styles)],
                      linewidth=lw)
+        if write_pulses:
+            write_x_y_csv("pulse_{}.csv".format(labels[i]), "time [ns]", "counts", x,y)
+
     ax.set_xlabel('t [ns]')
     ax.set_ylabel('rate [counts/ns]')
     plt.legend(loc="upper right")

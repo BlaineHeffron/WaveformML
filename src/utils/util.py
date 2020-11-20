@@ -13,6 +13,7 @@ import logging
 import re
 import collections
 import numpy as np
+import csv
 
 log = logging.getLogger(__name__)
 
@@ -486,4 +487,17 @@ def safe_divide(a, b):
 
 def get_bins(start, stop, n):
     width = (stop - start) / n
-    return np.arange(start, stop + width, width)
+    return np.arange(start, stop + width / 2, width)
+
+
+def get_bin_midpoints(amin, amax, n):
+    return np.arange(amin, amax, (amax - amin) / n) + (amax - amin) / (2 * n)
+
+
+def write_x_y_csv(name, xlabel, ylabel, xs, ys):
+    with open(name, 'w') as csvfile:
+        writer = csv.writer(csvfile,
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow([xlabel, ylabel])
+        for x, y in zip(xs, ys):
+            writer.writerow([x, y])

@@ -1,9 +1,68 @@
 import numba as nb
-from math import ceil, floor
+from math import ceil, floor, sqrt
 from numba.typed import List
 
 
 # TODO: implement this with pytorch + cython so it can stay on the gpu
+
+@nb.jit(nopython=True)
+def moment(data, n, weights=None):
+    ave, adev, sdev, svar, skew, curt = 0, 0, 0, 0, 0, 0
+    if n <= 1:
+        return svar, skew, curt
+    s = 0.
+    weightsum = 0.
+    for j in range(n):
+        if weights is not None:
+            if weights[j] > 0:
+                s += data[j] * weights[j]
+                weightsum += weights[j]
+        else:
+            s += data[j]
+    if weightsum > 0.0:
+        ave = s / weightsum
+    else:
+        ave = s / n
+    for j in range(n):
+        if data[j]:
+            s = data[j] - ave
+            if weightsum > 0.0 and weights is not None:
+                adev += abs(s) * weights[j]
+                p = s * s
+                svar += p * weights[j]
+                p *= s
+                skew += p * weights[j]
+                curt += (p * s) * weights[j]
+            else:
+                adev += abs(s)
+                p = s * s
+                svar += p
+                p *= s
+                skew += p
+                curt += p * s
+
+    if weightsum > 0.0 and weights is not None:
+        adev /= weightsum
+        if weightsum > 1.:
+            svar /= (weightsum - 1)
+        else:
+            svar = 0
+        sdev = sqrt(svar)
+        if svar:
+            skew /= (weightsum * svar * sdev)
+            curt = (curt / (weightsum * svar * svar)) - 3.0
+    else:
+        adev /= n
+        if n > 1:
+            svar /= (n - 1)
+        else:
+            svar = 0
+        sdev = sqrt(svar)
+        if svar:
+            skew /= (n * svar * sdev)
+            curt = (curt / (n * svar * svar)) - 3.0
+    return svar, skew, curt
+
 
 @nb.jit(nopython=True)
 def safe_divide(a, b):
@@ -55,24 +114,24 @@ def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
 
 
 @nb.jit(nopython=True)
-def metric_accumulate_1d(metric, category, output, out_n, xrange, nbins):
+def metric_accumulate_1d(results, metric, output, out_n, xrange, nbins):
     # expects output to be of size nbins+2, 1 for overflow and underflow
     xlen = xrange[1] - xrange[0]
     bin_width = xlen / nbins
-    for i in range(metric.shape[0]):
+    for i in range(results.shape[0]):
         bin = 0
         find_bin = True
-        if category[i] < xrange[0]:
+        if metric[i] < xrange[0]:
             find_bin = False
-        elif category[i] > xrange[1]:
+        elif metric[i] > xrange[1]:
             bin = nbins + 1
             find_bin = False
         if find_bin:
             for j in range(1, nbins + 1):
-                if j * bin_width + xrange[0] > category[i]:
+                if j * bin_width + xrange[0] > metric[i]:
                     bin = j
                     break
-        output[bin] += metric[i]
+        output[bin] += results[i]
         out_n[bin] += 1
 
 
@@ -83,48 +142,117 @@ def get_typed_list(mylist):
 
 
 @nb.jit(nopython=True)
-def metric_accumulate_2d(metric, category, output, out_n, xrange, yrange, nbinsx, nbinsy):
+def metric_accumulate_2d(results, metric, output, out_n, xrange, yrange, nbinsx, nbinsy):
     # expects output to be of size nbins+2, 1 for overflow and underflow
     xlen = xrange[1] - xrange[0]
     ylen = yrange[1] - yrange[0]
     bin_widthx = xlen / nbinsx
     bin_widthy = ylen / nbinsy
-    for i in range(metric.shape[0]):
+    for i in range(results.shape[0]):
         binx = 0
         biny = 0
         find_binx = True
         find_biny = True
-        if category[i, 0] < xrange[0]:
+        if metric[i, 0] < xrange[0]:
             find_binx = False
-        elif category[i, 0] > xrange[1]:
+        elif metric[i, 0] > xrange[1]:
             binx = nbinsx + 1
             find_binx = False
-        if category[i, 1] < yrange[0]:
+        if metric[i, 1] < yrange[0]:
             find_biny = False
-        elif category[i, 1] > yrange[1]:
+        elif metric[i, 1] > yrange[1]:
             biny = nbinsy + 1
             find_biny = False
         if find_binx:
             for j in range(1, nbinsx + 1):
-                if j * bin_widthx + xrange[0] > category[i, 0]:
+                if j * bin_widthx + xrange[0] > metric[i, 0]:
                     binx = j
                     break
         if find_biny:
             for j in range(1, nbinsy + 1):
-                if j * bin_widthy + yrange[0] > category[i, 1]:
+                if j * bin_widthy + yrange[0] > metric[i, 1]:
                     biny = j
                     break
-        output[binx, biny] += metric[i]
+        output[binx, biny] += results[i]
         out_n[binx, biny] += 1
 
 
 @nb.jit(nopython=True)
-def average_pulse(coords, pulses, gains, out_coords, out_pulses, multiplicity, psdl, psdr):
+def normalize_coords(out_coord, tot_l_current, tot_r_current, psdl, psdr, dt):
+    if tot_l_current > 0 or tot_r_current > 0:
+        dt /= (tot_l_current + tot_r_current)
+        out_coord /= (tot_l_current + tot_r_current)
+    if tot_l_current > 0:
+        psdl /= tot_l_current
+    if tot_r_current > 0:
+        psdr /= tot_r_current
+    return out_coord, psdl, psdr, dt
+
+
+@nb.jit(nopython=True)
+def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
+    dx = 0
+    dy = 0
+    ddt = 0
+    dE = 0
+    tot = 0
+    if mult < 2:
+        return dx, dy, ddt, dE
+    for i in range(mult):
+        totl = 0
+        totr = 0
+        timel = 0
+        timer = 0
+        for j in range(nsamp * 2):
+            if j < nsamp:
+                timel += pulses[i, j] * (j + 0.5)
+                totl += pulses[i, j]
+            else:
+                timer += pulses[i, j] * (j - nsamp + 0.5)
+                totr += pulses[i, j]
+        tot += totl + totr
+        if totl > 0 and totr > 0:
+            ddt += abs((timer / totr - timel / totl) - dt) * (totl + totr)
+            dE += abs(E - (totl + totr))
+        elif totl > 0:
+            ddt += abs(-1.0*timel / totl - dt) * totl
+            dE += abs(E - totl)
+        elif totr > 0:
+            ddt += abs(timer / totr - dt) * totr
+            dE += abs(E - totr)
+        dx += abs(coords[i, 0] - x) * (totl + totr)
+        dy += abs(coords[i, 1] - y) * (totl + totr)
+    if tot > 0:
+        return dx / tot, dy / tot, ddt / tot, dE / mult
+    else:
+        return 0, 0, 0, 0
+
+
+@nb.jit(nopython=True)
+def calc_time(pulse, nsamp):
+    """ returns energy weighted time in units of samples"""
+    t = 0.0
+    sum = 0.0
+    for i in range(nsamp):
+        t += pulse[i] * (i + 0.5)
+        sum += pulse[i]
+    if sum != 0.0:
+        return t / sum
+    else:
+        return 0
+
+
+@nb.jit(nopython=True)
+def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stats, multiplicity, psdl, psdr):
+    """units for dx, dy are in cell widths, dt is in sample length,
+    ddt is spread in dt, dt is time difference between left and right PMTs"""
     last_id = -1
     current_ind = -1
     n_current = 0
     tot_l_current = 0
     tot_r_current = 0
+    dt_current = 0
+    E_current = 0
     psd_window_lo = -3
     psd_divider = 11
     psd_window_hi = 50
@@ -133,16 +261,23 @@ def average_pulse(coords, pulses, gains, out_coords, out_pulses, multiplicity, p
     for coord in coords:
         if coord[2] != last_id:
             if last_id > -1:
-                if (tot_l_current > 0 and tot_r_current > 0):
-                    out_coords[current_ind] /= (tot_l_current + tot_r_current)
-                if (tot_l_current > 0):
-                    psdl[current_ind] /= tot_l_current
-                if (tot_r_current > 0):
-                    psdr[current_ind] /= tot_r_current
+                E_current /= n_current
+                out_coords[current_ind], psdl[current_ind], psdr[current_ind], dt_current = normalize_coords(
+                    out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind],
+                    dt_current)
+                out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[
+                    3, current_ind] = calc_spread(
+                    coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
+                    n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current, E_current)
+                pulse = out_pulses[current_ind, 0:n_samples] + out_pulses[current_ind, n_samples:]
+                out_stats[4, current_ind], _, _ = moment(times, n_samples, weights=pulse)
+                out_stats[5, current_ind], _, _ = moment(pulse, n_samples)
                 multiplicity[current_ind] = n_current
             n_current = 0
             tot_l_current = 0
             tot_r_current = 0
+            dt_current = 0
+            E_current = 0
             last_id = coord[2]
             current_ind += 1
         n_current += 1
@@ -158,17 +293,23 @@ def average_pulse(coords, pulses, gains, out_coords, out_pulses, multiplicity, p
                                       psd_window_lo, psd_window_hi, psd_divider) * tot_l
         psdr[current_ind] += calc_psd(pulseright, calc_arrival(pulseright),
                                       psd_window_lo, psd_window_hi, psd_divider) * tot_r
+        dt_current += (calc_time(pulseright, n_samples) - calc_time(pulseleft, n_samples)) * (tot_l + tot_r)
+        E_current += tot_l + tot_r
         out_coords[current_ind] += coord[0:2] * (tot_l + tot_r)
         out_pulses[current_ind] += pulses[pulse_ind]
         pulse_ind += 1
-    if (tot_l_current > 0 and tot_r_current > 0):
-        out_coords[current_ind] /= (tot_l_current + tot_r_current)
-    if (tot_l_current > 0):
-        psdl[current_ind] /= tot_l_current
-    if (tot_r_current > 0):
-        psdr[current_ind] /= tot_r_current
+
+    E_current /= n_current
+    out_coords[current_ind], psdl[current_ind], psdr[current_ind], dt_current = normalize_coords(
+        out_coords[current_ind], tot_l_current, tot_r_current, psdl[current_ind], psdr[current_ind], dt_current)
+    out_stats[0, current_ind], out_stats[1, current_ind], out_stats[2, current_ind], out_stats[
+        3, current_ind] = calc_spread(
+        coords[pulse_ind - n_current:pulse_ind], pulses[pulse_ind - n_current:pulse_ind], n_samples,
+        n_current, out_coords[current_ind, 0], out_coords[current_ind, 1], dt_current, E_current)
+    pulse = out_pulses[current_ind, 0:n_samples] + out_pulses[current_ind, n_samples:]
+    out_stats[4, current_ind], _, _ = moment(times, n_samples, weights=pulse)
+    out_stats[5, current_ind], _, _ = moment(pulse, n_samples)
     multiplicity[current_ind] = n_current
-    return out_coords, out_pulses, multiplicity, psdl, psdr
 
 
 @nb.jit(nopython=True)

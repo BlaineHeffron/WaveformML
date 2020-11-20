@@ -1,18 +1,25 @@
 import os
 
-import numpy as np
-
-from src.utils.SQLiteUtils import get_gains
-from src.utils.SparseUtils import average_pulse, find_matches, metric_accumulate_2d, metric_accumulate_1d, \
-    get_typed_list, weighted_average_quantities, confusion_accumulate_1d
-from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
-    plot_n_contour, plot_n_hist2d, plot_n_hist1d, plot_confusion_matrix
-from src.utils.util import list_matches, safe_divide, get_bins
-from src.datasets.HDF5Dataset import MAX_RANGE
-from numpy import zeros
 import matplotlib.pyplot as plt
-
+from numpy import zeros
 from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecallCurve
+
+from src.datasets.HDF5Dataset import MAX_RANGE
+from src.evaluation.MetricAggregator import *
+from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
+    plot_confusion_matrix
+from src.utils.SQLiteUtils import get_gains
+from src.utils.SparseUtils import average_pulse, find_matches, weighted_average_quantities, confusion_accumulate_1d
+# from src.utils.StatsUtils import calc_time_moments
+from src.utils.util import list_matches
+
+
+def calc_axis(amin, amax, n):
+    return get_bin_midpoints(amin, amax, n)
+
+
+def calc_bin_edges(amin, amax, n):
+    return get_bins(amin, amax, n)
 
 
 class PSDEvaluator:
@@ -28,6 +35,7 @@ class PSDEvaluator:
         self.psd_max = 0.6
         self.nx = 14
         self.ny = 11
+        self.n_samples = 150
         self.n_confusion = 10
         self.ene_label = "Energy [arb]"
         self.class_names = class_names
@@ -38,11 +46,14 @@ class PSDEvaluator:
         self.n_wfs = [0] * (self.n_classes + 1)
         self.n_labelled_wfs = [0] * self.n_classes
         self.summed_labelled_waveforms = []
+        self.metrics = []
+        self.metric_pairs = None
         self._init_results()
         if calgroup is not None:
             if "PROSPECT_CALDB" not in os.environ.keys():
                 raise ValueError(
-                    "Error: could not find PROSPECT_CALDB environment variable. Please set PROSPECT_CALDB to be the path of the sqlite3 calibration database.")
+                    "Error: could not find PROSPECT_CALDB environment variable. Please set PROSPECT_CALDB to be the "
+                    "path of the sqlite3 calibration database.")
             gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
             self.gain_factor = np.divide(np.full((14, 11, 2), MAX_RANGE), gains)
             self.calibrated = True
@@ -53,6 +64,15 @@ class PSDEvaluator:
             self.calibrated = False
 
     def _init_results(self):
+        metric_names = ["energy", "psd", "multiplicity", "x_dev", "y_dev", "$\Delta$t_dev", "E_dev", "t_variance", "n_variance"]
+        metric_params = [[0.0, 10.0, 40], [0.0, 0.6, 40], [0.5, 10.5, 10], [0., 4., 20], [0., 3., 20], [0., 10., 20], [0.,2.,40],
+                         [0., 1000.0, 40], [0.0, 0.25, 40]]
+        i = 0
+        for name in metric_names:
+            self.metrics.append(MetricAggregator(name, *metric_params[i], self.class_names))
+            i += 1
+        self.metric_pairs = MetricPairAggregator(self.metrics)
+
         self.results = {
             "mult_acc": (zeros((self.n_mult + 2,), dtype=np.float32), zeros((self.n_mult + 2,), dtype=np.int32)),
             "ene_acc": (zeros((self.n_bins + 2,), dtype=np.float32), zeros((self.n_bins + 2,), dtype=np.int32)),
@@ -62,28 +82,28 @@ class PSDEvaluator:
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
             "confusion_energy": zeros((self.n_confusion, self.n_classes, self.n_classes), dtype=np.int32)
         }
-        for c in self.class_names:
-            self.results["ene_psd_prec_{}".format(c)] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
-                                                         zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
-            self.results["ene_prec_{}".format(c)] = (zeros((self.n_bins + 2,), dtype=np.float32),
-                                                     zeros((self.n_bins + 2,), dtype=np.int32))
-            self.results["mult_prec_{}".format(c)] = (zeros((self.n_mult + 2,), dtype=np.float32),
-                                                     zeros((self.n_mult + 2,), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), \
                                             labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), \
                                             output.detach().cpu().numpy()
-        avg_coo, summed_pulses, multiplicity, psdl, psdr = average_pulse(c, f, self.gain_factor,
-                                                                         zeros((predictions.shape[0], 2)),
-                                                                         zeros((predictions.shape[0], f.shape[1],),
-                                                                               dtype=np.float32),
-                                                                         zeros((predictions.shape[0],), dtype=np.int32),
+
+        avg_coo, summed_pulses, output_stats, multiplicity, psdl, psdr = zeros((predictions.shape[0], 2)), \
+                                                                         zeros((predictions.shape[0],
+                                                                                f.shape[1],),
+                                                                               dtype=np.float32), \
+                                                                         zeros((6, predictions.shape[0]),
+                                                                               dtype=np.float32), \
                                                                          zeros((predictions.shape[0],),
-                                                                               dtype=np.float32),
+                                                                               dtype=np.int32), \
                                                                          zeros((predictions.shape[0],),
-                                                                               dtype=np.float32))
+                                                                               dtype=np.float32), \
+                                                                         zeros((predictions.shape[0],),
+                                                                               dtype=np.float32)
+        average_pulse(c, f, self.gain_factor, np.arange(0.5, self.n_samples - 0.49, 1.0), avg_coo, summed_pulses,
+                      output_stats, multiplicity, psdl, psdr)
+
         if self.summed_waveforms is None:
             self.summed_waveforms = np.zeros((self.n_classes + 1, summed_pulses[1].size), np.float32)
             self.summed_labelled_waveforms = \
@@ -109,6 +129,13 @@ class PSDEvaluator:
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 missing_classes = True
                 continue
+            # todo, combine psdl and psdr before adding here
+            self.metric_pairs.add(results[label_class_inds], np.concatenate((np.expand_dims(energy[label_class_inds],
+                                                                                            axis=0),
+                                                                             np.expand_dims(psdl[label_class_inds],
+                                                                                            axis=0), np.expand_dims(
+                multiplicity[label_class_inds], axis=0), output_stats[:, label_class_inds].squeeze()), axis=0),
+                                  self.class_names[i])
             missing_classes = self.accumulate_class_data_with_inds(i, label_class_inds, preds_class_inds, feature_list,
                                                                    feature_names, bins_list)
             self.logger.experiment.add_histogram("evaluation/output_{}".format(self.class_names[i]), output[:, i], 0,
@@ -119,26 +146,6 @@ class PSDEvaluator:
             if len(preds_class_inds) > 0:
                 self.n_labelled_wfs[i] += np.sum(multiplicity[preds_class_inds])
                 self.summed_labelled_waveforms[i] += np.sum(summed_pulses[preds_class_inds], axis=0)
-            metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((energy[label_class_inds], psdl[label_class_inds]), axis=1),
-                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([self.emin, self.emax]),
-                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
-            metric_accumulate_2d(results[label_class_inds],
-                                 np.stack((energy[label_class_inds], psdr[label_class_inds]), axis=1),
-                                 *self.results["ene_psd_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([self.emin, self.emax]),
-                                 get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
-            metric_accumulate_1d(results[label_class_inds],
-                                 energy[label_class_inds],
-                                 *self.results["ene_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([self.emin, self.emax]),
-                                 self.n_bins)
-            metric_accumulate_1d(results[label_class_inds],
-                                 multiplicity[label_class_inds],
-                                 *self.results["mult_prec_{}".format(self.class_names[i])],
-                                 get_typed_list([0.5, self.n_mult + 0.5]),
-                                 self.n_mult)
 
         if not missing_classes:
             this_roc = self.roc(output, labels)
@@ -170,8 +177,8 @@ class PSDEvaluator:
 
     def dump(self):
         self.logger.experiment.add_figure("evaluation/energy_psd_accuracy",
-                                          plot_contour(self.calc_axis(self.emin, self.emax, self.n_bins),
-                                                       self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
+                                          plot_contour(calc_axis(self.emin, self.emax, self.n_bins),
+                                                       calc_axis(self.psd_min, self.psd_max, self.n_bins),
                                                        safe_divide(self.results["ene_psd_acc"][0][1:self.n_bins + 1,
                                                                    1:self.n_bins + 1],
                                                                    self.results["ene_psd_acc"][1][1:self.n_bins + 1,
@@ -189,67 +196,13 @@ class PSDEvaluator:
                                                                self.results["mult_acc"][1][1:self.n_mult + 1]),
                                                    "multiplicity",
                                                    "accuracy"))
-
-        xwidth = (self.emax - self.emin) / self.n_bins
-        xedges = np.arange(self.emin, self.emax + xwidth, xwidth)
-        ywidth = (self.psd_max - self.psd_min) / self.n_bins
-        yedges = np.arange(self.psd_min, self.psd_max + ywidth, ywidth)
-        self.logger.experiment.add_figure("evaluation/EPSD",
-                                          plot_hist2d(xedges, yedges,
-                                                      self.results["ene_psd_acc"][1][1:self.n_bins + 1,
-                                                      1:self.n_bins + 1],
-                                                      "Total", self.ene_label, "PSD",
-                                                      r'# Pulses [$MeV^{-1}PSD^{-1}$'))
-
-        self.logger.experiment.add_figure("evaluation/EPSD_classes",
-                                          plot_n_hist2d(xedges, yedges,
-                                                        [self.results["ene_psd_prec_{}".format(self.class_names[i])][
-                                                             1][1:self.n_bins + 1, 1:self.n_bins + 1] for i in
-                                                         range(len(self.class_names))],
-                                                        self.class_names,
-                                                        self.ene_label, "PSD"))
-
-        self.logger.experiment.add_figure("evaluation/energy_psd_precision",
-                                          plot_n_contour(self.calc_axis(self.emin, self.emax, self.n_bins),
-                                                         self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
-                                                         [safe_divide(self.results["ene_psd_prec_{}".format(
-                                                             self.class_names[i])][0][1:self.n_bins + 1,
-                                                                      1:self.n_bins + 1],
-                                                                      self.results["ene_psd_prec_{}".format(
-                                                                          self.class_names[i])][1][1:self.n_bins + 1,
-                                                                      1:self.n_bins + 1]) for i in
-                                                          range(len(self.class_names))],
-                                                         self.ene_label, "PSD", self.class_names, cm=plt.cm.cividis))
-
-        self.logger.experiment.add_figure("evaluation/energy_precision",
-                                          plot_n_hist1d(self.calc_bin_edges(self.emin, self.emax, self.n_bins),
-                                                        [safe_divide(self.results["ene_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_bins + 1],
-                                                                     self.results["ene_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_bins + 1]
-                                                                     ) for i in range(len(self.class_names))],
-                                                        self.class_names, self.ene_label, "precision",
-                                                        norm_to_bin_width=False, logy=False))
-        self.logger.experiment.add_figure("evaluation/multiplicity_precision",
-                                          plot_n_hist1d(self.calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
-                                                        [safe_divide(self.results["mult_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_mult + 1],
-                                                                     self.results["mult_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_mult + 1]
-                                                                     ) for i in range(len(self.class_names))],
-                                                        self.class_names, "multiplicity", "precision",
-                                                        norm_to_bin_width=False, logy=False))
-        self.logger.experiment.add_figure("evaluation/multiplicity_classes",
-                                          plot_n_hist1d(self.calc_bin_edges(0, self.n_mult, self.n_mult),
-                                                        [self.results["mult_prec_{}".format(
-                                                            self.class_names[i])][1][1:self.n_mult + 1]
-                                                            for i in range(len(self.class_names))],
-                                                        self.class_names, "multiplicity", "total"))
-
         # print("n_wfs  is {0}".format(self.n_wfs))
         # print("summed waveforms shape is {0}".format(self.summed_waveforms))
         self.logger.experiment.add_figure("evaluation/average_pulses",
                                           plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names))
+        self.logger.experiment.add_figure("evaluation/average_pulses_normalized",
+                                          plot_wfs(self.summed_waveforms[1:], self.n_wfs[1:], self.class_names,
+                                                   normalize=True, write_pulses=True))
         self.logger.experiment.add_figure("evaluation/average_pulses_labelled",
                                           plot_wfs(self.summed_labelled_waveforms, self.n_labelled_wfs,
                                                    self.class_names))
@@ -263,14 +216,8 @@ class PSDEvaluator:
                                               plot_confusion_matrix(self.results["confusion_energy"][i],
                                                                     self.class_names,
                                                                     normalize=True, title=title))
+        self.metric_pairs.plot(self.logger)
         self._init_results()
-
-    def calc_axis(self, amin, amax, n):
-        return np.arange(amin, amax, (amax - amin) / n) + (amax - amin) / (2 * n)
-
-    def calc_bin_edges(self, amin, amax, n):
-        width = (amax - amin) / n
-        return np.arange(amin, amax + width, width)
 
     def accumulate_class_data(self, i, labels, predictions, feature_list, feature_names, bins_list):
         label_class_inds = list_matches(labels, i)
@@ -405,8 +352,8 @@ class PhysEvaluator(PSDEvaluator):
 
     def dump(self):
         self.logger.experiment.add_figure("evaluation/energy_psd_accuracy",
-                                          plot_contour(self.calc_axis(self.emin, self.emax, self.n_bins),
-                                                       self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
+                                          plot_contour(calc_axis(self.emin, self.emax, self.n_bins),
+                                                       calc_axis(self.psd_min, self.psd_max, self.n_bins),
                                                        safe_divide(self.results["ene_psd_acc"][0][1:self.n_bins + 1,
                                                                    1:self.n_bins + 1],
                                                                    self.results["ene_psd_acc"][1][1:self.n_bins + 1,
@@ -436,7 +383,7 @@ class PhysEvaluator(PSDEvaluator):
                                                       r'# Pulses [$MeV^{-1}PSD^{-1}$'))
 
         self.logger.experiment.add_figure("evaluation/multiplicity",
-                                          plot_hist1d(self.calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
+                                          plot_hist1d(calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
                                                       self.results["mult_acc"][1][1:self.n_mult + 1],
                                                       "Total", "Multiplicity", False))
 
@@ -449,8 +396,8 @@ class PhysEvaluator(PSDEvaluator):
                                                         "Energy [MeV]", "PSD"))
 
         self.logger.experiment.add_figure("evaluation/energy_psd_precision",
-                                          plot_n_contour(self.calc_axis(self.emin, self.emax, self.n_bins),
-                                                         self.calc_axis(self.psd_min, self.psd_max, self.n_bins),
+                                          plot_n_contour(calc_axis(self.emin, self.emax, self.n_bins),
+                                                         calc_axis(self.psd_min, self.psd_max, self.n_bins),
                                                          [safe_divide(self.results["ene_psd_prec_{}".format(
                                                              self.class_names[i])][0][1:self.n_bins + 1,
                                                                       1:self.n_bins + 1],
@@ -461,7 +408,7 @@ class PhysEvaluator(PSDEvaluator):
                                                          "Energy [MeV]", "PSD", self.class_names, cm=plt.cm.cividis))
 
         self.logger.experiment.add_figure("evaluation/energy_precision",
-                                          plot_n_hist1d(self.calc_bin_edges(self.emin, self.emax, self.n_bins),
+                                          plot_n_hist1d(calc_bin_edges(self.emin, self.emax, self.n_bins),
                                                         [safe_divide(self.results["ene_prec_{}".format(
                                                             self.class_names[i])][0][1:self.n_bins + 1],
                                                                      self.results["ene_prec_{}".format(
@@ -470,7 +417,7 @@ class PhysEvaluator(PSDEvaluator):
                                                         self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False, logy=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_precision",
-                                          plot_n_hist1d(self.calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
+                                          plot_n_hist1d(calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
                                                         [safe_divide(self.results["mult_prec_{}".format(
                                                             self.class_names[i])][0][1:self.n_mult + 1],
                                                                      self.results["mult_prec_{}".format(
@@ -479,7 +426,7 @@ class PhysEvaluator(PSDEvaluator):
                                                         self.class_names, "multiplicity", "precision",
                                                         norm_to_bin_width=False, logy=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_classes",
-                                          plot_n_hist1d(self.calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
+                                          plot_n_hist1d(calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
                                                         [self.results["mult_prec_{}".format(
                                                             self.class_names[i])][1][1:self.n_mult + 1]
                                                          for i in range(len(self.class_names))],
@@ -493,5 +440,3 @@ class PhysEvaluator(PSDEvaluator):
                                                                     self.class_names,
                                                                     normalize=True, title=title))
         self._init_results()
-
-
