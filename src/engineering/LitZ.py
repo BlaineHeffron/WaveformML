@@ -4,10 +4,10 @@ from src.engineering.PSDDataModule import *
 #from src.evaluation.ZEvaluator import ZEvaluator
 
 
-class LitPSD(pl.LightningModule):
+class LitZ(pl.LightningModule):
 
     def __init__(self, config, trial=None):
-        super(LitPSD, self).__init__()
+        super(LitZ, self).__init__()
         if trial:
             self.trial = trial
         else:
