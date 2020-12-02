@@ -1,6 +1,7 @@
 import spconv
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
+from torch import where
 
 
 # from src.evaluation.ZEvaluator import ZEvaluator
@@ -66,9 +67,7 @@ class LitZ(pl.LightningModule):
                                                 self.model.spatial_size, batch_size)
         target_tensor = target_tensor.dense()
         # set output to 0 if there was no value for input
-        zero_coords = (target_tensor == 0).nonzero()
-        pred[zero_coords] = 0
-        return pred, target_tensor
+        return where(target_tensor == 0, target_tensor, pred), target_tensor
 
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
