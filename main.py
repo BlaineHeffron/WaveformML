@@ -63,18 +63,18 @@ def main():
     verbosity = args.verbosity
     config_file = args.config
     config_file = check_config(config_file, CONFIG_DIR)
-    if args.config_validation:
-        valid_file = args.config_validation
-    else:
-        valid_file = CONFIG_VALIDATION
+    #if args.config_validation:
+    #    valid_file = args.config_validation
+    #else:
+    #    valid_file = CONFIG_VALIDATION
     # read config
     with open(config_file) as json_data_file:
         config = json.load(json_data_file)
     # validate config
-    if not os.path.exists(valid_file):
-        print("WARNING: Could not find config validation file. Search path is set to {}".format(CONFIG_VALIDATION))
-    else:
-        ValidateUtility.validate_config(config, valid_file)
+    #if not os.path.exists(valid_file):
+    #    print("WARNING: Could not find config validation file. Search path is set to {}".format(CONFIG_VALIDATION))
+    #else:
+    #    ValidateUtility.validate_config(config, valid_file)
     # convert dict to object recursively for easy call
     config = util.DictionaryUtility.to_object(config)
     if not hasattr(config, "system_config"): raise IOError("Config file must contain system_config")
