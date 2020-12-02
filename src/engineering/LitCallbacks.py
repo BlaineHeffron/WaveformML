@@ -40,7 +40,7 @@ class LoggingCallback(Callback):
                                                                          pl_module.config.system_config.type_names,
                                                                          normalize=True))
             pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
-        loss = trainer.callback_metrics["val_checkpoint_on"].detach().item()
+        loss = trainer.callback_metrics["val_loss"].detach().item()
         if self.best_loss > loss:
             self.best_loss = loss
             pl_module.logger.log_hyperparams(pl_module.hparams, {"hp_metric": loss})
