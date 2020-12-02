@@ -21,7 +21,7 @@ class SparseConv2DForZ(nn.Module):
                 out = 1
             else:
                 out -= increment
-            pd = (kernel_size - 1) / 2
+            pd = int((kernel_size - 1) / 2)
             layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
             in_planes = out
             if kernel_size > 3:
