@@ -1,4 +1,5 @@
-from pytorch_lightning.metrics.classification import Accuracy, ConfusionMatrix
+from pytorch_lightning.metrics.classification import Accuracy
+from pytorch_lightning.metrics.functional.classification import confusion_matrix
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
 from torch import argmax, sum
@@ -20,8 +21,8 @@ class LitPSD(pl.LightningModule):
             self.trial = trial
         else:
             self.trial = None
-        self.log = logging.getLogger(__name__)
-        logging.getLogger("lightning").setLevel(self.log.level)
+        self.pylog = logging.getLogger(__name__)
+        logging.getLogger("lightning").setLevel(self.pylog.level)
         self.config = config
         if hasattr(config.system_config, "half_precision"):
             self.needs_float = not config.system_config.half_precision
@@ -38,8 +39,8 @@ class LitPSD(pl.LightningModule):
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.softmax = LogSoftmax(dim=1)
-        self.accuracy = Accuracy(num_classes=self.n_type)
-        self.confusion = ConfusionMatrix()
+        self.accuracy = Accuracy()
+        self.confusion = confusion_matrix
         if self.config.dataset_config.dataset_class == "PulseDatasetDet":
             self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
         else:
@@ -107,9 +108,8 @@ class LitPSD(pl.LightningModule):
         predictions = self.model([c, f])
         # self.log.debug("predictions shape is {}".format(predictions.shape))
         loss = self.criterion.forward(predictions, target)
-        result = pl.TrainResult(loss)
-        result.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
-        return result
+        self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
@@ -117,15 +117,14 @@ class LitPSD(pl.LightningModule):
         predictions = self.model([c, f])
         loss = self.criterion.forward(predictions, target)
         pred = argmax(self.softmax(predictions), dim=1)
-        result = pl.EvalResult(checkpoint_on=loss, early_stop_on=loss)
         acc = self.accuracy(pred, target)
         results_dict = {'val_loss': loss, 'val_acc': acc}
-        result.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        if self.log.level <= logging.INFO:
+        self.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        if self.pylog.level <= logging.INFO:
             if not hasattr(self, "confusion_matrix"):
-                self.confusion_matrix = self.confusion(pred, target)
+                self.confusion_matrix = self.confusion(pred, target, num_classes=self.n_type)
             else:
-                self.confusion_matrix += self.confusion(pred, target)
+                self.confusion_matrix += self.confusion(pred, target, num_classes=self.n_type)
 
         """
         if self.trial:
@@ -134,7 +133,7 @@ class LitPSD(pl.LightningModule):
                 raise optuna.TrialPruned()
         """
 
-        return result
+        return results_dict
 
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
@@ -144,16 +143,14 @@ class LitPSD(pl.LightningModule):
         #if batch_idx == 0:
         #    self.logger.experiment.add_graph(self.model, [c, f])
         acc = self.accuracy(pred, target)
-        result = pl.EvalResult()
-
         results_dict = {'test_loss': loss, 'test_acc': acc}
         if not hasattr(self, "test_confusion_matrix"):
-            self.test_confusion_matrix = self.confusion(pred, target)
+            self.test_confusion_matrix = self.confusion(pred, target, num_classes=self.n_type)
         else:
-            self.test_confusion_matrix += self.confusion(pred, target)
+            self.test_confusion_matrix += self.confusion(pred, target, num_classes=self.n_type)
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
         self.evaluator.add(batch, predictions, pred)
-        result.log_dict(results_dict, on_epoch=True, logger=True)
-        return result
+        self.log_dict(results_dict, on_epoch=True, logger=True)
+        return results_dict
 

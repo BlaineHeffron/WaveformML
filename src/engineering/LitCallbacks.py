@@ -1,7 +1,6 @@
 import logging
 
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import LearningRateLogger
 from pytorch_lightning.callbacks.base import Callback
 from torch import zeros
 from src.utils.PlotUtils import plot_confusion_matrix
@@ -12,9 +11,11 @@ class PSDCallbacks:
     def __init__(self, config):
         self.log = logging.getLogger(__name__)
         self.config = config
-        self.callbacks = [EarlyStopping(min_delta=.00, verbose=True, mode="min", patience=4)]
-        self.callbacks.append(LearningRateLogger())
+        self.callbacks = [EarlyStopping(monitor='val_loss', min_delta=.00, verbose=True, mode="min", patience=4)]
         self.callbacks.append(LoggingCallback())
+
+    def add_callback(self, callback):
+        self.callbacks.append(callback)
 
     def set_args(self, args):
         # args["accumulate_grad_batches"] = {5: 2, 20: 3}
@@ -30,7 +31,7 @@ class PSDCallbacks:
 class LoggingCallback(Callback):
     def __init__(self):
         super().__init__()
-        self.best_loss = 100
+        self.best_loss = 100000
 
     def on_validation_epoch_end(self, trainer, pl_module):
         if hasattr(pl_module, "confusion_matrix"):

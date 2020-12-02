@@ -652,3 +652,46 @@ class PulseDatasetDet(PulseDataset):
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
+
+class PulseDataset2DWithZ(PulseDataset):
+    """Pulse data in the form of ChannelData of size [N,nsamples*2],
+    where N is the number of PMTs fired for the M = batch size events"""
+
+    @classmethod
+    def retrieve_config(cls, config_path, device, use_half):
+        return super().retrieve_config(config_path, device, use_half)
+
+    def __init__(self, config, dataset_type, n_per_dir, device,
+                 file_excludes=None,
+                 label_name="z",
+                 label_file_pattern=None,
+                 data_cache_size=3,
+                 model_dir=None,
+                 data_dir=None,
+                 dataset_dir=None,
+                 use_half=False):
+        """
+        Args:
+            config: configuration file object
+            n_per_dir: number of events to use per directory
+            file_excludes: list of file paths to exclude from dataset
+            label_name: name of the table
+            data_cache_size: number of file to hold in memory
+        """
+        super().__init__(config, dataset_type,
+                         n_per_dir, device,
+                         "*WaveformPairSim.h5", "WaveformPairsWithZ",
+                         "coord", "waveform",
+                         file_excludes=file_excludes,
+                         label_name=label_name,
+                         label_file_pattern=label_file_pattern,
+                         data_cache_size=data_cache_size,
+                         model_dir=model_dir,
+                         data_dir=data_dir,
+                         dataset_dir=dataset_dir,
+                         use_half=use_half)
+
+    def __getitem__(self, idx):
+        return super().__getitem__(idx)
+
+

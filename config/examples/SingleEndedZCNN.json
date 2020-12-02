@@ -1,0 +1,73 @@
+{
+  "run_config": {
+    "exp_name": "GEP_Z",
+    "imports": [
+      "src.engineering.LitZ"
+    ],
+    "run_class": "LitZ"
+  },
+  "system_config": {
+    "model_name": "SingleEndedZConv",
+    "n_samples": 150,
+    "gpu_enabled": false,
+    "half_precision": 0,
+    "model_base_path": "./model"
+  },
+  "net_config": {
+    "criterion_class": "L1Loss",
+    "criterion_params": [],
+    "imports": [
+      "torch.nn"
+    ],
+    "net_type": "2DConvolution",
+    "hparams": {
+      "kernel_size": 3,
+      "n_layers": 3
+    }
+  },
+  "optimize_config": {
+    "imports": [
+      "torch.optim",
+      "torch.optim.lr_scheduler"
+    ],
+    "total_epoch": 30,
+    "lr": 0.02,
+    "optimizer_class": "optim.SGD",
+    "optimizer_params": {
+      "momentum": 0.98,
+      "weight_decay": 0,
+      "dampening": 0,
+      "nesterov": true
+    },
+    "scheduler_class": "lr_scheduler.ExponentialLR",
+    "scheduler_params": {
+      "gamma": 0.9
+    },
+    "validation_freq": 1
+  },
+  "dataset_config": {
+    "mode": "path",
+    "imports": [
+      "src.datasets.PulseDataset"
+    ],
+    "name": "Positron_Z",
+    "base_path": "/home/bheffron/src/WaveformML/data",
+    "paths": [
+      "Positron"
+    ],
+    "dataset_class": "PulseDataset2DWithZ",
+    "dataset_params": {
+      "data_cache_size": 1,
+      "label_name": "labels",
+      "use_half": false
+    },
+    "dataloader_params": {
+      "pin_memory": false,
+      "num_workers": 4,
+      "batch_size": 1
+    },
+    "n_train": 50000,
+    "n_validate": 50000,
+    "n_test": 500000
+  }
+}

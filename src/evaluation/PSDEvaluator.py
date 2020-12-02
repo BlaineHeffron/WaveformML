@@ -2,7 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 from numpy import zeros
-from pytorch_lightning.metrics.classification import MulticlassROC, MulticlassPrecisionRecallCurve
+from pytorch_lightning.metrics.functional.classification import multiclass_roc, multiclass_precision_recall_curve
 
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.MetricAggregator import *
@@ -40,8 +40,8 @@ class PSDEvaluator:
         self.ene_label = "Energy [arb]"
         self.class_names = class_names
         self.n_classes = len(self.class_names)
-        self.roc = MulticlassROC(num_classes=self.n_classes)
-        self.pr = MulticlassPrecisionRecallCurve(num_classes=self.n_classes)
+        self.roc = multiclass_roc
+        self.pr = multiclass_precision_recall_curve
         self.summed_waveforms = None
         self.n_wfs = [0] * (self.n_classes + 1)
         self.n_labelled_wfs = [0] * self.n_classes
@@ -148,8 +148,8 @@ class PSDEvaluator:
                 self.summed_labelled_waveforms[i] += np.sum(summed_pulses[preds_class_inds], axis=0)
 
         if not missing_classes:
-            this_roc = self.roc(output, labels)
-            this_prc = self.pr(output, labels)
+            this_roc = self.roc(output, labels, num_classes=self.n_classes)
+            this_prc = self.pr(output, labels, num_classes=self.n_classes)
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
 
@@ -332,8 +332,8 @@ class PhysEvaluator(PSDEvaluator):
                                  self.n_mult)
 
         if not missing_classes:
-            this_roc = self.roc(output, labels)
-            this_prc = self.pr(output, labels)
+            this_roc = self.roc(output, labels, num_classes=self.n_classes)
+            this_prc = self.pr(output, labels, num_classes=self.n_classes)
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
 

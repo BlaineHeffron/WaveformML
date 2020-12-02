@@ -1,13 +1,9 @@
 import os
 import re
-import logging
-
-from pytorch_lightning import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import SimpleProfiler
 import optuna
-from optuna.integration import PyTorchLightningPruningCallback
 
 from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
@@ -19,9 +15,9 @@ INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
 class PruningCallback(Callback):
-    def on_validation_batch_end(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if trainer.callback_metrics:
-            val = trainer.callback_metrics["val_early_stop_on"].detach().item()
+            val = trainer.callback_metrics["val_loss"].detach().item()
             if not hasattr(pl_module, "trial"):
                 raise Exception("No Trial found in lightning module {}".format(pl_module))
             pl_module.trial.report(val, batch_idx)
@@ -157,10 +153,10 @@ class ModelOptimization:
         if not os.path.exists(log_folder):
             os.makedirs(log_folder, exist_ok=True)
         trainer_args = self.trainer_args
-        trainer_args["checkpoint_callback"] = \
+        checkpoint_callback = \
             ModelCheckpoint(
-                os.path.join(log_folder, "{epoch}"),
-                monitor="val_checkpoint_on")
+                dirpath=log_folder, filename='{epoch}-{val_loss:.2f}',
+                monitor="val_loss")
         trainer_args["logger"] = logger
         trainer_args["default_root_dir"] = self.study_dir
         set_default_trainer_args(trainer_args, self.config)
@@ -174,6 +170,7 @@ class ModelOptimization:
         cbs = [metrics_callback]
         cbs.append(LoggingCallback())
         cbs.append(PruningCallback())
+        cbs.append(checkpoint_callback)
         # trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
         trainer_args["early_stop_callback"] = EarlyStopping(min_delta=.00, verbose=True, mode="min", patience=4)
 

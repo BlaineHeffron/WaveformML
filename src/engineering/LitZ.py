@@ -1,0 +1,94 @@
+import spconv
+from src.models.SingleEndedZConv import SingleEndedZConv
+from src.engineering.PSDDataModule import *
+#from src.evaluation.ZEvaluator import ZEvaluator
+
+
+class LitPSD(pl.LightningModule):
+
+    def __init__(self, config, trial=None):
+        super(LitPSD, self).__init__()
+        if trial:
+            self.trial = trial
+        else:
+            self.trial = None
+        self.config = config
+        if hasattr(config.system_config, "half_precision"):
+            self.needs_float = not config.system_config.half_precision
+        else:
+            self.needs_float = True
+        self.hparams = DictionaryUtility.to_dict(config)
+        self.n_type = config.system_config.n_type
+        self.lr = config.optimize_config.lr
+        self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
+                                     config.optimize_config.imports)
+        self.model = SingleEndedZConv(self.config)
+        self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
+        self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        #self.evaluator = ZEvaluator(config)
+
+    def forward(self, x, *args, **kwargs):
+        return self.model(x)
+
+    """
+    def prepare_data(self):
+        self.data_module.prepare_data()
+        self.data_module.setup()
+
+    def train_dataloader(self):
+        return self.data_module.train_dataloader()
+
+    def val_dataloader(self):
+        return self.data_module.val_dataloader()
+    """
+
+    def configure_optimizers(self):
+        optimizer = \
+            self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
+                                                                                     lr=(self.lr or self.learning_rate),
+                                                                                     **DictionaryUtility.to_dict(
+                                                                                         self.config.optimize_config.optimizer_params))
+        if hasattr(self.config.optimize_config, "scheduler_class"):
+            if self.config.optimize_config.scheduler_class:
+                if not hasattr(self.config.optimize_config, "scheduler_params"):
+                    raise IOError(
+                        "Optimizer config has a learning scheduler class specified. You must also set "
+                        "lr_schedule_parameters (dictionary of key value pairs).")
+                scheduler = self.modules.retrieve_class(self.config.optimize_config.scheduler_class)(optimizer,
+                                                                                                     **DictionaryUtility.to_dict(
+                                                                                                         self.config.optimize_config.scheduler_params))
+                return [optimizer], [scheduler]
+        return optimizer
+
+    def training_step(self, batch, batch_idx):
+        (c, f), target = batch
+        predictions = self.model([c, f])
+        batch_size = c[-1, -1] + 1
+        target_tensor = spconv.SparseConvTensor(target, c[:, self.model.permute_tensor], self.model.spatial_size, batch_size)
+        loss = self.criterion.forward(predictions, target_tensor.dense())
+        self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        (c, f), target = batch
+        predictions = self.model([c, f])
+        batch_size = c[-1, -1] + 1
+        target_tensor = spconv.SparseConvTensor(target, c[:, self.model.permute_tensor], self.model.spatial_size, batch_size)
+        loss = self.criterion.forward(predictions, target_tensor.dense())
+        results_dict = {'val_loss': loss}
+        self.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return results_dict
+
+    def test_step(self, batch, batch_idx):
+        (c, f), target = batch
+        predictions = self.model([c, f])
+        batch_size = c[-1, -1] + 1
+        target_tensor = spconv.SparseConvTensor(target, c[:, self.model.permute_tensor], self.model.spatial_size, batch_size)
+        loss = self.criterion.forward(predictions, target_tensor.dense())
+        results_dict = {'test_loss': loss}
+        #if not self.evaluator.logger:
+        #    self.evaluator.logger = self.logger
+        #self.evaluator.add(batch, predictions)
+        self.log_dict(results_dict, on_epoch=True, logger=True)
+        return results_dict
+

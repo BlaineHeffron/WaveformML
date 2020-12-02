@@ -1,0 +1,96 @@
+{
+  "run_config": {
+    "exp_name": "GEP_WF",
+    "imports": [
+      "src.engineering.LitPSD"
+    ],
+    "run_class": "LitPSD"
+  },
+  "system_config": {
+    "model_name": "GEP",
+    "n_type": 3,
+    "type_names": [
+      "Gamma","Electron",
+      "Positron"
+    ],
+    "n_samples": 150,
+    "gpu_enabled": false,
+    "half_precision": 0,
+    "model_base_path": "./model"
+  },
+  "net_config": {
+    "criterion_class": "CrossEntropyLoss",
+    "criterion_params": [],
+    "imports": [
+      "torch.nn",
+      "spconv",
+      "src.models.SPConvNet"
+    ],
+    "net_class": "SPConvNet.SPConvNet",
+    "sequence_class": "spconv.SparseSequential",
+    "net_type": "2DConvolution",
+    "validate_algorithm": true,
+    "hparams": {
+        "n_conv": 3,
+        "n_lin": 2,
+        "n_dil": 0,
+        "out_planes": 20,
+        "conv_params": {
+            "pointwise_factor": 0.1735,
+            "size_factor": 4,
+            "pad_factor": 0.667,
+            "stride_factor": 1,
+            "dil_factor": 1,
+            "trainable_weights": false
+        }, "wf_params": {
+            "dropout": 0.2,
+            "kernel_size": 3
+        }
+    }
+  },
+  "optimize_config": {
+    "imports": [
+      "torch.optim",
+      "torch.optim.lr_scheduler"
+    ],
+    "total_epoch": 10,
+    "lr": 0.02,
+    "optimizer_class": "optim.SGD",
+    "optimizer_params": {
+      "momentum": 0.98,
+      "weight_decay": 0,
+      "dampening": 0,
+      "nesterov": true
+    },
+    "scheduler_class": "lr_scheduler.ExponentialLR",
+    "scheduler_params": {
+      "gamma": 0.9
+    },
+    "validation_freq": 1
+  },
+  "dataset_config": {
+    "mode": "path",
+    "imports": [
+      "src.datasets.PulseDataset"
+    ],
+    "name": "GEP",
+    "base_path": "/home/bheffron/src/WaveformML/data",
+    "paths": [
+      "Gamma__Electron__Positron"
+    ],
+    "dataset_class": "PulseDataset2D",
+    "dataset_params": {
+      "data_cache_size": 1,
+      "label_name": "labels",
+      "use_half": false
+    },
+    "dataloader_params": {
+      "pin_memory": false,
+      "num_workers": 4,
+      "batch_size": 1
+    },
+    "n_train": 50000,
+    "n_validate": 50000,
+    "n_test": 500000
+  }
+}

@@ -1,6 +1,6 @@
 from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import AdvancedProfiler
-from os.path import abspath, exists, join
+from os.path import exists, join
 from src.optimization.ModelOptimization import *
 from src.utils.ModelValidation import *
 
@@ -9,7 +9,7 @@ import json
 import logging
 from src.utils import util
 import argparse
-from src.utils.util import path_create, ValidateUtility, save_config, save_path, set_default_trainer_args, \
+from src.utils.util import  ValidateUtility, save_config, save_path, set_default_trainer_args, \
     retrieve_model_checkpoint, get_tb_logdir_version, check_config, setup_logger, get_model_folder
 
 MODEL_DIR = "./model"
@@ -154,11 +154,11 @@ def main():
                 trainer_args["resume_from_checkpoint"] = load_checkpoint
             del trainer_args[non_trainer_arg]
         trainer_args = psd_callbacks.set_args(trainer_args)
-        trainer_args["checkpoint_callback"] = \
+        checkpoint_callback = \
             ModelCheckpoint(
-                filepath=save_path(log_folder, model_name, config.run_config.exp_name),
-                monitor="val_checkpoint_on")
-
+                dirpath=log_folder,
+                filename='{epoch}-{val_loss:.2f}',
+                monitor="val_loss")
         if trainer_args["profiler"] or verbosity >= 5:
             if verbosity >= 5:
                 profiler = AdvancedProfiler(output_filename=join(log_folder, "profile_results.txt"))
@@ -180,6 +180,7 @@ def main():
         else:
             runner = modules.retrieve_class(config.run_config.run_class)(config)
         data_module = PSDDataModule(config, runner.device)
+        psd_callbacks.add_callback(checkpoint_callback)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         trainer.fit(runner, datamodule=data_module)
         if run_test:

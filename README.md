@@ -25,9 +25,9 @@ Then, install pytorch-lightning and optuna
 
     conda install -c conda-forge optuna
 
-Pytorch lightning requires version 0.9 or higher:
+Pytorch lightning requires version 1.0 or higher:
     
-    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
+    pip install pytorch_lightning --upgrade
     
 To run the sparse convolutional network code, install spconv or SparseConvNet
 
@@ -56,7 +56,7 @@ Using pip (example is for linux, see pytorch install guide for your system)
     pip install gitpython
     pip install torch==1.6.0+cpu torchvision==0.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
     pip install optuna
-    pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@master --upgrade
+    pip install pytorch_lightning --upgrade
 
 
 ## Usage

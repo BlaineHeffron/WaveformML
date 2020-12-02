@@ -1,4 +1,5 @@
 from copy import copy
+from typing import Any
 
 import spconv
 from torch import nn, LongTensor
@@ -35,7 +36,7 @@ class SPConvNet(nn.Module):
             self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
-        xlen = x[1].shape[0]
+        #xlen = x[1].shape[0]
         if hasattr(self, "waveformLayer"):
             # pytorch expects 1d convolutions in with shape (N, Cin, Lin) where N is batch size, Cin is number of input feature planes, Lin is length of data
             #x[1] = x[1].reshape(xlen, 2, self.nsamples)

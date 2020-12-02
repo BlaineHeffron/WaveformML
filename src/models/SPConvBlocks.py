@@ -6,6 +6,33 @@ from src.models.Algorithm import *
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
 
 
+class SparseConv2DForZ(nn.Module):
+    def __init__(self, in_planes, kernel_size=3, n_layers=2):
+        super(SparseConv2DForZ, self).__init__()
+        layers = []
+        increment = round(float(in_planes) / float(n_layers))
+        if kernel_size % 2 != 1:
+            raise ValueError("Kernel size must be an odd integer")
+        if not isinstance(n_layers, int) or n_layers < 1:
+            raise ValueError("n_layers must be  integer >= 1")
+        out = in_planes
+        for i in range(n_layers):
+            if i == (n_layers - 1):
+                out = 1
+            else:
+                out -= increment
+            pd = (kernel_size - 1) / 2
+            layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
+            in_planes = out
+            if kernel_size > 3:
+                kernel_size -= 2
+        layers.append(spconv.ToDense())
+        self.network = spconv.SparseSequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
+
+
 class SparseConv2DBlock(Algorithm):
 
     def __call__(self, *args, **kwargs):
@@ -20,16 +47,20 @@ class SparseConv2DBlock(Algorithm):
                  version=0):
         if version == 0:
             self._version0(nin, nout, n, size, to_dense,
-                 size_factor=size_factor, pad_factor=pad_factor, stride_factor=stride_factor, dil_factor=dil_factor,
-                 pointwise_factor=pointwise_factor, depth_factor=depth_factor, dropout=dropout, trainable_weights=trainable_weights)
+                           size_factor=size_factor, pad_factor=pad_factor, stride_factor=stride_factor,
+                           dil_factor=dil_factor,
+                           pointwise_factor=pointwise_factor, depth_factor=depth_factor, dropout=dropout,
+                           trainable_weights=trainable_weights)
         else:
             self._version1(nin, nout, n, size, to_dense,
-                           size_factor=size_factor, pad_factor=pad_factor, stride_factor=stride_factor, dil_factor=dil_factor,
-                           pointwise_factor=pointwise_factor, depth_factor=depth_factor, dropout=dropout, trainable_weights=trainable_weights)
+                           size_factor=size_factor, pad_factor=pad_factor, stride_factor=stride_factor,
+                           dil_factor=dil_factor,
+                           pointwise_factor=pointwise_factor, depth_factor=depth_factor, dropout=dropout,
+                           trainable_weights=trainable_weights)
 
     def _version0(self, nin, nout, n, size, to_dense,
-                 size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
-                 pointwise_factor=0, depth_factor=0, dropout=0, trainable_weights=False):
+                  size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
+                  pointwise_factor=0, depth_factor=0, dropout=0, trainable_weights=False):
         assert (n > 0)
         self.alg = []
         self.out_size = size
@@ -134,7 +165,7 @@ class SparseConv2DBlock(Algorithm):
         for i in range(n):
             if pointwise_factor > 0:
                 if n > 1:
-                    decay_factor = 1. - (i - 1)/ (n - 1)
+                    decay_factor = 1. - (i - 1) / (n - 1)
                 else:
                     decay_factor = 1.
             else:
@@ -145,7 +176,7 @@ class SparseConv2DBlock(Algorithm):
             fs = int(floor(size_factor / (i + 1.)))
             if fs < 2:
                 fs = 2
-            st = int(round(stride_factor*i/(n-1)))
+            st = int(round(stride_factor * i / (n - 1)))
             if st < 1:
                 st = 1
             dil = int(round(dil_factor ** i))
