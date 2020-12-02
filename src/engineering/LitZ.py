@@ -18,7 +18,6 @@ class LitZ(pl.LightningModule):
         else:
             self.needs_float = True
         self.hparams = DictionaryUtility.to_dict(config)
-        self.n_type = config.system_config.n_type
         self.lr = config.optimize_config.lr
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
