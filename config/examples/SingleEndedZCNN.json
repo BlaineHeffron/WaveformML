@@ -58,7 +58,6 @@
     "dataset_class": "PulseDataset2DWithZ",
     "dataset_params": {
       "data_cache_size": 1,
-      "label_name": "labels",
       "use_half": false
     },
     "dataloader_params": {
