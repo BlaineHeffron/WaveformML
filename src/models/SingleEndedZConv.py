@@ -10,7 +10,7 @@ class SingleEndedZConv(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.log = logging.getLogger(__name__)
-        if self.config.net_config.net_type != "2DConvolution":
+        if config.net_config.net_type != "2DConvolution":
             raise IOError("config.net_config.net_type must be 2DConvolution")
         self.system_config = config.system_config
         self.net_config = config.net_config
