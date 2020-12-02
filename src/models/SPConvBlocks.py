@@ -10,7 +10,7 @@ class SparseConv2DForZ(nn.Module):
     def __init__(self, in_planes, kernel_size=3, n_layers=2):
         super(SparseConv2DForZ, self).__init__()
         layers = []
-        increment = round(float(in_planes) / float(n_layers))
+        increment = int(round(float(in_planes) / float(n_layers)))
         if kernel_size % 2 != 1:
             raise ValueError("Kernel size must be an odd integer")
         if not isinstance(n_layers, int) or n_layers < 1:
