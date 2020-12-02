@@ -183,8 +183,13 @@ class HDF5Dataset(data.Dataset):
             coords = self.get_data(self.info['coord_name'], index)
             vals = self.get_data(self.info['feat_name'], index)
         else:
-            coords, vals = self.get_data(self.info['data_name'], index)
-        coords, vals, y = self._concat_range(index, coords, vals, di)
+            if self.info['label_name'] is not None:
+                coords, vals, y = self.get_data(self.info['data_name'], index)
+                coords, vals, y = self._concat_range(index, coords, vals, di, y)
+            else:
+                coords, vals = self.get_data(self.info['data_name'], index)
+        if self.group_mode or self.info['label_name'] is None:
+            coords, vals, y = self._concat_range(index, coords, vals, di)
 
         # coords = torch.tensor(coords, device=self.device, dtype=torch.int32)
         # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
@@ -202,7 +207,7 @@ class HDF5Dataset(data.Dataset):
         else:
             return len(self.get_data_infos(self.info['data_name']))
 
-    def _concat_range(self, index, coords, vals, di):
+    def _concat_range(self, index, coords, vals, di, y=None):
         # this is only meant to be called in __getitem__ because it accesses file here
         valtype = torch.int16 if self.half_precision else torch.float32
         second_ind = 0
@@ -221,19 +226,27 @@ class HDF5Dataset(data.Dataset):
             coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
             vals = torch.tensor(vals, dtype=valtype, device=self.device)
 
-        if self.info['label_name'] is None:
-            y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
-                                      (di['event_range'][1] + 1 - di['event_range'][0],),
-                                      di['dir_index'], dtype=torch.int64, device=self.device)
-        # y = full((di['event_range'][1] - di['event_range'][0] + 1,), fill_value=di['dir_index'], dtype=int8)
+        if y is None:
+            if self.info['label_name'] is None:
+                y = torch.Tensor.new_full(torch.tensor(di['event_range'][1] + 1 - di['event_range'][0], ),
+                                          (di['event_range'][1] + 1 - di['event_range'][0],),
+                                          di['dir_index'], dtype=torch.int64, device=self.device)
+            # y = full((di['event_range'][1] - di['event_range'][0] + 1,), fill_value=di['dir_index'], dtype=int8)
+            else:
+                if second_ind > 0:
+                    y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:di['event_range'][1] + 1]
+                elif first_ind > 0:
+                    y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:]
+                else:
+                    y = self.get_data(self.info['label_name'], index)
+                y = torch.tensor(y, device=self.device, dtype=torch.int64)
         else:
             if second_ind > 0:
-                y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:di['event_range'][1] + 1]
+                y = torch.tensor(y[first_ind:second_ind, :], dtype=torch.float32, device=self.device)
             elif first_ind > 0:
-                y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:]
+                y = torch.tensor(y[first_ind:, :], dtype=torch.float32, device=self.device)
             else:
-                y = self.get_data(self.info['label_name'], index)
-            y = torch.tensor(y, device=self.device, dtype=torch.int64)
+                y = torch.tensor(y, dtype=torch.float32, device=self.device)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
         #if (self.info["label_file_pattern"]):
@@ -276,7 +289,8 @@ class HDF5Dataset(data.Dataset):
         n_file_events = 0
         with H5FileHandler(file_path, 'r') as h5_file:
             modified = getmtime(file_path)
-            n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+            #n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+            n_file_events = 8000
             # n = h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1  # the number of events in the file
             # a = len(unique(h5_file[self.info['data_name']][self.info['coord_name']][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
@@ -372,12 +386,20 @@ class HDF5Dataset(data.Dataset):
             if self.group_mode:
                 self.data_cache[file_path] = [data[()]]
             else:
-                self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
+                if self.info['label_name'] is not None:
+                    self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']],
+                                                   data[self.info['label_name']])]
+                else:
+                    self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
         else:
             if self.group_mode:
                 self.data_cache[file_path].append(data[()])
             else:
-                self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
+                if self.info['label_name'] is not None:
+                    self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']],
+                                                       data[self.info['label_name']]))
+                else:
+                    self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
         return len(self.data_cache[file_path]) - 1
 
     def get_path_info(self, file_path):

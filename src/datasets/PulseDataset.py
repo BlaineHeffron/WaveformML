@@ -2,7 +2,7 @@ import json
 import os
 from copy import copy
 from torch.utils.data import get_worker_info
-from src.utils.util import config_equals, unique_path_combine, replace_file_pattern
+from src.utils.util import config_equals, unique_path_combine
 
 from numpy import asarray, concatenate, empty, array, int8
 import h5py
