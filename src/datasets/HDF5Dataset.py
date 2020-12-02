@@ -2,14 +2,13 @@ from re import compile
 
 from src.utils.HDF5Utils import H5FileHandler
 from pathlib import Path
-from os.path import getmtime, normpath, basename, join
+from os.path import getmtime, normpath
 import torch
 from torch.utils import data
 from numpy import where
 from os.path import dirname, abspath
-from src.utils.util import read_object_from_file, save_object_to_file, json_load, replace_file_pattern
+from src.utils.util import read_object_from_file, save_object_to_file, json_load
 import logging
-from os.path import exists
 
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
 N_CHANNELS = 14
@@ -242,9 +241,9 @@ class HDF5Dataset(data.Dataset):
                 y = torch.tensor(y, device=self.device, dtype=torch.int64)
         else:
             if second_ind > 0:
-                y = torch.tensor(y[first_ind:second_ind, :], dtype=torch.float32, device=self.device)
+                y = torch.tensor(y[first_ind:second_ind], dtype=torch.float32, device=self.device)
             elif first_ind > 0:
-                y = torch.tensor(y[first_ind:, :], dtype=torch.float32, device=self.device)
+                y = torch.tensor(y[first_ind:], dtype=torch.float32, device=self.device)
             else:
                 y = torch.tensor(y, dtype=torch.float32, device=self.device)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
