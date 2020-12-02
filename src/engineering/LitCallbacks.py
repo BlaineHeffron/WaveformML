@@ -40,6 +40,8 @@ class LoggingCallback(Callback):
                                                                          pl_module.config.system_config.type_names,
                                                                          normalize=True))
             pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
+        if not trainer.callback_metrics:
+            return
         loss = trainer.callback_metrics["val_loss"].detach().item()
         if self.best_loss > loss:
             self.best_loss = loss
