@@ -4,6 +4,7 @@ import spconv
 from numpy import array
 from src.models.SPConvBlocks import SparseConv2DForZ
 from src.utils.util import ModuleUtility
+from src.utils.util import DictionaryUtility
 
 
 class SingleEndedZConv(nn.Module):
@@ -16,7 +17,7 @@ class SingleEndedZConv(nn.Module):
         self.net_config = config.net_config
         self.nsamples = self.system_config.n_samples
         self.modules = ModuleUtility(self.net_config.imports)
-        self.model = SparseConv2DForZ(self.nsamples*2, **self.net_config.hparams)
+        self.model = SparseConv2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams))
         self.spatial_size = array([14, 11])
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
