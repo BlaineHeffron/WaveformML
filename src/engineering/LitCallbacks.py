@@ -11,7 +11,10 @@ class PSDCallbacks:
     def __init__(self, config):
         self.log = logging.getLogger(__name__)
         self.config = config
-        self.callbacks = [EarlyStopping(monitor='val_loss', min_delta=.00, verbose=True, mode="min", patience=4)]
+        if self.config.run_config.run_class == "LitZ":
+            self.callbacks = [EarlyStopping(monitor='val_loss', min_delta=.000, verbose=True, mode="min", patience=5)]
+        else:
+            self.callbacks = [EarlyStopping(monitor='val_loss', min_delta=.00, verbose=True, mode="min", patience=4)]
         self.callbacks.append(LoggingCallback())
 
     def add_callback(self, callback):
