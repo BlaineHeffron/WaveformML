@@ -680,7 +680,7 @@ class PulseDataset2DWithZ(PulseDataset):
         """
         super().__init__(config, dataset_type,
                          n_per_dir, device,
-                         "*WaveformPairSim.h5", "WaveformPairsWithZ",
+                         "*WaveformPairZSim.h5", "WaveformPairsWithZ",
                          "coord", "waveform",
                          file_excludes=file_excludes,
                          label_name=label_name,
