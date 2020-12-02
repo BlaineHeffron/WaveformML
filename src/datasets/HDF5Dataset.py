@@ -288,8 +288,7 @@ class HDF5Dataset(data.Dataset):
         n_file_events = 0
         with H5FileHandler(file_path, 'r') as h5_file:
             modified = getmtime(file_path)
-            #n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
-            n_file_events = 8000
+            n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
             # n = h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1  # the number of events in the file
             # a = len(unique(h5_file[self.info['data_name']][self.info['coord_name']][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
