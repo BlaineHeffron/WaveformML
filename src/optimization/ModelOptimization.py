@@ -125,7 +125,10 @@ class ModelOptimization:
         for hp in self.hyperparameters.keys():
             name = hp.split("/")[-1]
             bounds = self.hyperparameters_bounds[hp]
-            if isinstance(bounds[0], int):
+            if len(bounds) > 2:
+                setattr(self.hyperparameters[hp], name,
+                        trial.suggest_categorical(name, bounds))
+            elif isinstance(bounds[0], int):
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, bounds[0], bounds[1]))
             elif isinstance(bounds[0], float):
