@@ -128,6 +128,9 @@ class ModelOptimization:
             if len(bounds) > 2:
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_categorical(name, bounds))
+            elif isinstance(bounds, dict):
+                setattr(self.hyperparameters[hp], name,
+                        trial.suggest_categorical(name, bounds.keys()))
             elif isinstance(bounds[0], int):
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, bounds[0], bounds[1]))
