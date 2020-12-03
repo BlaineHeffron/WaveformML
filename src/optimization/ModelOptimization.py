@@ -175,7 +175,10 @@ class ModelOptimization:
         cbs.append(PruningCallback())
         cbs.append(checkpoint_callback)
         # trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
-        trainer_args["early_stop_callback"] = EarlyStopping(min_delta=.00, verbose=True, mode="min", patience=4)
+        if self.config.run_config.run_class == "LitZ":
+            cbs.append(EarlyStopping(monitor='val_loss', min_delta=.000, verbose=True, mode="min", patience=5))
+        else:
+            cbs.append(EarlyStopping(monitor='val_loss', min_delta=.00, verbose=True, mode="min", patience=4))
 
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
