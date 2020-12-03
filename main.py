@@ -184,7 +184,7 @@ def main():
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         if "auto_lr_find" in  trainer_args.keys():
             if trainer_args["auto_lr_find"]:
-                trainer.tune(runner)
+                trainer.tune(runner, datamodule=data_module)
         trainer.fit(runner, datamodule=data_module)
         if run_test:
             trainer.test()
