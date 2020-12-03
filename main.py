@@ -182,6 +182,9 @@ def main():
         data_module = PSDDataModule(config, runner.device)
         psd_callbacks.add_callback(checkpoint_callback)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
+        if "auto_lr_find" in  trainer_args.keys():
+            if trainer_args["auto_lr_find"]:
+                trainer.tune(runner)
         trainer.fit(runner, datamodule=data_module)
         if run_test:
             trainer.test()
