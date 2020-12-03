@@ -186,7 +186,7 @@ class ModelOptimization:
         data_module = PSDDataModule(self.config, model.device)
         trainer.fit(model, datamodule=data_module)
         if metrics_callback.metrics:
-            return metrics_callback.metrics[-1]["val_checkpoint_on"].detach().item()
+            return metrics_callback.metrics[-1]["val_loss"].detach().item()
         else:
             return 0
 
