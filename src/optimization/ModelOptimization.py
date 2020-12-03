@@ -129,8 +129,12 @@ class ModelOptimization:
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_categorical(name, bounds))
             elif isinstance(bounds, dict):
-                setattr(self.hyperparameters[hp], name,
-                        trial.suggest_categorical(name, bounds.keys()))
+                if "val" in bounds.keys():
+                    setattr(self.hyperparameters[hp], name,
+                            trial.suggest_categorical(name, bounds["val"]))
+                else:
+                    raise ValueError("Invalid format for hyperparameter key {0}. Specify category with \"val\":[list "
+                                     "of values]".format(hp))
             elif isinstance(bounds[0], int):
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, bounds[0], bounds[1]))
