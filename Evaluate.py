@@ -37,15 +37,12 @@ def main():
         print("Creating new log file in directory {}".format(logger.log_dir))
     modules = ModuleUtility(config.run_config.imports)
     runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config)
-    trainer_args = {"logger": logger}
-    trainer_args["callbacks"] = [LoggingCallback()]
+    trainer_args = {"logger": logger, "callbacks": [LoggingCallback()]}
     set_default_trainer_args(trainer_args, config)
-    model = LitPSD.load_from_checkpoint(args.checkpoint, config)
     #model.set_logger(logger)
     data_module = PSDDataModule(config, runner.device)
-
     trainer = Trainer(**trainer_args)
-    trainer.test(model, datamodule=data_module)
+    trainer.test(runner, datamodule=data_module)
 
 if __name__=="__main__":
     main()
