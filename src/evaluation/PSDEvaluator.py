@@ -147,11 +147,13 @@ class PSDEvaluator:
                 self.n_labelled_wfs[i] += np.sum(multiplicity[preds_class_inds])
                 self.summed_labelled_waveforms[i] += np.sum(summed_pulses[preds_class_inds], axis=0)
 
+        """
         if not missing_classes:
             this_roc = self.roc(output, labels, num_classes=self.n_classes)
             this_prc = self.pr(output, labels, num_classes=self.n_classes)
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
+        """
 
         metric_accumulate_1d(results, multiplicity, *self.results["mult_acc"], get_typed_list([0.5, self.n_mult + 0.5]),
                              self.n_mult)
@@ -331,11 +333,13 @@ class PhysEvaluator(PSDEvaluator):
                                  get_typed_list([0.5, self.n_mult + 0.5]),
                                  self.n_mult)
 
+        """
         if not missing_classes:
             this_roc = self.roc(output, labels, num_classes=self.n_classes)
             this_prc = self.pr(output, labels, num_classes=self.n_classes)
             self.logger.experiment.add_figure("evaluation/roc", plot_roc(this_roc, self.class_names))
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
+        """
 
         confusion_accumulate_1d(predictions, labels, energy, self.results["confusion_energy"],
                                 get_typed_list([0.0, self.emax]),
