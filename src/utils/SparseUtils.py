@@ -74,6 +74,16 @@ def safe_divide(a, b):
     return a
 
 
+def safe_divide_2d(a, b):
+    for i in range(a.shape[0]):
+        for j in range(a.shape[1]):
+            if b[i, j] == 0:
+                a[i, j] = 0
+            else:
+                a[i, j] = a[i, j] / b
+    return a
+
+
 @nb.jit(nopython=True)
 def find_matches(pred, lab, out):
     for i in range(pred.shape[0]):
