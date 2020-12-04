@@ -39,9 +39,10 @@ class LoggingCallback(Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         if hasattr(pl_module, "confusion_matrix"):
             pl_module.logger.experiment.add_figure("validation/confusion_matrix",
-                                                   plot_confusion_matrix(pl_module.confusion_matrix.detach().cpu().numpy(),
-                                                                         pl_module.config.system_config.type_names,
-                                                                         normalize=True))
+                                                   plot_confusion_matrix(
+                                                       pl_module.confusion_matrix.detach().cpu().numpy(),
+                                                       pl_module.config.system_config.type_names,
+                                                       normalize=True))
             pl_module.confusion_matrix = zeros(pl_module.confusion_matrix.shape, device=pl_module.device)
         if not trainer.callback_metrics:
             return
@@ -51,13 +52,16 @@ class LoggingCallback(Callback):
             pl_module.logger.log_hyperparams(pl_module.hparams, {"hp_metric": loss})
 
     def on_test_end(self, trainer, pl_module):
-        pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals",
-                                               plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy().astype(int),
-                                                                     pl_module.config.system_config.type_names,
-                                                                     normalize=False))
-        pl_module.logger.experiment.add_figure("evaluation/confusion_matrix", plot_confusion_matrix(pl_module.test_confusion_matrix.detach().cpu().numpy(),
-                                                             pl_module.config.system_config.type_names,
-                                                             normalize=True))
-        pl_module.test_confusion_matrix = zeros(pl_module.test_confusion_matrix.shape, device=pl_module.device)
+        if hasattr(pl_module, "test_confusion_matrix"):
+            pl_module.logger.experiment.add_figure("evaluation/confusion_matrix_totals",
+                                                   plot_confusion_matrix(
+                                                       pl_module.test_confusion_matrix.detach().cpu().numpy().astype(
+                                                           int),
+                                                       pl_module.config.system_config.type_names,
+                                                       normalize=False))
+            pl_module.logger.experiment.add_figure("evaluation/confusion_matrix", plot_confusion_matrix(
+                pl_module.test_confusion_matrix.detach().cpu().numpy(),
+                pl_module.config.system_config.type_names,
+                normalize=True))
+            pl_module.test_confusion_matrix = zeros(pl_module.test_confusion_matrix.shape, device=pl_module.device)
         pl_module.evaluator.dump()
-
