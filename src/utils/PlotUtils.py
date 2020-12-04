@@ -47,20 +47,23 @@ cmaps['Miscellaneous'] = [
     'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar']
 
 
-def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.Blues):
+def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     fontsize = 12
-    fig = plt.figure()
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    fig = plt.figure(figsize=(9,6.5))
+    cm = cm.transpose()
+    plt.imshow(cm, interpolation='nearest', cmap=cmap, origin="lower")
     if title != '':
         plt.title(title)
     cbar = plt.colorbar()
-    cbar.set_label('average deviation [mm]', rotation=270)
-    #tick_x = np.arange(nx)
-    #tick_y = np.arange(ny)
-    #plt.xticks(tick_x, classes, rotation=45)
-    #plt.yticks(tick_y, classes)
+    cbar.set_label('average deviation [mm]', rotation=270, labelpad=18)
+    tick_x = np.arange(nx)
+    tick_y = np.arange(ny)
+    tick_labelx = np.arange(1,nx+1)
+    tick_labely = np.arange(1,ny+1)
+    plt.xticks(tick_x, tick_labelx, rotation=45)
+    plt.yticks(tick_y, tick_labely)
 
-    fmt = '.1f'
+    fmt = 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
@@ -69,7 +72,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.Blues):
     plt.tight_layout()
     plt.ylabel('y segment')
     plt.xlabel('x segment')
-    fig.subplots_adjust(bottom=0.20)
+    fig.subplots_adjust(left=0.1)
     return fig
 
 def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Blues):
