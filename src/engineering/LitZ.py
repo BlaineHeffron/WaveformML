@@ -25,7 +25,7 @@ class LitZ(pl.LightningModule):
         self.model = SingleEndedZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
-        self.evaluator = ZEvaluator(config)
+        self.evaluator = ZEvaluator(self.logger)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
