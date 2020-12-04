@@ -60,18 +60,18 @@ class LitZ(pl.LightningModule):
                 return [optimizer], [scheduler]
         return optimizer
 
-    def _format_prediction(self, coords, target, batch_size):
+    def _format_target_and_prediction(self, pred, coords, target, batch_size):
         target_tensor = spconv.SparseConvTensor(target.unsqueeze(1), coords[:, self.model.permute_tensor],
                                                 self.model.spatial_size, batch_size)
         target_tensor = target_tensor.dense()
         # set output to 0 if there was no value for input
-        return  target_tensor
+        return where(target_tensor == 0, target_tensor, pred), target_tensor
 
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
-        target_tensor = self._format_prediction(c, target, batch_size)
+        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss = self.criterion.forward(predictions, target_tensor)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
@@ -80,7 +80,7 @@ class LitZ(pl.LightningModule):
         (c, f), target = batch
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
-        target_tensor = self._format_prediction(c, target, batch_size)
+        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss = self.criterion.forward(predictions, target_tensor)
         results_dict = {'val_loss': loss}
         self.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -90,7 +90,7 @@ class LitZ(pl.LightningModule):
         (c, f), target = batch
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
-        target_tensor = self._format_prediction(c, target, batch_size)
+        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss = self.criterion.forward(predictions, target_tensor)
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
