@@ -70,7 +70,7 @@ def safe_divide(a, b):
         if b[i] == 0:
             a[i] = 0
         else:
-            a[i] = a[i] / b
+            a[i] = a[i] / b[i]
     return a
 
 
@@ -80,7 +80,7 @@ def safe_divide_2d(a, b):
             if b[i, j] == 0:
                 a[i, j] = 0
             else:
-                a[i, j] = a[i, j] / b
+                a[i, j] = a[i, j] / b[i, j]
     return a
 
 
