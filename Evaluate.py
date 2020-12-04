@@ -36,7 +36,7 @@ def main():
         logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name)
         print("Creating new log file in directory {}".format(logger.log_dir))
     modules = ModuleUtility(config.run_config.imports)
-    runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config)
+    runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config=config)
     trainer_args = {"logger": logger, "callbacks": [LoggingCallback()]}
     set_default_trainer_args(trainer_args, config)
     #model.set_logger(logger)

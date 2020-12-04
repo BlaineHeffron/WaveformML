@@ -176,7 +176,7 @@ def main():
         modules = ModuleUtility(config.run_config.imports)
         if load_checkpoint:
             main_logger.info("Loading model checkpoint {}".format(load_checkpoint))
-            runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config)
+            runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config=config)
         else:
             runner = modules.retrieve_class(config.run_config.run_class)(config)
         data_module = PSDDataModule(config, runner.device)
