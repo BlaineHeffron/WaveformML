@@ -23,7 +23,8 @@ class ZEvaluator:
     def add(self, predictions, target):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
-        z_deviation(pred, targ, self.results["seg_mult_adev"][0], self.results["seg_mult_adev"][1], self.nx, self.ny,
+        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_adev"][0],
+                    self.results["seg_mult_adev"][1], self.nx, self.ny,
                     self.nmult)
 
     def dump(self):
