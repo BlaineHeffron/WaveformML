@@ -63,7 +63,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     plt.xticks(tick_x, tick_labelx, rotation=45)
     plt.yticks(tick_y, tick_labely)
 
-    fmt = 'd'
+    fmt = '.0f'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
