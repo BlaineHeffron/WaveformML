@@ -22,7 +22,8 @@
     "net_type": "2DConvolution",
     "hparams": {
       "kernel_size": 3,
-      "n_layers": 3
+      "n_layers": 2,
+      "pointwise_layers": 1
     }
   },
   "optimize_config": {
