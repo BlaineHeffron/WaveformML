@@ -23,6 +23,8 @@ class SparseConv2DForZ(nn.Module):
                 out -= increment
             pd = int((kernel_size - 1) / 2)
             layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
+            layers.append(nn.BatchNorm1d(out))
+            layers.append(nn.ReLU())
             in_planes = out
             if kernel_size > 3:
                 kernel_size -= 2
@@ -32,6 +34,30 @@ class SparseConv2DForZ(nn.Module):
     def forward(self, x):
         return self.network(x)
 
+
+class Pointwise2DForZ(nn.Module):
+    def __init__(self, in_planes, pointwise_layers=2):
+        super(Pointwise2DForZ, self).__init__()
+        layers = []
+        n_layers = pointwise_layers
+        increment = int(round(float(in_planes) / float(n_layers)))
+        if not isinstance(n_layers, int) or n_layers < 1:
+            raise ValueError("n_layers must be  integer >= 1")
+        out = in_planes
+        for i in range(n_layers):
+            if i == (n_layers - 1):
+                out = 1
+            else:
+                out -= increment
+            layers.append(spconv.SparseConv2d(in_planes, out, 1, 1, 0))
+            layers.append(nn.BatchNorm1d(out))
+            layers.append(nn.ReLU())
+            in_planes = out
+        layers.append(spconv.ToDense())
+        self.network = spconv.SparseSequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
 
 class SparseConv2DBlock(Algorithm):
 
