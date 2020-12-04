@@ -418,3 +418,26 @@ def sum_range(v, r0, r1):
     for i in range(r0, r1 + 1):
         sum += v[i]
     return sum
+
+@nb.jit(nopython=True)
+def z_deviation(predictions, targets, dev, out_n, nx, ny, nmult):
+    for pred, targ in zip(predictions, targets):
+        mult = 0
+        for i in range(nx):
+            for j in range(ny):
+                if targ[i,j] == 0:
+                    continue
+                else:
+                    mult += 1
+        for i in range(nx):
+            for j in range(ny):
+                if targ[i,j] == 0:
+                    continue
+                else:
+                    if mult > 0 and mult <= nmult:
+                        dev[i,j,mult-1] += abs(pred[i,j] - targ[i,j])
+                        out_n[i,j,mult-1] += 1
+                    else:
+                        dev[i,j,mult] += abs(pred[i,j] - targ[i,j])
+                        out_n[i,j,mult] += 1
+

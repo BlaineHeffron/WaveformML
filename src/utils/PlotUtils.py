@@ -47,6 +47,30 @@ cmaps['Miscellaneous'] = [
     'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar']
 
 
+def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.Blues):
+    fontsize = 12
+    fig = plt.figure()
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    if title != '':
+        plt.title(title)
+    #plt.colorbar()
+    #tick_x = np.arange(nx)
+    #tick_y = np.arange(ny)
+    #plt.xticks(tick_x, classes, rotation=45)
+    #plt.yticks(tick_y, classes)
+
+    fmt = '.4f'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black", fontsize=fontsize)
+
+    plt.tight_layout()
+    plt.ylabel('y segment')
+    plt.xlabel('x segment')
+    fig.subplots_adjust(bottom=0.20)
+    return fig
+
 def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Blues):
     fontsize = 12
     if normalize:

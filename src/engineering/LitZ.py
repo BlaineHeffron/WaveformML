@@ -2,9 +2,7 @@ import spconv
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
 from torch import where
-
-
-# from src.evaluation.ZEvaluator import ZEvaluator
+from src.evaluation.ZEvaluator import ZEvaluator
 
 
 class LitZ(pl.LightningModule):
@@ -27,7 +25,7 @@ class LitZ(pl.LightningModule):
         self.model = SingleEndedZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
-        # self.evaluator = ZEvaluator(config)
+        self.evaluator = ZEvaluator(config)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -95,8 +93,8 @@ class LitZ(pl.LightningModule):
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss = self.criterion.forward(predictions, target_tensor)
         results_dict = {'test_loss': loss}
-        # if not self.evaluator.logger:
-        #    self.evaluator.logger = self.logger
-        # self.evaluator.add(batch, predictions)
+        if not self.evaluator.logger:
+           self.evaluator.logger = self.logger
+        self.evaluator.add(predictions, target_tensor)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict
