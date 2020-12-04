@@ -67,7 +67,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black", fontsize=fontsize)
+                 color="black" if cm[i, j] > thresh else "white", fontsize=fontsize)
 
     plt.tight_layout()
     plt.ylabel('y segment')

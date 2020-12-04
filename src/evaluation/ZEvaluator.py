@@ -10,7 +10,7 @@ class ZEvaluator:
         self.nmult = 10
         self.nx = 14
         self.ny = 11
-        self.z_scale = 2200.
+        self.z_scale = 1200.
         self._init_results()
 
     def _init_results(self):
