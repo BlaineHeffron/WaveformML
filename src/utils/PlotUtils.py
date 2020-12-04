@@ -53,13 +53,14 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.Blues):
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     if title != '':
         plt.title(title)
-    #plt.colorbar()
+    cbar = plt.colorbar()
+    cbar.set_label('average deviation [mm]', rotation=270)
     #tick_x = np.arange(nx)
     #tick_y = np.arange(ny)
     #plt.xticks(tick_x, classes, rotation=45)
     #plt.yticks(tick_y, classes)
 
-    fmt = '.4f'
+    fmt = '.1f'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
