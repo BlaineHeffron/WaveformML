@@ -445,5 +445,5 @@ def z_deviation(predictions, targets, dev, out_n, nx, ny, nmult):
                         dev[i, j, mult - 1] += abs(predictions[batch, i, j] - targets[batch, i, j])
                         out_n[i, j, mult - 1] += 1
                     else:
-                        dev[i, j, mult] += abs(predictions[batch, i, j] - targets[batch, i, j])
-                        out_n[i, j, mult] += 1
+                        dev[i, j, nmult] += abs(predictions[batch, i, j] - targets[batch, i, j])
+                        out_n[i, j, nmult] += 1
