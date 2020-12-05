@@ -34,3 +34,4 @@ class ZEvaluator:
                                                   self.z_scale * safe_divide_2d(self.results["seg_mult_adev"][0][:, :, i],
                                                                              self.results["seg_mult_adev"][1][:, :, i]),
                                                   self.nx, self.ny, "mult = {0}".format(i + 1)))
+        self._init_results()

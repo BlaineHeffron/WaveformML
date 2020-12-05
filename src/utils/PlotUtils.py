@@ -55,7 +55,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     if title != '':
         plt.title(title)
     cbar = plt.colorbar()
-    cbar.set_label('mean average error [mm]', rotation=270, labelpad=18)
+    cbar.set_label('mean average error [mm]', labelpad=18)
     tick_x = np.arange(nx)
     tick_y = np.arange(ny)
     tick_labelx = np.arange(1,nx+1)
