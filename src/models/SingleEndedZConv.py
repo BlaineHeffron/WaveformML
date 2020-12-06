@@ -17,14 +17,15 @@ class SingleEndedZConv(nn.Module):
         self.net_config = config.net_config
         self.nsamples = self.system_config.n_samples
         self.modules = ModuleUtility(self.net_config.imports)
-        self.convmodel = SparseConv2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.conv))
-        #self.pointmodel = Pointwise2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.point))
+        if self.net_config.algorithm == "conv":
+            self.model = SparseConv2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.conv))
+        else:
+            self.model = Pointwise2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.point))
         self.spatial_size = array([14, 11])
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
         batch_size = x[0][-1, -1] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
-        x = self.convmodel(x)
-        #z = self.pointmodel(x)
+        x = self.model(x)
         return x

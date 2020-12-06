@@ -20,6 +20,7 @@
       "torch.nn"
     ],
     "net_type": "2DConvolution",
+    "algorithm": "conv",
     "hparams": {
       "conv": {
         "kernel_size": 3,

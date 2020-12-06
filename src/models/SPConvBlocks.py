@@ -41,13 +41,15 @@ class Pointwise2DForZ(nn.Module):
         super(Pointwise2DForZ, self).__init__()
         layers = []
         n_layers = pointwise_layers
-        increment = int(round(float(in_planes) / float(n_layers)))
-        if not isinstance(n_layers, int) or n_layers < 1:
-            raise ValueError("n_layers must be  integer >= 1")
+        if not isinstance(n_layers, int) or n_layers < 2:
+            raise ValueError("n_layers must be  integer >= 2")
+        increment = int(round(float(in_planes) / float(n_layers-1)))
         out = in_planes
         for i in range(n_layers):
             if i == (n_layers - 1):
                 out = 1
+            elif i == 0:
+                out = in_planes
             else:
                 out -= increment
             layers.append(spconv.SparseConv2d(in_planes, out, 1, 1, 0))
@@ -59,6 +61,7 @@ class Pointwise2DForZ(nn.Module):
 
     def forward(self, x):
         return self.network(x)
+
 
 class SparseConv2DBlock(Algorithm):
 
