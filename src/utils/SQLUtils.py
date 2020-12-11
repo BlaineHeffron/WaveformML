@@ -141,6 +141,8 @@ class CalibrationDB(SQLiteBase):
         return atten_curves, lsum_curves, time_curves, lin_curves, psd_curves, t_interp_curves, e_ncapt
 
     def get_cal_curve(self, obj_id):
+        if not obj_id:
+            return
         curve = CalCurve()
         for r in self.fetchall("SELECT x,y,dx,dy FROM graph_points WHERE object_id = {}".format(obj_id)):
             curve.add_point(r[0], r[1], r[2], r[3])
