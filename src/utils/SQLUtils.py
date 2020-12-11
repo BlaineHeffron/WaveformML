@@ -91,7 +91,7 @@ class CalibrationDB(SQLiteBase):
         if not self.calgroup_id:
             return
         results = self.fetchall(
-            "SELECT seg, lgain_0, lgain_1, eres_0, eres_1, rel_time, seg_time from segment_response where calgroup_id = '{}')".format(
+            "SELECT seg, lgain_0, lgain_1, eres_0, eres_1, rel_time, seg_time from segment_response where calgroup_id = '{}'".format(
                 self.calgroup_id))
         gains = zeros((14, 11, 2), dtype=float32)
         eres = zeros((14, 11, 2), dtype=float32)
