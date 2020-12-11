@@ -367,17 +367,19 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
 @nb.jit(nopython=True)
 def calc_arrival(fdat):
     peak = 0
-    cur_ind = 0
     for d in fdat:
         if d > peak:
             peak = d
-        cur_ind += 1
     cur_ind = 0
+    thresh = 0.5*peak
     for d in fdat:
-        if d > 0.5 * peak:
-            return cur_ind
+        if d > thresh:
+            if cur_ind >= (fdat.shape[0]-1):
+                return cur_ind
+            else:
+                return cur_ind + (thresh-fdat[cur_ind]) / (d-fdat[cur_ind])
         cur_ind += 1
-    return 0
+    return 0.
 
 
 @nb.jit(nopython=True)
