@@ -17,6 +17,7 @@ class ZEvaluator:
         self.ny = 11
         self.z_scale = 1200.
         self.sample_width = 4
+        self.hascal = False
         if calgroup is not None:
             self.hascal = True
             if "PROSPECT_CALDB" not in os.environ.keys():
