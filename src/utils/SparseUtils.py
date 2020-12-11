@@ -1,5 +1,5 @@
 import numba as nb
-from math import ceil, floor, sqrt
+from math import ceil, floor, sqrt, log
 from numba.typed import List
 
 
@@ -428,6 +428,49 @@ def sum_range(v, r0, r1):
     for i in range(r0, r1 + 1):
         sum += v[i]
     return sum
+
+
+@nb.jit(nopython=True)
+def lin_interp(xy, x):
+    """xy is vector of shape (n,2), second index denotes x (0) and y (1)"""
+    for i in range(xy.shape[0]):
+        if xy[i, 0] > x:
+            if i == 0:
+                return xy[i, 1]
+            else:
+                return xy[i - 1, 1] + (x - xy[i - 1, 0]) * ((xy[i, 1] - xy[i - 1, 1]) / (xy[i, 0] - xy[i - 1, 0]))
+    return xy[xy.shape[0] - 1, 1]
+
+
+@nb.jit(nopython=True)
+def calc_calib_z(coordinates, waveforms, z_out, sample_width, t_interp_curves, sample_times, rel_times, gain_factors,
+                 eres, time_pos_curves, light_pos_curves, z_scale):
+    i = 0
+    for coord, wf in zip(coordinates, waveforms):
+        t = [calc_arrival(wf[:, 0]) * sample_width, calc_arrival(wf[:, 1]) * sample_width]
+        for i in range(2):
+            if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
+                continue
+            t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
+            t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
+        dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
+        L = [sum(wf[0]) * gain_factors[coord[0], coord[1], 0], sum(wf[1]) * gain_factors[coord[0], coord[1], 1]]
+        if L[0] == 0 or L[1] == 0:
+            z_out[i, coord[0], coord[1]] = 0.5
+            i += 1
+            continue
+        PE = [L[0] * eres[coord[0], coord[1], 0], L[1] * eres[coord[0], coord[1], 1]]
+        R = log(L[1] / L[0])
+        validratio = (R == R)
+        dR = sqrt(1.0 / max([PE[0], 1.0]) + 1.0 / max([PE[1], 1.0]))
+        tpos = lin_interp(time_pos_curves[coord[0], coord[1]], dt)
+        Rpos = lin_interp(light_pos_curves[coord[0], coord[1]], R) if validratio else 0
+        dRpos = abs(lin_interp(light_pos_curves[coord[0], coord[1]], R + 0.5 * dR) - lin_interp(
+            light_pos_curves[coord[0], coord[1]], R - 0.5 * dR)) if validratio else 0
+        Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
+        tweight = 1. / (60 * 60)
+        z_out[i, coord[0], coord[1]] = ((Rweight * Rpos + tweight * tpos) / (Rweight + tweight))/z_scale + 0.5
+        i += 1
 
 
 @nb.jit(nopython=True)

@@ -25,7 +25,10 @@ class LitZ(pl.LightningModule):
         self.model = SingleEndedZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
-        self.evaluator = ZEvaluator(self.logger)
+        if hasattr(self.config.dataset_config, "calgroup"):
+            self.evaluator = ZEvaluator(self.logger, calgroup=self.config.dataset_config.calgroup)
+        else:
+            self.evaluator = ZEvaluator(self.logger)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -95,6 +98,6 @@ class LitZ(pl.LightningModule):
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
            self.evaluator.logger = self.logger
-        self.evaluator.add(predictions, target_tensor)
+        self.evaluator.add(predictions, target_tensor, c, f)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict
