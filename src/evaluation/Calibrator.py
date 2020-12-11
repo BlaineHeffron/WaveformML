@@ -26,7 +26,7 @@ def eval_sum(g0, g1, s0, s1, zmin, zmax, npts, vx, vy):
         vx[i] = zmin + i * (zmax - zmin) / float(npts - 1)
     vy_new = s0 * g0.eval(vx) + s1 * g1.eval(vx)
     for i in range(npts):
-        vy[i] = vy_new
+        vy[i] = vy_new[i]
 
 
 class Calibrator:
