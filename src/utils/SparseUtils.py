@@ -431,6 +431,13 @@ def sum_range(v, r0, r1):
 
 
 @nb.jit(nopython=True)
+def sum1d(vec):
+    sum = 0
+    for i in range(vec.shape[0]):
+        sum += vec[i]
+    return sum
+
+@nb.jit(nopython=True)
 def lin_interp(xy, x):
     """xy is vector of shape (n,2), second index denotes x (0) and y (1)"""
     for i in range(xy.shape[0]):
@@ -454,7 +461,7 @@ def calc_calib_z(coordinates, waveforms, z_out, sample_width, t_interp_curves, s
             t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
             t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
         dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
-        L = [sum(wf[0]) * gain_factors[coord[0], coord[1], 0], sum(wf[1]) * gain_factors[coord[0], coord[1], 1]]
+        L = [sum1d(wf[0]) * gain_factors[coord[0], coord[1], 0], sum1d(wf[1]) * gain_factors[coord[0], coord[1], 1]]
         if L[0] == 0 or L[1] == 0:
             z_out[i, coord[0], coord[1]] = 0.5
             i += 1
