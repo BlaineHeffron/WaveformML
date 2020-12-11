@@ -55,11 +55,12 @@ class Calibrator:
     def calc_t_interp_curve(self, t_interp_curves):
         for chan in range(14 * 11 * 2):
             if chan in t_interp_curves.keys():
-                t_interp_curves[chan].sort()
-                nx, ny, r = get_coords_from_chan(chan)
-                xs = np.linspace(t_interp_curves[chan].xs[0],t_interp_curves[chan].xs[-1],50)
-                self.t_interp_curves[nx, ny, r, :, 0] = xs
-                self.t_interp_curves[nx, ny, r, :, 1] = t_interp_curves.eval(xs)
+                if t_interp_curves[chan]:
+                    t_interp_curves[chan].sort()
+                    nx, ny, r = get_coords_from_chan(chan)
+                    xs = np.linspace(t_interp_curves[chan].xs[0],t_interp_curves[chan].xs[-1],50)
+                    self.t_interp_curves[nx, ny, r, :, 0] = xs
+                    self.t_interp_curves[nx, ny, r, :, 1] = t_interp_curves.eval(xs)
 
     def calc_light_pos_curve(self, atten_curves):
         for seg in range(14 * 11):

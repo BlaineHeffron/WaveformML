@@ -18,7 +18,7 @@ class SingleEndedZConv(nn.Module):
         self.nsamples = self.system_config.n_samples
         self.modules = ModuleUtility(self.net_config.imports)
         if not hasattr(self.net_config, "algorithm"):
-            self.net_config.algorithm = "conv"
+            setattr(self.net_config, "algorithm", "conv")
         if self.net_config.algorithm == "conv":
             self.model = SparseConv2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.conv))
         elif self.net_config.algorithm == "point":
