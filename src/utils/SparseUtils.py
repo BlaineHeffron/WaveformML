@@ -476,7 +476,7 @@ def calc_calib_z(coordinates, waveforms, z_out, sample_width, t_interp_curves, s
             light_pos_curves[coord[0], coord[1]], R - 0.5 * dR)) if validratio else 0
         Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
         tweight = 1. / (60 * 60)
-        z_out[i, coord[0], coord[1]] = ((Rweight * Rpos + tweight * tpos) / (Rweight + tweight))/z_scale + 0.5
+        z_out[coord[2], coord[0], coord[1]] = ((Rweight * Rpos + tweight * tpos) / (Rweight + tweight))/z_scale + 0.5
         i += 1
 
 
