@@ -167,7 +167,10 @@ class CalCurve:
         self.xs, self.ys, self.xerr, self.yerr = zip(*sorted(zip(self.xs, self.ys, self.xerr, self.yerr)))
 
     def get_spline(self):
-        self.spline = splrep(self.xs, self.ys, w=[1. / y for y in self.yerr])
+        if 0 in self.yerr:
+            self.spline = splrep(self.xs, self.ys)
+        else:
+            self.spline = splrep(self.xs, self.ys, w=[1. / y for y in self.yerr])
 
     def eval(self, x):
         if not self.spline:
