@@ -1,5 +1,4 @@
 from src.utils.SQLUtils import CalibrationDB
-from scipy.interpolate import splrep, splev
 import numpy as np
 from math import floor
 
@@ -119,28 +118,3 @@ class Calibrator:
                 self.light_sum_curves[nx, ny, :, 0] = vx
                 self.light_sum_curves[nx, ny, :, 1] = vy
 
-
-class CalCurve:
-    def __init__(self):
-        self.xs = []
-        self.ys = []
-        self.xerr = []
-        self.yerr = []
-        self.spline = None
-
-    def add_point(self, x, y, dx, dy):
-        self.xs.append(x)
-        self.ys.append(y)
-        self.xerr.append(dx)
-        self.yerr.append(dy)
-
-    def sort(self):
-        self.xs, self.ys, self.xerr, self.yerr = zip(*sorted(zip(self.xs, self.ys, self.xerr, self.yerr)))
-
-    def get_spline(self):
-        self.spline = splrep(self.xs, self.ys, w=[1. / y for y in self.yerr])
-
-    def eval(self, x):
-        if not self.spline:
-            self.get_spline()
-        return splev(x, self.spline)

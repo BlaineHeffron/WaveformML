@@ -1,8 +1,7 @@
 import sqlite3
 from math import floor
 from numpy import zeros, float32
-
-from src.evaluation.Calibrator import CalCurve
+from scipy.interpolate import splrep, splev
 
 
 class SQLiteBase:
@@ -146,3 +145,29 @@ class CalibrationDB(SQLiteBase):
         for r in self.fetchall("SELECT x,y,dx,dy FROM graph_points WHERE object_id = {}".format(obj_id)):
             curve.add_point(r[0], r[1], r[2], r[3])
         return curve
+
+
+class CalCurve:
+    def __init__(self):
+        self.xs = []
+        self.ys = []
+        self.xerr = []
+        self.yerr = []
+        self.spline = None
+
+    def add_point(self, x, y, dx, dy):
+        self.xs.append(x)
+        self.ys.append(y)
+        self.xerr.append(dx)
+        self.yerr.append(dy)
+
+    def sort(self):
+        self.xs, self.ys, self.xerr, self.yerr = zip(*sorted(zip(self.xs, self.ys, self.xerr, self.yerr)))
+
+    def get_spline(self):
+        self.spline = splrep(self.xs, self.ys, w=[1. / y for y in self.yerr])
+
+    def eval(self, x):
+        if not self.spline:
+            self.get_spline()
+        return splev(x, self.spline)
