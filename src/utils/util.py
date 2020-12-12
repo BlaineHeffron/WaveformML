@@ -404,8 +404,11 @@ def setup_logger(args):
 
     # set up logging to file - see previous section for more details
     logargs = {}
-    if args.logfile:
-        logargs["filename"] = args.logfile
+    haslogfile = False
+    if hasattr(args,"logfile"):
+        haslogfile = True
+        if args.logfile:
+            logargs["filename"] = args.logfile
     logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
                         filemode='a', **logargs)
@@ -423,7 +426,7 @@ def setup_logger(args):
     logger.info("Logging verbosity set to {}".format(args.verbosity))
 
     # create a file handler if specified in command args
-    if args.logfile:
+    if haslogfile:
         fh = logging.FileHandler(args.logfile)
         fh.setLevel(log_level)
         fh.setFormatter(formatter)
