@@ -176,3 +176,9 @@ class CalCurve:
         if not self.spline:
             self.get_spline()
         return splev(x, self.spline)
+
+    def __repr__(self):
+        print("x: {}".format(self.xs))
+        print("y: {}".format(self.ys))
+        print("xerr: {}".format(self.xerr))
+        print("yerr: {}".format(self.yerr))

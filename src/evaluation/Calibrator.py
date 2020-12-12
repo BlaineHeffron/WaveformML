@@ -1,3 +1,5 @@
+
+import logging
 from src.utils.SQLUtils import CalibrationDB
 import numpy as np
 from math import floor
@@ -34,6 +36,7 @@ class Calibrator:
         """
         @type calibdb: object
         """
+        self.log = logging.getLogger(__name__)
         self.calibdb = calibdb
         self.gains, self.eres, self.rel_times, self.seg_times = calibdb.get_seg_cal_values()
         atten_curves, lsum_curves, time_curves, lin_curves, self.psd_curves, t_interp_curves, \
@@ -75,6 +78,8 @@ class Calibrator:
                 nx, ny, _ = get_coords_from_chan(l)
                 zmin = max([curvel.xs[0], curver.xs[0]])
                 zmax = min([curvel.xs[-1], curver.xs[-1]])
+                self.log.debug("curve l is {}".format(curvel))
+                self.log.debug("curve r is {}".format(curvel))
                 log_ratio_points(curvel, curver, zmin, zmax, 51, vx, vy)
                 self.light_pos_curves[nx, ny, :, 0] = vx
                 self.light_pos_curves[nx, ny, :, 1] = vy
