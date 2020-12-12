@@ -81,7 +81,7 @@ class Calibrator:
                 zmin = max([curvel.xs[0], curver.xs[0]])
                 zmax = min([curvel.xs[-1], curver.xs[-1]])
                 self.log.debug("light ratio curve pmt l seg {0} is {1}".format(seg,curvel))
-                self.log.debug("light ratio curve pmt r curve r is {}".format(curver))
+                self.log.debug("light ratio curve pmt r curve is {}".format(curver))
                 log_ratio_points(curvel, curver, zmin, zmax, 51, vx, vy)
                 self.log.debug("light pos curve vx is is {}".format(vx))
                 self.log.debug("light pos curve vy is {}".format(vy))
@@ -101,10 +101,14 @@ class Calibrator:
                 nx, ny, _ = get_coords_from_chan(l)
                 zmin = max([curvel.xs[0], curver.xs[0]])
                 zmax = min([curvel.xs[-1], curver.xs[-1]])
+                self.log.debug("time curve pmt l seg {0} is {1}".format(seg,curvel))
+                self.log.debug("time curve pmt r curve is {}".format(curver))
                 assert (zmin < zmax)
                 for i in range(npts):
-                    vy[i] = zmax + i * (zmin - zmax) / float(npts - 1)
+                    vy[i] = zmin + i * (zmax - zmin) / float(npts - 1)
                 vx = curver.eval(vy) - curvel.eval(vy)
+                self.log.debug("time pos curve vx is is {}".format(vx))
+                self.log.debug("time pos curve vy is {}".format(vy))
                 self.time_pos_curves[nx, ny, :, 0] = vx
                 self.time_pos_curves[nx, ny, :, 1] = vy
 
