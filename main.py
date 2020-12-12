@@ -9,7 +9,7 @@ import json
 import logging
 from src.utils import util
 import argparse
-from src.utils.util import  ValidateUtility, save_config, save_path, set_default_trainer_args, \
+from src.utils.util import  save_config, save_path, set_default_trainer_args, \
     retrieve_model_checkpoint, get_tb_logdir_version, check_config, setup_logger, get_model_folder
 
 MODEL_DIR = "./model"
@@ -23,7 +23,6 @@ def main():
     parser.add_argument("--name", "-n",
                         help="Set the experiment name for this run. Overrides exp_name specified in the run_config.",
                         type=str)
-    # TODO implement verbosity
     parser.add_argument("--load_best", "-lb", action="store_true",
                         help="finds the best checkpoint matching the model and experiment names, loads it and resumes training.")
     parser.add_argument("--load_checkpoint", "-l", type=str,

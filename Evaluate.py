@@ -8,7 +8,7 @@ from src.engineering.LitPSD import LitPSD, PSDDataModule
 import argparse
 from os.path import dirname, basename
 
-from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version, set_default_trainer_args
+from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version, set_default_trainer_args, setup_logger
 
 
 def main():
@@ -16,7 +16,11 @@ def main():
     parser.add_argument("config", help="path to config file")
     parser.add_argument("checkpoint", help="path to checkpoint file")
     parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
+    parser.add_argument("--verbosity", "-v",
+                        help="Set the verbosity for this run.",
+                        type=int, default=0)
     args = parser.parse_args()
+    main_logger = setup_logger(args)
     config = get_config(args.config)
     if args.calgroup:
         if hasattr(config.dataset_config, "calgroup"):
