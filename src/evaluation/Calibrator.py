@@ -105,7 +105,7 @@ class Calibrator:
                 self.log.debug("time curve pmt r curve is {}".format(curver))
                 assert (zmin < zmax)
                 for i in range(npts):
-                    vy[i] = zmin + i * (zmax - zmin) / float(npts - 1)
+                    vy[i] = zmax + i * (zmin - zmax) / float(npts - 1)
                 vx = curver.eval(vy) - curvel.eval(vy)
                 self.log.debug("time pos curve vx is is {}".format(vx))
                 self.log.debug("time pos curve vy is {}".format(vy))
