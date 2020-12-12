@@ -186,3 +186,13 @@ class CalCurve:
             print("xerr: {}".format(self.xerr))
         if self.yerr:
             print("yerr: {}".format(self.yerr))
+
+    def __str__(self):
+        if self.xs:
+            print("x: {}".format(self.xs))
+        if self.ys:
+            print("y: {}".format(self.ys))
+        if self.xerr:
+            print("xerr: {}".format(self.xerr))
+        if self.yerr:
+            print("yerr: {}".format(self.yerr))
