@@ -42,10 +42,6 @@ class Calibrator:
         atten_curves, lsum_curves, time_curves, lin_curves, self.psd_curves, t_interp_curves, \
         self.e_ncapt = calibdb.get_curves()
         self.sampletime = np.zeros((14, 11, 2), dtype=np.float32)
-        for chan, curve in t_interp_curves.items():
-            if curve:
-                nx, ny, r = get_coords_from_chan(chan)
-                self.sampletime[nx, ny, r] = round(max(curve.xs))
         self.light_pos_curves = np.zeros((14, 11, 51, 2), dtype=np.float32)
         self.time_pos_curves = np.zeros((14, 11, 50, 2), dtype=np.float32)
         self.light_sum_curves = np.zeros((14, 11, 50, 2), dtype=np.float32)
@@ -54,6 +50,10 @@ class Calibrator:
         self.calc_time_pos_curve(time_curves)
         self.calc_light_sum_curve(lsum_curves, atten_curves)
         self.calc_t_interp_curve(t_interp_curves)
+        for chan, curve in t_interp_curves.items():
+            if curve:
+                nx, ny, r = get_coords_from_chan(chan)
+                self.sampletime[nx, ny, r] = round(max(curve.xs))
 
     def calc_t_interp_curve(self, t_interp_curves):
         for chan in range(14 * 11 * 2):
@@ -73,6 +73,8 @@ class Calibrator:
                 vx = np.zeros((51,), dtype=np.float32)
                 vy = np.zeros((51,), dtype=np.float32)
                 curvel, curver = atten_curves[l], atten_curves[r]
+                if not curvel or not curver:
+                    continue
                 curvel.sort()
                 curver.sort()
                 nx, ny, _ = get_coords_from_chan(l)
