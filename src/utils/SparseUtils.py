@@ -371,13 +371,13 @@ def calc_arrival(fdat):
         if d > peak:
             peak = d
     cur_ind = 0
-    thresh = 0.5*peak
+    thresh = 0.5 * peak
     for d in fdat:
         if d > thresh:
             if cur_ind == 0:
                 return cur_ind + thresh / d
             else:
-                return cur_ind + (thresh-fdat[cur_ind-1]) / (d-fdat[cur_ind-1])
+                return cur_ind + (thresh - fdat[cur_ind - 1]) / (d - fdat[cur_ind - 1])
         cur_ind += 1
     return 0.
 
@@ -439,6 +439,7 @@ def sum1d(vec):
         sum += vec[i]
     return sum
 
+
 @nb.jit(nopython=True)
 def lin_interp(xy, x):
     """xy is vector of shape (n,2), second index denotes x (0) and y (1)"""
@@ -462,7 +463,8 @@ def calc_calib_z(coordinates, waveforms, z_out, sample_width, t_interp_curves, s
             t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
             t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
         dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
-        L = [sum1d(wf[0]) * gain_factors[coord[0], coord[1], 0], sum1d(wf[1]) * gain_factors[coord[0], coord[1], 1]]
+        L = [sum1d(wf[:, 0]) * gain_factors[coord[0], coord[1], 0],
+             sum1d(wf[:, 1]) * gain_factors[coord[0], coord[1], 1]]
         if L[0] == 0 or L[1] == 0:
             z_out[coord[2], coord[0], coord[1]] = 0.5
             continue
@@ -476,7 +478,7 @@ def calc_calib_z(coordinates, waveforms, z_out, sample_width, t_interp_curves, s
             light_pos_curves[coord[0], coord[1]], R - 0.5 * dR)) if validratio else 0
         Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
         tweight = 1. / (60 * 60)
-        z_out[coord[2], coord[0], coord[1]] = ((Rweight * Rpos + tweight * tpos) / (Rweight + tweight))/z_scale + 0.5
+        z_out[coord[2], coord[0], coord[1]] = ((Rweight * Rpos + tweight * tpos) / (Rweight + tweight)) / z_scale + 0.5
 
 
 @nb.jit(nopython=True)
