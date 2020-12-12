@@ -178,7 +178,11 @@ class CalCurve:
         return splev(x, self.spline)
 
     def __repr__(self):
-        print("x: {}".format(self.xs))
-        print("y: {}".format(self.ys))
-        print("xerr: {}".format(self.xerr))
-        print("yerr: {}".format(self.yerr))
+        if self.xs:
+            print("x: {}".format(self.xs))
+        if self.ys:
+            print("y: {}".format(self.ys))
+        if self.xerr:
+            print("xerr: {}".format(self.xerr))
+        if self.yerr:
+            print("yerr: {}".format(self.yerr))
