@@ -374,10 +374,10 @@ def calc_arrival(fdat):
     thresh = 0.5*peak
     for d in fdat:
         if d > thresh:
-            if cur_ind >= (fdat.shape[0]-1):
-                return cur_ind
+            if cur_ind == 0:
+                return cur_ind + thresh / d
             else:
-                return cur_ind + (thresh-fdat[cur_ind]) / (d-fdat[cur_ind])
+                return cur_ind + (thresh-fdat[cur_ind-1]) / (d-fdat[cur_ind-1])
         cur_ind += 1
     return 0.
 
