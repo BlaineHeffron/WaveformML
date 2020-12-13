@@ -406,8 +406,8 @@ def setup_logger(args):
     logargs = {}
     haslogfile = False
     if hasattr(args,"logfile"):
-        haslogfile = True
         if args.logfile:
+            haslogfile = True
             logargs["filename"] = args.logfile
     logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%m-%d %H:%M',
