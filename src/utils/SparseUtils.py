@@ -104,7 +104,6 @@ def vec_sum(a):
 
 @nb.jit(nopython=True)
 def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
-    # expects output to be of size nbins+2, 1 for overflow and underflow
     xlen = xrange[1] - xrange[0]
     bin_width = xlen / nbins
     for i in range(metric.shape[0]):
@@ -486,7 +485,8 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
 
 
 @nb.jit(nopython=True)
-def z_deviation(predictions, targets, dev, out_n, nx, ny, nmult):
+def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
+                z_mult_single_out, seg_status, nx, ny, nmult, nz, zrange):
     for batch in range(predictions.shape[0]):
         mult = 0
         for i in range(nx):
@@ -496,9 +496,33 @@ def z_deviation(predictions, targets, dev, out_n, nx, ny, nmult):
         for i in range(nx):
             for j in range(ny):
                 if targets[batch, i, j] > 0:
-                    if 0 < mult <= nmult:
-                        dev[i, j, mult - 1] += abs(predictions[batch, i, j] - targets[batch, i, j])
-                        out_n[i, j, mult - 1] += 1
+                    z_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
+                    true_z = (targets[batch, i, j] - 0.5)*zrange
+                    z_bin = 0
+                    if true_z < (-zrange/2.):
+                        z_bin = 0
+                    elif true_z >= (zrange/2.):
+                        z_bin = nz + 1
                     else:
-                        dev[i, j, nmult] += abs(predictions[batch, i, j] - targets[batch, i, j])
+                        for k in range(1, nz + 1):
+                            if k * (zrange/nz) - zrange/2. > true_z:
+                                z_bin = k
+                            break
+                    if 0 < mult <= nmult:
+                        dev[i, j, mult - 1] += z_dev
+                        out_n[i, j, mult - 1] += 1
+                        if seg_status[i, j] > 0:
+                            z_mult_single_dev[z_bin, mult - 1] += z_dev
+                            z_mult_single_out[z_bin, mult - 1] += 1
+                        else:
+                            z_mult_dual_dev[z_bin, mult - 1] += z_dev
+                            z_mult_dual_out[z_bin, mult - 1] += 1
+                    else:
+                        dev[i, j, nmult] += z_dev
                         out_n[i, j, nmult] += 1
+                        if seg_status[i, j] > 0:
+                            z_mult_single_dev[z_bin, nmult] += z_dev
+                            z_mult_single_out[z_bin, nmult] += 1
+                        else:
+                            z_mult_dual_dev[z_bin, nmult] += z_dev
+                            z_mult_dual_out[z_bin, nmult] += 1

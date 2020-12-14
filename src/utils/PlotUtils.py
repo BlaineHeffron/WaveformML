@@ -66,7 +66,12 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     plt.yticks(tick_y, tick_labely)
 
     fmt = '.0f'
-    thresh = (cm.max() - cm.min()) / 2.
+    min = 10000000
+    for i in range(nx):
+        for j in range(ny):
+            if cm[i,j] < min and cm[i,j] > 0:
+                min = cm[i,j]
+    thresh = (cm.max() - min) / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         if cm[i, j] != 0:
             plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
