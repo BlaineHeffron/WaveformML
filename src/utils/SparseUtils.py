@@ -453,8 +453,9 @@ def lin_interp(xy, x):
 
 
 @nb.jit(nopython=True)
-def calc_calib_z(coordinates, waveforms, z_out, sample_width, t_interp_curves, sample_times, rel_times, gain_factors,
-                 eres, time_pos_curves, light_pos_curves, z_scale, n_samples):
+def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_curves, sample_times, rel_times,
+                   gain_factors,
+                   eres, time_pos_curves, light_pos_curves, light_sum_curves, z_scale, n_samples):
     for coord, wf in zip(coordinates, waveforms):
         t = [calc_arrival(wf[0:n_samples]) * float(sample_width), calc_arrival(wf[n_samples:]) * float(sample_width)]
         for i in range(2):
@@ -478,7 +479,10 @@ def calc_calib_z(coordinates, waveforms, z_out, sample_width, t_interp_curves, s
             light_pos_curves[coord[0], coord[1]], R - 0.5 * dR)) if validratio else 0
         Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
         tweight = 1. / (60 * 60)
-        z_out[coord[2], coord[0], coord[1]] = ((Rweight * Rpos + tweight * tpos) / (Rweight + tweight)) / z_scale + 0.5
+        z = (Rweight * Rpos + tweight * tpos) / (Rweight + tweight)
+        z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
+        z = z if abs(z) < 650 else -650. if z < -650 else 650
+        E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]], z)
 
 
 @nb.jit(nopython=True)

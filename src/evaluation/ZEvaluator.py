@@ -3,10 +3,11 @@ import os
 import numpy as np
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.Calibrator import Calibrator
+#from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.utils.PlotUtils import plot_z_acc_matrix
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
-from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z
+from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E
 
 
 class ZEvaluator:
@@ -29,9 +30,17 @@ class ZEvaluator:
             self.gain_factor = np.divide(np.full((self.nx, self.ny, 2), MAX_RANGE), gains)
             self.t_center = np.arange(2, self.n_samples*self.sample_width-1, self.sample_width)
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
+        #self.metrics = []
         self._init_results()
 
     def _init_results(self):
+        #metric_names = ["energy", "multiplicity", "true_z", "pred_z"]
+        #metric_params = [[0.0, 10.0, 40], [0.5, 10.5, 10], [-600.,600.,40],[-600.,600.,40]]
+        i = 0
+        #for name in metric_names:
+        #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
+        #    i += 1
+        #self.metric_pairs = MetricPairAggregator(self.metrics)
         self.results = {
             "seg_mult_mae": (
                 np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
@@ -47,8 +56,10 @@ class ZEvaluator:
         z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                     self.results["seg_mult_mae"][1], self.nx, self.ny,
                     self.nmult)
+
         if self.hascal:
             self.z_from_cal(c, f, targ)
+
 
     def dump(self):
         for i in range(self.nmult):
@@ -71,9 +82,11 @@ class ZEvaluator:
     def z_from_cal(self, c, f, targ):
         c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
-        calc_calib_z(c, f, pred, self.sample_width, self.calibrator.t_interp_curves, self.calibrator.sampletime,
+        E = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
+        calc_calib_z_E(c, f, pred, E, self.sample_width, self.calibrator.t_interp_curves, self.calibrator.sampletime,
                      self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
-                     self.calibrator.time_pos_curves, self.calibrator.light_pos_curves, self.z_scale, self.n_samples)
+                     self.calibrator.time_pos_curves, self.calibrator.light_pos_curves,
+                     self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
         z_deviation(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                     self.results["seg_mult_mae_cal"][1], self.nx, self.ny,
                     self.nmult)
