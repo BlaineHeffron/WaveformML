@@ -62,7 +62,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     tick_y = np.arange(ny)
     tick_labelx = np.arange(1, nx + 1)
     tick_labely = np.arange(1, ny + 1)
-    plt.xticks(tick_x, tick_labelx, rotation=45)
+    plt.xticks(tick_x, tick_labelx)
     plt.yticks(tick_y, tick_labely)
 
     fmt = '.0f'
