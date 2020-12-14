@@ -7,10 +7,15 @@ from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, 
 
 
 class SparseConv2DForZ(nn.Module):
-    def __init__(self, in_planes, kernel_size=3, n_layers=2):
+    def __init__(self, in_planes, kernel_size=3, n_layers=2, pointwise_layers=0, pointwise_factor=0.8):
         super(SparseConv2DForZ, self).__init__()
         layers = []
-        increment = int(round(float(in_planes) / float(n_layers)))
+        if pointwise_layers > 0:
+            if n_layers == 1:
+                raise ValueError("n_layers must be > 1 if using pointwise convolution")
+            increment = int(round(float(in_planes*pointwise_factor) / float(n_layers-1)))
+        else:
+            increment = int(round(float(in_planes) / float(n_layers)))
         if kernel_size % 2 != 1:
             raise ValueError("Kernel size must be an odd integer")
         if not isinstance(n_layers, int) or n_layers < 1:
@@ -21,13 +26,20 @@ class SparseConv2DForZ(nn.Module):
                 out = 1
             else:
                 out -= increment
+                if i == 0 and pointwise_layers > 0:
+                    if pointwise_factor > 0:
+                        out = pointwise_factor*in_planes
             pd = int((kernel_size - 1) / 2)
+            if pointwise_layers > 0:
+                pd = 0
+                kernel_size = 1
+                pointwise_layers -= 1
             layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
             if i != (n_layers - 1):
                 layers.append(nn.BatchNorm1d(out))
             layers.append(nn.ReLU())
             in_planes = out
-            if kernel_size > 3:
+            if kernel_size > 1:
                 kernel_size -= 2
         layers.append(spconv.ToDense())
         self.network = spconv.SparseSequential(*layers)
