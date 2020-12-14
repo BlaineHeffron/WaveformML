@@ -507,7 +507,7 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
                         for k in range(1, nz + 1):
                             if k * (zrange/nz) - zrange/2. > true_z:
                                 z_bin = k
-                            break
+                                break
                     if 0 < mult <= nmult:
                         dev[i, j, mult - 1] += z_dev
                         out_n[i, j, mult - 1] += 1
