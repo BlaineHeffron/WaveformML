@@ -49,7 +49,7 @@ cmaps['Miscellaneous'] = [
 
 def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     fontsize = 12
-    fig = plt.figure(figsize=(9,6.5))
+    fig = plt.figure(figsize=(9, 6.5))
     cm = cm.transpose()
     cm = np.ma.masked_where(cm == 0, cm)
     cmap.set_bad(color='black')
@@ -60,15 +60,15 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     cbar.set_label('mean average error [mm]', labelpad=18)
     tick_x = np.arange(nx)
     tick_y = np.arange(ny)
-    tick_labelx = np.arange(1,nx+1)
-    tick_labely = np.arange(1,ny+1)
+    tick_labelx = np.arange(1, nx + 1)
+    tick_labely = np.arange(1, ny + 1)
     plt.xticks(tick_x, tick_labelx, rotation=45)
     plt.yticks(tick_y, tick_labely)
 
     fmt = '.0f'
-    thresh = cm.max() / 2.
+    thresh = (cm.max() - cm.min()) / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        if cm[i,j] != 0:
+        if cm[i, j] != 0:
             plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
                      color="black" if cm[i, j] > thresh else "white", fontsize=fontsize)
 
@@ -77,6 +77,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     plt.xlabel('x segment')
     fig.subplots_adjust(left=0.1)
     return fig
+
 
 def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Blues):
     fontsize = 12
@@ -87,7 +88,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     if title != '':
         plt.title(title)
-    #plt.colorbar()
+    # plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
@@ -217,7 +218,7 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
         for ax in fig.get_axes():
             if i == n_categories:
                 break
-            #ax.label_outer()
+            # ax.label_outer()
             ax.set_yscale('log')
             i += 1
     if n_categories < 4:
@@ -226,7 +227,8 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
     return fig
 
 
-def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logz = True, cm = plt.cm.cividis):
+def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logz=True,
+                  cm=plt.cm.cividis):
     n_categories = len(title)
     nrows = ceil((n_categories - 1) / 3)
     fig_height = 4.0
@@ -251,8 +253,8 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
             x = xwidth * i + xwidth / 2.
             for j in range(len(yedges) - 1):
                 y = ywidth * j + ywidth / 2.
-                if vals[m][i,j] <= 0 and logz:
-                    w[n] = 1./(xwidth*ywidth) if norm_to_bin_width else 1.
+                if vals[m][i, j] <= 0 and logz:
+                    w[n] = 1. / (xwidth * ywidth) if norm_to_bin_width else 1.
                 else:
                     w[n] = vals[m][i, j]
                 xs[n] = x
@@ -300,7 +302,8 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
     return fig
 
 
-def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True, logz=True, cm=plt.cm.cividis):
+def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True, logz=True,
+                cm=plt.cm.cividis):
     fig, ax = plt.subplots()
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]
@@ -404,9 +407,9 @@ def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=F
         else:
             y = data[i]
         tot = n[i]
-        y = safe_divide(y,tot)
+        y = safe_divide(y, tot)
         if normalize:
-            y = safe_divide(y,sum(y))
+            y = safe_divide(y, sum(y))
         if plot_errors:
             errors = np.sqrt(y)
             plt.errorbar(x, y,
@@ -422,7 +425,7 @@ def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=F
                      ls=category_styles[i % len(category_styles)],
                      linewidth=lw)
         if write_pulses:
-            write_x_y_csv("pulse_{}.csv".format(labels[i]), "time [ns]", "counts", x,y)
+            write_x_y_csv("pulse_{}.csv".format(labels[i]), "time [ns]", "counts", x, y)
 
     ax.set_xlabel('t [ns]')
     ax.set_ylabel('rate [counts/ns]')
