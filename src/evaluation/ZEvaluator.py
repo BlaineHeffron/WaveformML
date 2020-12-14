@@ -69,7 +69,7 @@ class ZEvaluator:
 
     def z_from_cal(self, c, f, targ):
         c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
-        f = f.reshape((-1, 150, 2))
+        f = f.reshape((-1, 2, 150))
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         calc_calib_z(c, f, pred, self.sample_width, self.calibrator.t_interp_curves, self.calibrator.sampletime,
                      self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
