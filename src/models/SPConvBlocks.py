@@ -21,6 +21,8 @@ class SparseConv2DForZ(nn.Module):
         if not isinstance(n_layers, int) or n_layers < 1:
             raise ValueError("n_layers must be  integer >= 1")
         out = in_planes
+        reset_kernel = False
+        orig_kernel = kernel_size
         for i in range(n_layers):
             if i == (n_layers - 1):
                 out = 1
@@ -34,7 +36,12 @@ class SparseConv2DForZ(nn.Module):
                 pd = 0
                 kernel_size = 1
                 pointwise_layers -= 1
+                if pointwise_layers == 0:
+                    reset_kernel = True
             layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
+            if reset_kernel:
+                kernel_size = orig_kernel
+                reset_kernel = False
             if i != (n_layers - 1):
                 layers.append(nn.BatchNorm1d(out))
             layers.append(nn.ReLU())
