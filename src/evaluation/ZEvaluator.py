@@ -17,6 +17,7 @@ class ZEvaluator:
         self.ny = 11
         self.z_scale = 1200.
         self.sample_width = 4
+        self.n_samples = 150
         self.hascal = False
         if calgroup is not None:
             self.hascal = True
@@ -25,8 +26,8 @@ class ZEvaluator:
                     "Error: could not find PROSPECT_CALDB environment variable. Please set PROSPECT_CALDB to be the "
                     "path of the sqlite3 calibration database.")
             gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
-            self.gain_factor = np.divide(np.full((14, 11, 2), MAX_RANGE), gains)
-            self.t_center = np.arange(2, 599, 4)
+            self.gain_factor = np.divide(np.full((self.nx, self.ny, 2), MAX_RANGE), gains)
+            self.t_center = np.arange(2, self.n_samples*self.sample_width-1, self.sample_width)
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
         self._init_results()
 
@@ -69,11 +70,10 @@ class ZEvaluator:
 
     def z_from_cal(self, c, f, targ):
         c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
-        f = f.reshape((-1, 2, 150))
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         calc_calib_z(c, f, pred, self.sample_width, self.calibrator.t_interp_curves, self.calibrator.sampletime,
                      self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
-                     self.calibrator.time_pos_curves, self.calibrator.light_pos_curves, self.z_scale)
+                     self.calibrator.time_pos_curves, self.calibrator.light_pos_curves, self.z_scale, self.n_samples)
         z_deviation(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                     self.results["seg_mult_mae_cal"][1], self.nx, self.ny,
                     self.nmult)
