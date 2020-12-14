@@ -32,7 +32,7 @@ class ZEvaluator:
                              54, 56, 58, 65, 68, 72, 80, 82, 85, 88, 93, 95, 97, 96, 105, 111, 112, 120, 122, 137, 138,
                              139, 141, 147, 158, 166, 173, 175, 188, 195, 215, 230, 243, 244, 245, 252, 255, 256, 261,
                              273, 279, 282]
-        self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float8)  # 0 for good, 0.5 for single ended, 1 for dead
+        self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
         self.set_SE_segs()
         if calgroup is not None:
             self.hascal = True
