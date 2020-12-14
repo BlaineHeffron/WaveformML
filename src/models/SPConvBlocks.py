@@ -13,7 +13,7 @@ class SparseConv2DForZ(nn.Module):
         if pointwise_layers > 0:
             if n_layers == 1:
                 raise ValueError("n_layers must be > 1 if using pointwise convolution")
-            increment = int(round(float(in_planes*pointwise_factor) / float(n_layers-1)))
+            increment = int(round(int(round(in_planes*pointwise_factor)) / float(n_layers-1)))
         else:
             increment = int(round(float(in_planes) / float(n_layers)))
         if kernel_size % 2 != 1:
@@ -28,7 +28,7 @@ class SparseConv2DForZ(nn.Module):
                 out -= increment
                 if i == 0 and pointwise_layers > 0:
                     if pointwise_factor > 0:
-                        out = pointwise_factor*in_planes
+                        out = int(round(pointwise_factor*in_planes))
             pd = int((kernel_size - 1) / 2)
             if pointwise_layers > 0:
                 pd = 0
