@@ -51,6 +51,8 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     fontsize = 12
     fig = plt.figure(figsize=(9,6.5))
     cm = cm.transpose()
+    cm = np.ma.masked_where(cm == 0, cm)
+    cmap.set_bad(color='black')
     plt.imshow(cm, interpolation='nearest', cmap=cmap, origin="lower")
     if title != '':
         plt.title(title)
@@ -66,8 +68,9 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     fmt = '.0f'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
-                 color="black" if cm[i, j] > thresh else "white", fontsize=fontsize)
+        if cm[i,j] != 0:
+            plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
+                     color="black" if cm[i, j] > thresh else "white", fontsize=fontsize)
 
     plt.tight_layout()
     plt.ylabel('y segment')
