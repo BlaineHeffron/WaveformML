@@ -254,9 +254,9 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
         ys = np.zeros((tot,))
         n = 0
         for i in range(len(xedges) - 1):
-            x = xwidth * i + xwidth / 2.
+            x = xedges[0] + xwidth * i + xwidth / 2.
             for j in range(len(yedges) - 1):
-                y = ywidth * j + ywidth / 2.
+                y = yedges[0] + ywidth * j + ywidth / 2.
                 if vals[m][i, j] <= 0 and logz:
                     w[n] = 1. / (xwidth * ywidth) if norm_to_bin_width else 1.
                 else:
@@ -320,9 +320,9 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
     ys = np.zeros((tot,))
     n = 0
     for i in range(len(xedges) - 1):
-        x = xwidth * i + xwidth / 2.
+        x = xedges[0] + xwidth * i + xwidth / 2.
         for j in range(len(yedges) - 1):
-            y = ywidth * j + ywidth / 2.
+            y = yedges[0] + ywidth * j + ywidth / 2.
             w[n] = vals[i, j]
             xs[n] = x
             ys[n] = y
@@ -349,7 +349,7 @@ def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
     xs = np.zeros((tot,))
     n = 0
     for i in range(len(xedges) - 1):
-        x = xwidth * i + xwidth / 2.
+        x = xedges[0] + xwidth * i + xwidth / 2.
         xs[n] = x
         n += 1
     h = plt.hist(xs, bins=xedges, weights=vals)
