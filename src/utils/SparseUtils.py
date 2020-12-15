@@ -456,7 +456,8 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                    gain_factors,
                    eres, time_pos_curves, light_pos_curves, light_sum_curves, z_scale, n_samples):
     for coord, wf in zip(coordinates, waveforms):
-        t = [calc_arrival(wf[0:n_samples]) * float(sample_width), calc_arrival(wf[n_samples:]) * float(sample_width)]
+        #t = [calc_arrival(wf[0:n_samples]) * float(sample_width), calc_arrival(wf[n_samples:]) * float(sample_width)]
+        t = [calc_time(wf[0:n_samples], n_samples) * float(sample_width), calc_time(wf[n_samples:], n_samples) * float(sample_width)]
         for i in range(2):
             if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
                 continue
