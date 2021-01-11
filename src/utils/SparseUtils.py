@@ -373,12 +373,9 @@ def calc_arrival_from_peak(fdat, peak_ind):
     cur_ind = peak_ind - 1
     while cur_ind >= 0:
         if fdat[cur_ind] < thresh:
-            if cur_ind == 0:
-                return cur_ind + thresh / fdat[cur_ind]
-            else:
-                return cur_ind + 1 + (thresh - fdat[cur_ind]) / (fdat[cur_ind + 1] - fdat[cur_ind])
+            return cur_ind + 1 + (thresh - fdat[cur_ind]) / (fdat[cur_ind + 1] - fdat[cur_ind])
         elif cur_ind == 0:
-            return cur_ind + thresh / fdat[cur_ind]
+            return thresh / fdat[cur_ind]
         cur_ind -= 1
     return 0.
 
