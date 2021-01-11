@@ -549,8 +549,10 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
     for coord, wf in zip(coordinates, waveforms):
         local_maxima0 = zeros((5,), dtype=int32) # unlikely there would be more than 5
         local_maxima1 = zeros((5,), dtype=int32)
-        global_maxima0 = merge_sort_main_numba(remove_end_zeros(find_peaks(wf[0:n_samples], local_maxima0, minsep)))
-        global_maxima1 = merge_sort_main_numba(remove_end_zeros(find_peaks(wf[n_samples:], local_maxima1, minsep)))
+        find_peaks(wf[0:n_samples], local_maxima0, minsep)
+        find_peaks(wf[n_samples:], local_maxima1, minsep)
+        local_maxima0 = merge_sort_main_numba(remove_end_zeros(local_maxima0))
+        local_maxima1 = merge_sort_main_numba(remove_end_zeros(local_maxima1))
         if local_maxima0.shape[0] == local_maxima1.shape[0]:
             tpos = 0.
             total_area = 0.
