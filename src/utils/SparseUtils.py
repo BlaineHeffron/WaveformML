@@ -467,11 +467,11 @@ def lin_interp(xy, x):
 
 
 @nb.jit(nopython=True)
-def remove_end_zeros(v):
-    if v[0] == 0:
+def remove_end_zeros(v, val=0):
+    if v[0] == val:
         return v[0:1]
     for i in range(1, v.shape[0]):
-        if v[i] == 0:
+        if v[i] == val:
             return v[0:i]
 
 
@@ -549,10 +549,13 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
     for coord, wf in zip(coordinates, waveforms):
         local_maxima0 = zeros((5,), dtype=int32) # unlikely there would be more than 5
         local_maxima1 = zeros((5,), dtype=int32)
+        for i in range(5):
+            local_maxima0[i] = -1
+            local_maxima1[i] = -1
         find_peaks(wf[0:n_samples], local_maxima0, minsep)
         find_peaks(wf[n_samples:], local_maxima1, minsep)
-        local_maxima0 = merge_sort_main_numba(remove_end_zeros(local_maxima0))
-        local_maxima1 = merge_sort_main_numba(remove_end_zeros(local_maxima1))
+        local_maxima0 = merge_sort_main_numba(remove_end_zeros(local_maxima0, -1))
+        local_maxima1 = merge_sort_main_numba(remove_end_zeros(local_maxima1, -1))
         if local_maxima0.shape[0] == local_maxima1.shape[0]:
             tpos = 0.
             total_area = 0.
@@ -568,8 +571,12 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                 area = peak_area(wf[0:n_samples],m0) + peak_area(wf[0:n_samples], m1)
                 tpos += lin_interp(time_pos_curves[coord[0], coord[1]], dt) * area
                 total_area += area
-            tpos = tpos/total_area
-            tweight = 1. / (60 * 60)
+            if total_area == 0:
+                tpos = 0
+                tweight = 1./(100000.)
+            else:
+                tpos = tpos/total_area
+                tweight = 1. / (60 * 60)
         else:
             tpos = 0
             tweight = 1./(100000.)
