@@ -1,6 +1,8 @@
 import numba as nb
 from math import ceil, floor, sqrt, log
 from numba.typed import List
+from numpy import zeros, append, int32
+from src.utils.NumbaFunctions import merge_sort_two, merge_sort_main_numba
 
 
 # TODO: implement this with pytorch + cython so it can stay on the gpu
@@ -362,6 +364,19 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
         out_quantities[0, current_ind] = ene_current
     return out_coords, out_quantities, out_mult
 
+@nb.jit(nopython=True)
+def calc_arrival_from_peak(fdat, peak_ind):
+    peak = fdat[peak_ind]
+    thresh = 0.5 * peak
+    cur_ind = peak_ind - 1
+    while True:
+        if fdat[cur_ind] < thresh:
+            if cur_ind == 0:
+                return cur_ind + thresh / fdat[cur_ind]
+            else:
+                return cur_ind + 1 + (thresh - fdat[cur_ind]) / (fdat[cur_ind + 1] - fdat[cur_ind ])
+        cur_ind -= 1
+    return 0.
 
 @nb.jit(nopython=True)
 def calc_arrival(fdat):
@@ -452,18 +467,120 @@ def lin_interp(xy, x):
 
 
 @nb.jit(nopython=True)
+def remove_end_zeros(v):
+    if v[0] == 0:
+        return v[0:1]
+    for i in range(1, v.shape[0]):
+        if v[i] == 0:
+            return v[0:i]
+
+
+@nb.jit(nopython=True)
+def find_peaks(v, maxloc, sep):
+    local_maxima = zeros(shape=(50,), dtype=int32)
+    maxima_vals = zeros(shape=(50,), dtype=int32)
+    local_maxpos = 100000
+    max_index = 0
+    global_maxpos = 0
+    for i in range(1, v.shape[0]):
+        if v[i] > v[i - 1]:
+            local_maxpos = i
+        elif v[i] < v[i - 1] and local_maxpos != 100000:
+            lmax = int((local_maxpos + i - 1) / 2)
+            local_maxima[max_index] = lmax
+            maxima_vals[max_index] = v[lmax]
+            max_index += 1
+            if v[lmax] > v[global_maxpos]:
+                global_maxpos = lmax
+            if max_index >= 50:
+                break
+            local_maxpos = 100000
+    local_maxima = remove_end_zeros(local_maxima)
+    maxima_vals = remove_end_zeros(maxima_vals)
+    maxima_vals, local_maxima = merge_sort_two(maxima_vals, local_maxima)
+    if local_maxima.shape[0] == 1:
+        maxloc[0] = local_maxima[0]
+        return global_maxpos
+    global_maxpos = local_maxima[0]
+    maxloc[0] = global_maxpos
+    max_index = 1
+    for i in range(local_maxima.shape[0]-1):
+        within_range = True
+        for j in range(max_index):
+            if abs(local_maxima[i+1] - maxloc[j]) <= sep*2:
+                within_range = False
+                break
+        if within_range:
+            maxloc[max_index] = local_maxima[i+1]
+            max_index += 1
+        if max_index > 4:
+            break
+
+    """
+    current_candidate = local_maxima[0]
+    for i in range(1, local_maxima.shape[0]):
+        if (local_maxima[i] - current_candidate) <= sep:
+            if v[local_maxima[i]] > v[current_candidate]:
+                current_candidate = local_maxima[i]
+        else:
+            maxloc[max_index] = current_candidate
+            max_index += 1
+            if max_index > 4:
+                return global_maxpos
+            current_candidate = local_maxima[i]
+    """
+    return global_maxpos
+
+
+@nb.jit(nopython=True)
+def peak_area(data, peak_ind):
+    start = peak_ind - 10
+    stop = peak_ind + 25
+    if start < 0:
+        start = 0
+    return sum_range(data,start,stop)
+
+
+@nb.jit(nopython=True)
 def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_curves, sample_times, rel_times,
                    gain_factors,
                    eres, time_pos_curves, light_pos_curves, light_sum_curves, z_scale, n_samples):
+    minsep = 10
     for coord, wf in zip(coordinates, waveforms):
-        #t = [calc_arrival(wf[0:n_samples]) * float(sample_width), calc_arrival(wf[n_samples:]) * float(sample_width)]
-        t = [calc_time(wf[0:n_samples], n_samples) * float(sample_width), calc_time(wf[n_samples:], n_samples) * float(sample_width)]
+        local_maxima0 = zeros((5,), dtype=int32) # unlikely there would be more than 5
+        local_maxima1 = zeros((5,), dtype=int32)
+        global_maxima0 = merge_sort_main_numba(remove_end_zeros(find_peaks(wf[0:n_samples], local_maxima0, minsep)))
+        global_maxima1 = merge_sort_main_numba(remove_end_zeros(find_peaks(wf[n_samples:], local_maxima1, minsep)))
+        if local_maxima0.shape[0] == local_maxima1.shape[0]:
+            tpos = 0.
+            total_area = 0.
+            for m0, m1 in zip(local_maxima0, local_maxima1):
+                t = [calc_arrival_from_peak(wf[0:n_samples], m0) * float(sample_width),
+                 calc_arrival_from_peak(wf[n_samples:], m1) * float(sample_width)]
+                for i in range(2):
+                    if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
+                        continue
+                    t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
+                    t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
+                dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
+                area = peak_area(wf[0:n_samples],m0) + peak_area(wf[0:n_samples], m1)
+                tpos += lin_interp(time_pos_curves[coord[0], coord[1]], dt) * area
+                total_area += area
+            tpos = tpos/total_area
+            tweight = 1. / (60 * 60)
+        else:
+            tpos = 0
+            tweight = 1./(100000.)
+
+        """
+        t = [calc_arrival(wf[0:n_samples]) * float(sample_width), calc_arrival(wf[n_samples:]) * float(sample_width)]
         for i in range(2):
             if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
                 continue
             t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
             t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
         dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
+        """
         L = [sum1d(wf[0:n_samples]) * gain_factors[coord[0], coord[1], 0],
              sum1d(wf[n_samples:]) * gain_factors[coord[0], coord[1], 1]]
         if L[0] == 0 or L[1] == 0:
@@ -473,12 +590,12 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
         R = log(L[1] / L[0])
         validratio = (R == R)
         dR = sqrt(1.0 / max([PE[0], 1.0]) + 1.0 / max([PE[1], 1.0]))
-        tpos = lin_interp(time_pos_curves[coord[0], coord[1]], dt)
+        #tpos = lin_interp(time_pos_curves[coord[0], coord[1]], dt)
         Rpos = lin_interp(light_pos_curves[coord[0], coord[1]], R) if validratio else 0
         dRpos = abs(lin_interp(light_pos_curves[coord[0], coord[1]], R + 0.5 * dR) - lin_interp(
             light_pos_curves[coord[0], coord[1]], R - 0.5 * dR)) if validratio else 0
         Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
-        tweight = 1. / (60 * 60)
+        #tweight = 1. / (60 * 60)
         z = (Rweight * Rpos + tweight * tpos) / (Rweight + tweight)
         z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
         z = z if abs(z) < 650 else -650. if z < -650 else 650
@@ -498,15 +615,15 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
             for j in range(ny):
                 if targets[batch, i, j] > 0:
                     z_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
-                    true_z = (targets[batch, i, j] - 0.5)*zrange
+                    true_z = (targets[batch, i, j] - 0.5) * zrange
                     z_bin = 0
-                    if true_z < (-zrange/2.):
+                    if true_z < (-zrange / 2.):
                         z_bin = 0
-                    elif true_z >= (zrange/2.):
+                    elif true_z >= (zrange / 2.):
                         z_bin = nz + 1
                     else:
                         for k in range(1, nz + 1):
-                            if k * (zrange/nz) - zrange/2. > true_z:
+                            if k * (zrange / nz) - zrange / 2. > true_z:
                                 z_bin = k
                                 break
                     if 0 < mult <= nmult:
