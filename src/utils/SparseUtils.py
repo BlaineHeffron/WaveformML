@@ -368,13 +368,17 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
 def calc_arrival_from_peak(fdat, peak_ind):
     peak = fdat[peak_ind]
     thresh = 0.5 * peak
+    if peak_ind == 0:
+        return 0.5
     cur_ind = peak_ind - 1
-    while True:
+    while cur_ind >= 0:
         if fdat[cur_ind] < thresh:
             if cur_ind == 0:
                 return cur_ind + thresh / fdat[cur_ind]
             else:
-                return cur_ind + 1 + (thresh - fdat[cur_ind]) / (fdat[cur_ind + 1] - fdat[cur_ind ])
+                return cur_ind + 1 + (thresh - fdat[cur_ind]) / (fdat[cur_ind + 1] - fdat[cur_ind])
+        elif cur_ind == 0:
+            return cur_ind + thresh / fdat[cur_ind]
         cur_ind -= 1
     return 0.
 
