@@ -1,7 +1,7 @@
 import numba as nb
 from math import ceil, floor, sqrt, log
 from numba.typed import List
-from numpy import zeros, append, int32
+from numpy import zeros, append, int32, float32
 from src.utils.NumbaFunctions import merge_sort_two, merge_sort_main_numba
 
 
@@ -478,7 +478,7 @@ def remove_end_zeros(v, val=0):
 @nb.jit(nopython=True)
 def find_peaks(v, maxloc, sep):
     local_maxima = zeros(shape=(50,), dtype=int32)
-    maxima_vals = zeros(shape=(50,), dtype=int32)
+    maxima_vals = zeros(shape=(50,), dtype=float32)
     local_maxpos = 100000
     max_index = 0
     global_maxpos = 0
