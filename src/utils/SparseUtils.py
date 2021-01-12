@@ -561,7 +561,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
         find_peaks(wf[n_samples:], local_maxima1, minsep)
         local_maxima0 = remove_end_zeros(local_maxima0, -1)
         local_maxima1 = remove_end_zeros(local_maxima1, -1)
-        if not local_maxima0 or not local_maxima1:
+        if local_maxima0 is None or local_maxima1 is None:
             tpos = 0
             tweight = 1./1000000.
         else:
