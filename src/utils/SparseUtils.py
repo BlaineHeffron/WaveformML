@@ -545,6 +545,97 @@ def peak_area(data, peak_ind):
         start = 0
     return sum_range(data,start,stop)
 
+@nb.jit(nopython=True)
+def peak_to_z(wf, m0, m1, x, y, gain_factors, t_interp_curves, sample_times, rel_times, eres, light_pos_curves,
+              time_pos_curves, light_sum_curves, sample_width=4, n_samples=150):
+    """
+    @param wf: waveform for pmt 0 and 1 concatenated (scaled to a 32 bit float between 0 and 1)
+    @param m0: sample position of peak for pmt 0
+    @param m1: sample position of peak for pmt 1
+    @param x: cell x number (0 indexed)
+    @param y: cell y number
+    @param gain_factors: map of gains for each pmt multiplied by 2**14-1
+    @param t_interp_curves:
+    @param sample_times: sample time microadjustment
+    @param rel_times: relative times for each pmt pair
+    @param eres: energy resolution of each pmt
+    @param light_pos_curves: light ratio position curves
+    @param time_pos_curves: dt to position curves
+    @param light_sum_curves: light output at each position (for energy correction)
+    @param sample_width: [ns]
+    @param n_samples: number of samples in each waveform
+    @return: z [mm], E [MeV]
+    """
+    t = [calc_arrival_from_peak(wf[0:n_samples], m0) * float(sample_width),
+         calc_arrival_from_peak(wf[n_samples:], m1) * float(sample_width)]
+    for i in range(2):
+        if t_interp_curves[x, y, i, 10, 0] == 0:
+            continue
+        t0 = sample_times[x, y, i] * floor(t[i] / sample_times[x, y, i])
+        t[i] = t0 + lin_interp(t_interp_curves[x, y, i], t[i] - t0)
+    dt = t[1] - t[0] - rel_times[x, y]
+    tpos = lin_interp(time_pos_curves[x, y], dt)
+    L = [peak_area(wf[0:n_samples], m0) * gain_factors[x, y, 0],
+         peak_area(wf[n_samples:], m1) * gain_factors[x, y, 1]]
+    if L[0] == 0 or L[1] == 0:
+        return 0., (L[0] + L[1]) / lin_interp(light_sum_curves[x, y], 0.)
+    PE = [L[0] * eres[x, y, 0], L[1] * eres[x, y, 1]]
+    R = log(L[1] / L[0])
+    validratio = (R == R)
+    dR = sqrt(1.0 / max([PE[0], 1.0]) + 1.0 / max([PE[1], 1.0]))
+    # tpos = lin_interp(time_pos_curves[x, y], dt)
+    Rpos = lin_interp(light_pos_curves[x, y], R) if validratio else 0
+    dRpos = abs(lin_interp(light_pos_curves[x, y], R + 0.5 * dR) - lin_interp(
+        light_pos_curves[x, y], R - 0.5 * dR)) if validratio else 0
+    Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
+    tweight = 1. / (60 * 60)
+    z = (Rweight * Rpos + tweight * tpos) / (Rweight + tweight)
+    z = z if abs(z) < 650 else -650. if z < -650 else 650
+    E = (PE[0] + PE[1]) / lin_interp(light_sum_curves[x, y], z)
+    return z, E
+
+@nb.jit(nopython=True)
+def excluded_inds(inds, size):
+    if size <= inds.shape[0]:
+        print("error, inds must have fewer items than size")
+        return None
+    duplicates = 0
+    if inds.shape[0] > 1:
+        #check for duplicates
+        for i in range(inds.shape[0]-1):
+            for j in range(i+1, inds.shape[0]):
+                if inds[i] == inds[j]:
+                    duplicates += 1
+                    break
+    exc = zeros((size-inds.shape[0]+duplicates,), dtype=int32)
+    cur_ind = 0
+    for i in range(size):
+        included = False
+        for j in inds:
+            if i==j:
+                included = True
+                break
+        if not included:
+            exc[cur_ind] = i
+            cur_ind += 1
+    return exc
+
+
+@nb.jit(nopython=True)
+def match_peaks(small, large):
+    #dumb way to match peaks that could have duplicates
+    ldiffs = zeros((small.shape[0],), dtype=int32)
+    for i in range(small.shape[0]):
+        ldiffs[i] = 100000
+    inds = zeros((small.shape[0],), dtype=int32)
+    for i in range(small.shape[0]):
+        for j in range(large.shape[0]):
+            diff = abs(small[i] - large[j])
+            if diff < ldiffs[i]:
+                ldiffs[i] = diff
+                inds[i] = j
+    return inds
+
 
 @nb.jit(nopython=True)
 def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_curves, sample_times, rel_times,
@@ -562,67 +653,52 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
         local_maxima0 = remove_end_zeros(local_maxima0, -1)
         local_maxima1 = remove_end_zeros(local_maxima1, -1)
         if local_maxima0 is None or local_maxima1 is None:
-            tpos = 0
-            tweight = 1./1000000.
+            z_out[coord[2], coord[0], coord[1]] = 0.5
+            L = [sum1d(wf[0:n_samples]) * gain_factors[coord[0], coord[1], 0],
+                 sum1d(wf[n_samples:]) * gain_factors[coord[0], coord[1], 1]]
+            PE = [L[0] * eres[coord[0], coord[1], 0], L[1] * eres[coord[0], coord[1], 1]]
+            E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]], 0.)
         else:
             if local_maxima0.shape[0] > 1:
                 local_maxima0 = merge_sort_main_numba(local_maxima0)
             if local_maxima1.shape[0] > 1:
                 local_maxima1 = merge_sort_main_numba(local_maxima1)
             if local_maxima0.shape[0] == local_maxima1.shape[0]:
-                tpos = 0.
-                total_area = 0.
+                z_weighted = 0.
+                total_E = 0.
                 for m0, m1 in zip(local_maxima0, local_maxima1):
-                    t = [calc_arrival_from_peak(wf[0:n_samples], m0) * float(sample_width),
-                     calc_arrival_from_peak(wf[n_samples:], m1) * float(sample_width)]
-                    for i in range(2):
-                        if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
-                            continue
-                        t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
-                        t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
-                    dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
-                    area = peak_area(wf[0:n_samples],m0) + peak_area(wf[0:n_samples], m1)
-                    tpos += lin_interp(time_pos_curves[coord[0], coord[1]], dt) * area
-                    total_area += area
-                if total_area == 0:
-                    tpos = 0
-                    tweight = 1./(100000.)
-                else:
-                    tpos = tpos/total_area
-                    tweight = 1. / (60 * 60)
+                    peak_z, peak_E = peak_to_z(wf, m0, m1, coord[0], coord[1], gain_factors, t_interp_curves, sample_times,
+                                     rel_times, eres, light_pos_curves, time_pos_curves, light_sum_curves,
+                                     sample_width, n_samples)
+                    z_weighted += peak_z*peak_E
+                    total_E += peak_E
+                z = z_weighted/total_E
+                z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
+                E_out[coord[2], coord[0], coord[1]] = total_E
             else:
-                tpos = 0
-                tweight = 1./(100000.)
-
-        """
-        t = [calc_arrival(wf[0:n_samples]) * float(sample_width), calc_arrival(wf[n_samples:]) * float(sample_width)]
-        for i in range(2):
-            if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
-                continue
-            t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
-            t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
-        dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
-        """
-        L = [sum1d(wf[0:n_samples]) * gain_factors[coord[0], coord[1], 0],
-             sum1d(wf[n_samples:]) * gain_factors[coord[0], coord[1], 1]]
-        if L[0] == 0 or L[1] == 0:
-            z_out[coord[2], coord[0], coord[1]] = 0.5
-            continue
-        PE = [L[0] * eres[coord[0], coord[1], 0], L[1] * eres[coord[0], coord[1], 1]]
-        R = log(L[1] / L[0])
-        validratio = (R == R)
-        dR = sqrt(1.0 / max([PE[0], 1.0]) + 1.0 / max([PE[1], 1.0]))
-        #tpos = lin_interp(time_pos_curves[coord[0], coord[1]], dt)
-        Rpos = lin_interp(light_pos_curves[coord[0], coord[1]], R) if validratio else 0
-        dRpos = abs(lin_interp(light_pos_curves[coord[0], coord[1]], R + 0.5 * dR) - lin_interp(
-            light_pos_curves[coord[0], coord[1]], R - 0.5 * dR)) if validratio else 0
-        Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
-        #tweight = 1. / (60 * 60)
-        z = (Rweight * Rpos + tweight * tpos) / (Rweight + tweight)
-        z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
-        z = z if abs(z) < 650 else -650. if z < -650 else 650
-        E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]], z)
-
+                z_weighted = 0.
+                total_E = 0.
+                if local_maxima0.shape[0] < local_maxima1.shape[1]:
+                    inds = match_peaks(local_maxima0, local_maxima1)
+                    no_matches = excluded_inds(inds, local_maxima1.shape[1])
+                    for i in range(local_maxima0.shape[0]):
+                        peak_z, peak_E = peak_to_z(wf, local_maxima0[i], local_maxima1[inds[i]], coord[0], coord[1],
+                                                   gain_factors, t_interp_curves, sample_times, rel_times, eres,
+                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width, n_samples)
+                        z_weighted += peak_z * peak_E
+                        total_E += peak_E
+                else:
+                    inds = match_peaks(local_maxima1, local_maxima0)
+                    no_matches = excluded_inds(inds, local_maxima0.shape[1])
+                    for i in range(local_maxima1.shape[0]):
+                        peak_z, peak_E = peak_to_z(wf, local_maxima0[inds[i]], local_maxima1[i], coord[0], coord[1],
+                                                   gain_factors, t_interp_curves, sample_times, rel_times, eres,
+                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width, n_samples)
+                        z_weighted += peak_z * peak_E
+                        total_E += peak_E
+                z = z_weighted/total_E
+                z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
+                E_out[coord[2], coord[0], coord[1]] = total_E
 
 @nb.jit(nopython=True)
 def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
