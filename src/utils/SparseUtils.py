@@ -625,7 +625,7 @@ def excluded_inds(inds, size):
 def z_from_total_light(wf, x, y, gain_factors, eres, light_pos_curves,
                   light_sum_curves, n_samples=150):
     L = [sum1d(wf[0:n_samples]) * gain_factors[x, y, 0],
-         sum1d(wf[n_samples:], m1) * gain_factors[x, y, 1]]
+         sum1d(wf[n_samples:]) * gain_factors[x, y, 1]]
     if L[0] == 0 or L[1] == 0:
         return 0., (L[0] + L[1]) / lin_interp(light_sum_curves[x, y], 0.)
     PE = [L[0] * eres[x, y, 0], L[1] * eres[x, y, 1]]
