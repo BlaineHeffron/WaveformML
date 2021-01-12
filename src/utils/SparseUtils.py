@@ -690,9 +690,8 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                 z = z_weighted/total_E
                 z_light, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres, light_pos_curves,
                                        light_sum_curves, n_samples)
-                z = (z + z_light) / 2
 
-                z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
+                z_out[coord[2], coord[0], coord[1]] = z_light / z_scale + 0.5
                 E_out[coord[2], coord[0], coord[1]] = total_E
             else:
                 z_weighted = 0.
@@ -718,8 +717,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                 z = z_weighted/total_E
                 z_light, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres, light_pos_curves,
                                                 light_sum_curves, n_samples)
-                z = (z + z_light) / 2
-                z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
+                z_out[coord[2], coord[0], coord[1]] = z_light / z_scale + 0.5
                 E_out[coord[2], coord[0], coord[1]] = total_E
 
 @nb.jit(nopython=True)
