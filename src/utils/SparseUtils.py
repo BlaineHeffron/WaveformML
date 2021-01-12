@@ -561,34 +561,38 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
         find_peaks(wf[n_samples:], local_maxima1, minsep)
         local_maxima0 = remove_end_zeros(local_maxima0, -1)
         local_maxima1 = remove_end_zeros(local_maxima1, -1)
-        if local_maxima0.shape[0] > 1:
-            local_maxima0 = merge_sort_main_numba(local_maxima0)
-        if local_maxima1.shape[0] > 1:
-            local_maxima1 = merge_sort_main_numba(local_maxima1)
-        if local_maxima0.shape[0] == local_maxima1.shape[0]:
-            tpos = 0.
-            total_area = 0.
-            for m0, m1 in zip(local_maxima0, local_maxima1):
-                t = [calc_arrival_from_peak(wf[0:n_samples], m0) * float(sample_width),
-                 calc_arrival_from_peak(wf[n_samples:], m1) * float(sample_width)]
-                for i in range(2):
-                    if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
-                        continue
-                    t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
-                    t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
-                dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
-                area = peak_area(wf[0:n_samples],m0) + peak_area(wf[0:n_samples], m1)
-                tpos += lin_interp(time_pos_curves[coord[0], coord[1]], dt) * area
-                total_area += area
-            if total_area == 0:
+        if not local_maxima0 or not local_maxima1:
+            tpos = 0
+            tweight = 1./1000000.
+        else:
+            if local_maxima0.shape[0] > 1:
+                local_maxima0 = merge_sort_main_numba(local_maxima0)
+            if local_maxima1.shape[0] > 1:
+                local_maxima1 = merge_sort_main_numba(local_maxima1)
+            if local_maxima0.shape[0] == local_maxima1.shape[0]:
+                tpos = 0.
+                total_area = 0.
+                for m0, m1 in zip(local_maxima0, local_maxima1):
+                    t = [calc_arrival_from_peak(wf[0:n_samples], m0) * float(sample_width),
+                     calc_arrival_from_peak(wf[n_samples:], m1) * float(sample_width)]
+                    for i in range(2):
+                        if t_interp_curves[coord[0], coord[1], i, 10, 0] == 0:
+                            continue
+                        t0 = sample_times[coord[0], coord[1], i] * floor(t[i] / sample_times[coord[0], coord[1], i])
+                        t[i] = t0 + lin_interp(t_interp_curves[coord[0], coord[1], i], t[i] - t0)
+                    dt = t[1] - t[0] - rel_times[coord[0], coord[1]]
+                    area = peak_area(wf[0:n_samples],m0) + peak_area(wf[0:n_samples], m1)
+                    tpos += lin_interp(time_pos_curves[coord[0], coord[1]], dt) * area
+                    total_area += area
+                if total_area == 0:
+                    tpos = 0
+                    tweight = 1./(100000.)
+                else:
+                    tpos = tpos/total_area
+                    tweight = 1. / (60 * 60)
+            else:
                 tpos = 0
                 tweight = 1./(100000.)
-            else:
-                tpos = tpos/total_area
-                tweight = 1. / (60 * 60)
-        else:
-            tpos = 0
-            tweight = 1./(100000.)
 
         """
         t = [calc_arrival(wf[0:n_samples]) * float(sample_width), calc_arrival(wf[n_samples:]) * float(sample_width)]
