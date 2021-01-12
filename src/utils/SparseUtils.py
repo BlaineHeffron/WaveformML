@@ -678,9 +678,9 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
             else:
                 z_weighted = 0.
                 total_E = 0.
-                if local_maxima0.shape[0] < local_maxima1.shape[1]:
+                if local_maxima0.shape[0] < local_maxima1.shape[0]:
                     inds = match_peaks(local_maxima0, local_maxima1)
-                    no_matches = excluded_inds(inds, local_maxima1.shape[1])
+                    no_matches = excluded_inds(inds, local_maxima1.shape[0])
                     for i in range(local_maxima0.shape[0]):
                         peak_z, peak_E = peak_to_z(wf, local_maxima0[i], local_maxima1[inds[i]], coord[0], coord[1],
                                                    gain_factors, t_interp_curves, sample_times, rel_times, eres,
@@ -689,7 +689,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                         total_E += peak_E
                 else:
                     inds = match_peaks(local_maxima1, local_maxima0)
-                    no_matches = excluded_inds(inds, local_maxima0.shape[1])
+                    no_matches = excluded_inds(inds, local_maxima0.shape[0])
                     for i in range(local_maxima1.shape[0]):
                         peak_z, peak_E = peak_to_z(wf, local_maxima0[inds[i]], local_maxima1[i], coord[0], coord[1],
                                                    gain_factors, t_interp_curves, sample_times, rel_times, eres,
