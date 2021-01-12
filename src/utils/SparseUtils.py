@@ -469,8 +469,10 @@ def lin_interp(xy, x):
 
 @nb.jit(nopython=True)
 def remove_end_zeros(v, val=0):
-    if v[0] == val:
+    if v[0] == val and val == 0:
         return v[0:1]
+    elif v[0] == val:
+        return None
     for i in range(1, v.shape[0]):
         if v[i] == val:
             return v[0:i]
@@ -498,6 +500,8 @@ def find_peaks(v, maxloc, sep):
             local_maxpos = 100000
     local_maxima = remove_end_zeros(local_maxima)
     maxima_vals = remove_end_zeros(maxima_vals)
+    if local_maxima.shape[0] == 1 and local_maxima[0] == 0 and maxima_vals[0] == 0:
+        return 0
     maxima_vals, local_maxima = merge_sort_two(maxima_vals, local_maxima)
     if local_maxima.shape[0] == 1:
         maxloc[0] = local_maxima[0]
