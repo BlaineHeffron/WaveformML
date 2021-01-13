@@ -9,6 +9,7 @@ from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, 
 class SparseConv2DForZ(nn.Module):
     def __init__(self, in_planes, kernel_size=3, n_layers=2, pointwise_layers=0, pointwise_factor=0.8):
         super(SparseConv2DForZ, self).__init__()
+        self.log = logging.getLogger(__name__)
         layers = []
         if pointwise_layers > 0:
             if n_layers == 1:
@@ -38,6 +39,7 @@ class SparseConv2DForZ(nn.Module):
                 pointwise_layers -= 1
                 if pointwise_layers == 0:
                     reset_kernel = True
+            self.log.debug("appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes,out,kernel_size,pd))
             layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
             if reset_kernel:
                 kernel_size = orig_kernel
@@ -58,6 +60,7 @@ class SparseConv2DForZ(nn.Module):
 class Pointwise2DForZ(nn.Module):
     def __init__(self, in_planes, pointwise_layers=2):
         super(Pointwise2DForZ, self).__init__()
+        self.log = logging.getLogger(__name__)
         layers = []
         n_layers = pointwise_layers
         if not isinstance(n_layers, int) or n_layers < 2:
@@ -71,6 +74,7 @@ class Pointwise2DForZ(nn.Module):
                 out = in_planes
             else:
                 out -= increment
+            self.log.debug("appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes,out,1,0))
             layers.append(spconv.SparseConv2d(in_planes, out, 1, 1, 0))
             layers.append(nn.BatchNorm1d(out))
             layers.append(nn.ReLU())
