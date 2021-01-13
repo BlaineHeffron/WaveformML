@@ -541,9 +541,36 @@ def find_peaks(v, maxloc, sep):
 def peak_area(data, peak_ind):
     start = peak_ind - 10
     stop = peak_ind + 25
-    if start < 0:
-        start = 0
     return sum_range(data,start,stop)
+
+
+@nb.jit(nopython=True)
+def peak_to_dt(wf, m0, m1, x, y, t_interp_curves, sample_times, rel_times, gain_factors,
+               sample_width=4, n_samples=150):
+    """
+    @param wf: waveform for pmt 0 and 1 concatenated (scaled to a 32 bit float between 0 and 1)
+    @param m0: sample position of peak for pmt 0
+    @param m1: sample position of peak for pmt 1
+    @param x: cell x number (0 indexed)
+    @param y: cell y number
+    @param t_interp_curves:
+    @param sample_times: sample time microadjustment
+    @param rel_times: relative times for each pmt pair
+    @param sample_width: [ns]
+    @param n_samples: number of samples in each waveform
+    @return: z [mm], E [MeV]
+    """
+    t = [calc_arrival_from_peak(wf[0:n_samples], m0) * float(sample_width),
+         calc_arrival_from_peak(wf[n_samples:], m1) * float(sample_width)]
+    for i in range(2):
+        if t_interp_curves[x, y, i, 10, 0] == 0:
+            continue
+        t0 = sample_times[x, y, i] * floor(t[i] / sample_times[x, y, i])
+        t[i] = t0 + lin_interp(t_interp_curves[x, y, i], t[i] - t0)
+    L = [peak_area(wf[0:n_samples], m0) * gain_factors[x, y, 0],
+         peak_area(wf[n_samples:], m1) * gain_factors[x, y, 1]]
+    return t[1] - t[0] - rel_times[x, y], L[0] + L[1]
+
 
 @nb.jit(nopython=True)
 def peak_to_z(wf, m0, m1, x, y, gain_factors, t_interp_curves, sample_times, rel_times, eres, light_pos_curves,
@@ -633,8 +660,12 @@ def z_from_total_light(wf, x, y, gain_factors, eres, light_pos_curves,
     validratio = (R == R)
     z = lin_interp(light_pos_curves[x, y], R) if validratio else 0
     z = z if abs(z) < 650 else -650. if z < -650 else 650
+    dR = sqrt(1.0 / max([PE[0], 1.0]) + 1.0 / max([PE[1], 1.0]))
+    dRpos = abs(lin_interp(light_pos_curves[x, y], R + 0.5 * dR) - lin_interp(
+        light_pos_curves[x, y], R - 0.5 * dR)) if validratio else 0
+    Rweight = 1. / (dRpos * dRpos) if (dRpos > 0) else 0
     E = (PE[0] + PE[1]) / lin_interp(light_sum_curves[x, y], z)
-    return z, E
+    return z, Rweight, E
 
 @nb.jit(nopython=True)
 def match_peaks(small, large):
@@ -650,6 +681,15 @@ def match_peaks(small, large):
                 ldiffs[i] = diff
                 inds[i] = j
     return inds
+
+
+@nb.jit(nopython=True)
+def dt_to_z(wf, dt, x, y, gain_factors, eres, light_pos_curves, light_sum_curves, time_pos_curves, n_samples=150):
+    z_dt = lin_interp(time_pos_curves[x, y], dt)
+    z_dt_weight = 1. / (60. * 60.)
+    z_light, z_light_weight, E = z_from_total_light(wf, x, y, gain_factors, eres,
+                                                    light_pos_curves, light_sum_curves, n_samples)
+    return (z_dt_weight * z_dt + z_light * z_light_weight) / (z_light_weight + z_dt_weight), E
 
 
 @nb.jit(nopython=True)
@@ -679,20 +719,22 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
             if local_maxima1.shape[0] > 1:
                 local_maxima1 = merge_sort_main_numba(local_maxima1)
             if local_maxima0.shape[0] == local_maxima1.shape[0]:
-                z_weighted = 0.
-                total_E = 0.
+                dt_weighted = 0.
+                total_area = 0.
                 for m0, m1 in zip(local_maxima0, local_maxima1):
-                    peak_z, peak_E = peak_to_z(wf, m0, m1, coord[0], coord[1], gain_factors, t_interp_curves, sample_times,
-                                     rel_times, eres, light_pos_curves, time_pos_curves, light_sum_curves,
-                                     sample_width, n_samples)
-                    z_weighted += peak_z*peak_E
-                    total_E += peak_E
-                z = z_weighted/total_E
-                z_light, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres, light_pos_curves,
-                                       light_sum_curves, n_samples)
+                    #peak_z, peak_E = peak_to_z(wf, m0, m1, coord[0], coord[1], gain_factors, t_interp_curves, sample_times,
+                    #                 rel_times, eres, light_pos_curves, time_pos_curves, light_sum_curves,
+                    #                 sample_width, n_samples)
 
+                    peak_dt, peak_area = peak_to_dt(wf, m0, m1, coord[0], coord[1], t_interp_curves, sample_times,
+                                                    rel_times, gain_factors, sample_width, n_samples)
+                    dt_weighted += peak_dt*peak_area
+                    total_area += peak_area
+                dt = dt_weighted/total_area
+                z, E = dt_to_z(wf, dt, coord[0], coord[1], gain_factors, eres, light_pos_curves, light_sum_curves,
+                               time_pos_curves, n_samples)
                 z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
-                E_out[coord[2], coord[0], coord[1]] = total_E
+                E_out[coord[2], coord[0], coord[1]] = E
             else:
                 z_weighted = 0.
                 total_E = 0.
@@ -714,11 +756,13 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                                                    light_pos_curves, time_pos_curves, light_sum_curves, sample_width, n_samples)
                         z_weighted += peak_z * peak_E
                         total_E += peak_E
-                z = z_weighted/total_E
-                z_light, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres, light_pos_curves,
+                z_dt = z_weighted/total_E
+                z_dt_weight = 1./(60*60)
+                z_light, z_light_weight, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres, light_pos_curves,
                                                 light_sum_curves, n_samples)
-                z_out[coord[2], coord[0], coord[1]] = z_light / z_scale + 0.5
-                E_out[coord[2], coord[0], coord[1]] = total_E
+                z = (z_dt * z_dt_weight + z_light * z_light_weight) / (z_dt_weight + z_light_weight)
+                z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
+                E_out[coord[2], coord[0], coord[1]] = E
 
 @nb.jit(nopython=True)
 def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
