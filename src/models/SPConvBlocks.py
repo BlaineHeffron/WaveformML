@@ -14,7 +14,7 @@ class SparseConv2DForZ(nn.Module):
         if pointwise_layers > 0:
             if n_layers == 1:
                 raise ValueError("n_layers must be > 1 if using pointwise convolution")
-            increment = int(round(int(round(in_planes*pointwise_factor)) / float(n_layers-1)))
+            increment = int(round(int(round(in_planes * pointwise_factor)) / float(n_layers - 1)))
         else:
             increment = int(round(float(in_planes) / float(n_layers)))
         if kernel_size % 2 != 1:
@@ -31,7 +31,7 @@ class SparseConv2DForZ(nn.Module):
                 out -= increment
                 if i == 0 and pointwise_layers > 0:
                     if pointwise_factor > 0:
-                        out = int(round(pointwise_factor*in_planes))
+                        out = int(round(pointwise_factor * in_planes))
             pd = int((kernel_size - 1) / 2)
             if pointwise_layers > 0:
                 pd = 0
@@ -39,7 +39,9 @@ class SparseConv2DForZ(nn.Module):
                 pointwise_layers -= 1
                 if pointwise_layers == 0:
                     reset_kernel = True
-            self.log.debug("appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes,out,kernel_size,pd))
+            self.log.debug(
+                "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes, out,
+                                                                                               kernel_size, pd))
             layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
             if reset_kernel:
                 kernel_size = orig_kernel
@@ -65,7 +67,7 @@ class Pointwise2DForZ(nn.Module):
         n_layers = pointwise_layers
         if not isinstance(n_layers, int) or n_layers < 2:
             raise ValueError("n_layers must be  integer >= 2")
-        increment = int(round(float(in_planes) / float(n_layers-1)))
+        increment = int(round(float(in_planes) / float(n_layers - 1)))
         out = in_planes
         for i in range(n_layers):
             if i == (n_layers - 1):
@@ -74,13 +76,57 @@ class Pointwise2DForZ(nn.Module):
                 out = in_planes
             else:
                 out -= increment
-            self.log.debug("appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes,out,1,0))
+            self.log.debug(
+                "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes, out, 1, 0))
             layers.append(spconv.SparseConv2d(in_planes, out, 1, 1, 0))
             layers.append(nn.BatchNorm1d(out))
             layers.append(nn.ReLU())
             in_planes = out
         layers.append(spconv.ToDense())
         self.network = spconv.SparseSequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
+
+
+class ExtractedFeatureConv(nn.Module):
+    def __init__(self, nin, nout, n, size, expansion_factor=10., size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
+                 dropout=0, trainable_weights=False):
+        super(ExtractedFeatureConv, self).__init__()
+        assert (n > 1)
+        self.alg = []
+        self.out_size = size
+        self.dropout = dropout
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing convolution block with nin {0}, nout {1}, size {2}".format(nin, nout, size))
+        self.ndim = len(size) - 1
+        nframes = [nin, int(round(nin*expansion_factor))]
+        diff = float(nframes[1] - nout) / (n - 1)
+        nframes += [int(floor(nframes[1] - diff * i)) for i in range(n - 1)]
+        for i in range(n):
+            decay_factor = 1. - (i - 1) / (n - 1)
+            fs = int(floor(size_factor / (i + 1.)))
+            if fs < 2:
+                fs = 2
+            st = int(round(stride_factor * i / (n - 1)))
+            if st < 1:
+                st = 1
+            dil = int(round(dil_factor ** i))
+            pd = int(round(pad_factor * (fs - 1) * dil_factor * decay_factor))
+            self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+            self.log.debug("added regular convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
+            self.log.debug("filter size: {0}, stride: {1}, pad: {2}, dil: {3}".format(fs, st, pd, dil))
+            self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
+            self.alg.append(nn.ReLU())
+            if self.dropout:
+                self.alg.append(nn.Dropout(self.dropout))
+            arg_dict = {DIM: self.ndim, NIN: nframes[i], NOUT: nframes[i + 1], FS: [fs] * 4, STR: [st] * 4,
+                        PAD: [pd] * 4, DIL: [dil] * 4}
+            self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
+            self.log.debug("Loop {0}, output size is {1}".format(i, self.out_size))
+
+        self.alg.append(spconv.ToDense())
+        self.network = spconv.SparseSequential(*self.alg)
 
     def forward(self, x):
         return self.network(x)
