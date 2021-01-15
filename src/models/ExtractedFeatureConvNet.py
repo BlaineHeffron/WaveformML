@@ -37,7 +37,7 @@ class ExtractedFeatureConvNet(nn.Module):
     def forward(self, x):
         batch_size = x[0][-1, -1] + 1
         x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
-        x = self.sparseModel(x)
+        x = self.model(x)
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
         return x
