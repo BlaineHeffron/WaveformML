@@ -20,8 +20,10 @@ class ExtractedFeatureConvNet(nn.Module):
         self.net_config = config.net_config
         self.nfeatures = self.system_config.n_features
         self.modules = ModuleUtility(self.net_config.imports)
+        self.spatial_size = array([14, 11])
+        self.size = [14,11,self.system_config.n_features]
         self.model = ExtractedFeatureConv(self.nfeatures, self.net_config.hparams.out_planes,
-                                          self.net_config.hparams.n_conv,
+                                          self.net_config.hparams.n_conv, size,
                                           **DictionaryUtility.to_dict(self.net_config.hparams.conv))
         hparams = self.net_config.hparams
         flat_size = 1
@@ -30,7 +32,6 @@ class ExtractedFeatureConvNet(nn.Module):
         self.n_linear = copy(flat_size)
         self.log.debug("Flattened size of the SCN network output is {}".format(flat_size))
         self.linear = LinearBlock(flat_size, self.system_config.n_type, hparams.n_lin).func
-        self.spatial_size = array([14, 11])
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
