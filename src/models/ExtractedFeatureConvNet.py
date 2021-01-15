@@ -18,7 +18,7 @@ class ExtractedFeatureConvNet(nn.Module):
             raise IOError("config.net_config.net_type must be 2DConvolution")
         self.system_config = config.system_config
         self.net_config = config.net_config
-        self.nfeatures = self.system_config.n_samples
+        self.nfeatures = self.system_config.n_features
         self.modules = ModuleUtility(self.net_config.imports)
         self.model = ExtractedFeatureConv(self.nfeatures, self.net_config.out_planes, self.net_config.n_conv,
                                           **DictionaryUtility.to_dict(self.net_config.hparams.conv))
