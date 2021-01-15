@@ -20,7 +20,8 @@ class ExtractedFeatureConvNet(nn.Module):
         self.net_config = config.net_config
         self.nfeatures = self.system_config.n_features
         self.modules = ModuleUtility(self.net_config.imports)
-        self.model = ExtractedFeatureConv(self.nfeatures, self.net_config.out_planes, self.net_config.n_conv,
+        self.model = ExtractedFeatureConv(self.nfeatures, self.net_config.hparams.out_planes,
+                                          self.net_config.hparams.n_conv,
                                           **DictionaryUtility.to_dict(self.net_config.hparams.conv))
         hparams = self.net_config.hparams
         flat_size = 1
