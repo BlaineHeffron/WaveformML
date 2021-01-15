@@ -21,7 +21,7 @@ class ExtractedFeatureConvNet(nn.Module):
         self.nfeatures = self.system_config.n_features
         self.modules = ModuleUtility(self.net_config.imports)
         self.spatial_size = array([14, 11])
-        self.size = [14,11,self.system_config.n_features]
+        size = [14,11,self.system_config.n_features]
         self.model = ExtractedFeatureConv(self.nfeatures, self.net_config.hparams.out_planes,
                                           self.net_config.hparams.n_conv, size,
                                           **DictionaryUtility.to_dict(self.net_config.hparams.conv))
