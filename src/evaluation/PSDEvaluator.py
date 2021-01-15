@@ -265,7 +265,7 @@ class PhysEvaluator(PSDEvaluator):
     vs[1] = (p.dt / 200.) + 0.5;
     vs[2] = p.PE[0] / 125000.;
     vs[3] = p.PE[1] / 125000.;
-    vs[4] = (p.z / 2200.0) + 0.5;
+    vs[4] = (p.z / 1200.0) + 0.5;
     vs[5] = p.PSD;
     vs[6] = ((Float_t)(p.t - toffset)) / 600.;
     """
@@ -288,7 +288,7 @@ class PhysEvaluator(PSDEvaluator):
         dt = (f[:, 1] - 0.5) * 200.
         PEL = f[:, 2] * 125000.
         PER = f[:, 3] * 125000.
-        z = (f[:, 4] - 0.5) * 2200.
+        z = (f[:, 4] - 0.5) * 1200.
         psd = f[:, 5]
         t0 = f[:, 6] * 600.0
         self.logger.experiment.add_histogram("evaluation/energy", f[:, 0] * 300., 0, max_bins=self.n_bins,
