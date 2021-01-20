@@ -149,7 +149,7 @@ class ModelOptimization:
             elif isinstance(bounds[0], bool):
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, 0, 1))
-            self.log.debug("setting {0} to {1}"
+            self.log.info("setting {0} to {1}"
                            .format(hp, getattr(self.hyperparameters[hp], name)))
 
     def objective(self, trial):
