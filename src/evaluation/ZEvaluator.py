@@ -50,7 +50,7 @@ class ZPhysEvaluator:
     def _init_results(self):
         # metric_names = ["energy", "multiplicity", "true_z", "pred_z"]
         # metric_params = [[0.0, 10.0, 40], [0.5, 10.5, 10], [-600.,600.,40],[-600.,600.,40]]
-        #i = 0
+        # i = 0
         # for name in metric_names:
         #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
         #    i += 1
@@ -109,22 +109,24 @@ class ZPhysEvaluator:
 
         self.logger.experiment.add_figure("evaluation/z_mult_mae_dual",
                                           plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(self.results["z_mult_mae_dual"][0][1:self.n_bins + 1,
-                                                                     0:self.nmult],
-                                                                     self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
-                                                                     0:self.nmult])*self.z_scale,
+                                                      safe_divide_2d(
+                                                          self.results["z_mult_mae_dual"][0][1:self.n_bins + 1,
+                                                          0:self.nmult],
+                                                          self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
+                                                          0:self.nmult]) * self.z_scale,
                                                       "MAE - double ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/z_mult_mae_single",
                                           plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(self.results["z_mult_mae_single"][0][1:self.n_bins + 1,
-                                                                     0:self.nmult],
-                                                                     self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
-                                                                     0:self.nmult])*self.z_scale,
+                                                      safe_divide_2d(
+                                                          self.results["z_mult_mae_single"][0][1:self.n_bins + 1,
+                                                          0:self.nmult],
+                                                          self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
+                                                          0:self.nmult]) * self.z_scale,
                                                       "MAE - single ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
         if self.hascal:
             for i in range(self.nmult):
@@ -150,22 +152,27 @@ class ZPhysEvaluator:
 
             self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_dual",
                                               plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                          safe_divide_2d(self.results["z_mult_mae_dual_cal"][0][1:self.n_bins + 1,
-                                                                         0:self.nmult],
-                                                                         self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
-                                                                         0:self.nmult])*self.z_scale,
+                                                          safe_divide_2d(
+                                                              self.results["z_mult_mae_dual_cal"][0][1:self.n_bins + 1,
+                                                              0:self.nmult],
+                                                              self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
+                                                              0:self.nmult]) * self.z_scale,
                                                           "MAE - double ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                          r'# mean average error [mm]', norm_to_bin_width=False,
+                                                          logz=False,
                                                           cm=self.colormap))
 
             self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_single",
                                               plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                          safe_divide_2d(self.results["z_mult_mae_single_cal"][0][1:self.n_bins + 1,
+                                                          safe_divide_2d(self.results["z_mult_mae_single_cal"][0][
+                                                                         1:self.n_bins + 1,
                                                                          0:self.nmult],
-                                                                         self.results["z_mult_mae_single_cal"][1][1:self.n_bins + 1,
-                                                                         0:self.nmult])*self.z_scale,
+                                                                         self.results["z_mult_mae_single_cal"][1][
+                                                                         1:self.n_bins + 1,
+                                                                         0:self.nmult]) * self.z_scale,
                                                           "MAE - single ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                          r'# mean average error [mm]', norm_to_bin_width=False,
+                                                          logz=False,
                                                           cm=self.colormap))
         self._init_results()
 
@@ -173,15 +180,16 @@ class ZPhysEvaluator:
         batch_size = c[-1, -1] + 1
         spatial_size = np.array([14, 11])
         permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
-        pred = spconv.SparseConvTensor(f[:,4], c[:, permute_tensor],
-                                                spatial_size, batch_size)
+        pred = spconv.SparseConvTensor(f, c[:, permute_tensor],
+                                       spatial_size, batch_size)
         pred = pred.dense()
         pred = pred.detach().cpu().numpy()
-        z_deviation(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
+        z_deviation(pred[:, 4, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                     self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                     self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
                     self.nmult, self.n_bins, self.z_scale)
+
 
 class ZEvaluator:
     def __init__(self, logger, calgroup=None):
@@ -200,10 +208,10 @@ class ZEvaluator:
         self.hascal = False
         self.colormap = plt.cm.viridis
         SE_dead_pmts = [1, 0, 2, 4, 6, 7, 9, 10, 12, 13, 16, 19, 20, 21, 22, 24, 26, 27, 34, 36, 37, 43, 46, 48,
-                             55,
-                             54, 56, 58, 65, 68, 72, 80, 82, 85, 88, 93, 95, 97, 96, 105, 111, 112, 120, 122, 137, 138,
-                             139, 141, 147, 158, 166, 173, 175, 188, 195, 215, 230, 243, 244, 245, 252, 255, 256, 261,
-                             273, 279, 282]
+                        55,
+                        54, 56, 58, 65, 68, 72, 80, 82, 85, 88, 93, 95, 97, 96, 105, 111, 112, 120, 122, 137, 138,
+                        139, 141, 147, 158, 166, 173, 175, 188, 195, 215, 230, 243, 244, 245, 252, 255, 256, 261,
+                        273, 279, 282]
         self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
         self.set_SE_segs(SE_dead_pmts)
         if calgroup is not None:
@@ -230,7 +238,7 @@ class ZEvaluator:
     def _init_results(self):
         # metric_names = ["energy", "multiplicity", "true_z", "pred_z"]
         # metric_params = [[0.0, 10.0, 40], [0.5, 10.5, 10], [-600.,600.,40],[-600.,600.,40]]
-        #i = 0
+        # i = 0
         # for name in metric_names:
         #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
         #    i += 1
@@ -291,22 +299,24 @@ class ZEvaluator:
 
         self.logger.experiment.add_figure("evaluation/z_mult_mae_dual",
                                           plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(self.results["z_mult_mae_dual"][0][1:self.n_bins + 1,
-                                                                     0:self.nmult],
-                                                                     self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
-                                                                     0:self.nmult])*self.z_scale,
+                                                      safe_divide_2d(
+                                                          self.results["z_mult_mae_dual"][0][1:self.n_bins + 1,
+                                                          0:self.nmult],
+                                                          self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
+                                                          0:self.nmult]) * self.z_scale,
                                                       "MAE - double ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/z_mult_mae_single",
                                           plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(self.results["z_mult_mae_single"][0][1:self.n_bins + 1,
-                                                                     0:self.nmult],
-                                                                     self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
-                                                                     0:self.nmult])*self.z_scale,
+                                                      safe_divide_2d(
+                                                          self.results["z_mult_mae_single"][0][1:self.n_bins + 1,
+                                                          0:self.nmult],
+                                                          self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
+                                                          0:self.nmult]) * self.z_scale,
                                                       "MAE - single ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
         if self.hascal:
             for i in range(self.nmult):
@@ -332,22 +342,27 @@ class ZEvaluator:
 
             self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_dual",
                                               plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                          safe_divide_2d(self.results["z_mult_mae_dual_cal"][0][1:self.n_bins + 1,
-                                                                         0:self.nmult],
-                                                                         self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
-                                                                         0:self.nmult])*self.z_scale,
+                                                          safe_divide_2d(
+                                                              self.results["z_mult_mae_dual_cal"][0][1:self.n_bins + 1,
+                                                              0:self.nmult],
+                                                              self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
+                                                              0:self.nmult]) * self.z_scale,
                                                           "MAE - double ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                          r'# mean average error [mm]', norm_to_bin_width=False,
+                                                          logz=False,
                                                           cm=self.colormap))
 
             self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_single",
                                               plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                          safe_divide_2d(self.results["z_mult_mae_single_cal"][0][1:self.n_bins + 1,
+                                                          safe_divide_2d(self.results["z_mult_mae_single_cal"][0][
+                                                                         1:self.n_bins + 1,
                                                                          0:self.nmult],
-                                                                         self.results["z_mult_mae_single_cal"][1][1:self.n_bins + 1,
-                                                                         0:self.nmult])*self.z_scale,
+                                                                         self.results["z_mult_mae_single_cal"][1][
+                                                                         1:self.n_bins + 1,
+                                                                         0:self.nmult]) * self.z_scale,
                                                           "MAE - single ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]',norm_to_bin_width=False,logz=False,
+                                                          r'# mean average error [mm]', norm_to_bin_width=False,
+                                                          logz=False,
                                                           cm=self.colormap))
         self._init_results()
 
