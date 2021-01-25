@@ -725,8 +725,8 @@ class PulseDatasetDetWithZ(PulseDataset):
         """
         super().__init__(config, dataset_type,
                          n_per_dir, device,
-                         "*DetCoordSimZ.h5", "DetPulseCoordWithZ",
-                         "coord", "waveform",
+                         "*DetCoordZSim.h5", "DetPulseCoordWithZ",
+                         "coord", "pulse",
                          file_excludes=file_excludes,
                          label_name=label_name,
                          label_file_pattern=label_file_pattern,
