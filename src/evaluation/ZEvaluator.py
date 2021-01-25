@@ -128,52 +128,51 @@ class ZPhysEvaluator:
                                                       "MAE - single ended", "Z [mm]", "multiplicity",
                                                       r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
-        if self.hascal:
-            for i in range(self.nmult):
-                self.logger.experiment.add_figure("evaluation/cal_z_seg_mult_{0}_mae".format(i + 1),
-                                                  plot_z_acc_matrix(
-                                                      self.z_scale * safe_divide_2d(
-                                                          self.results["seg_mult_mae_cal"][0][:, :, i],
-                                                          self.results["seg_mult_mae_cal"][1][:, :, i]),
-                                                      self.nx, self.ny, "mult = {0}".format(i + 1)))
+        for i in range(self.nmult):
+            self.logger.experiment.add_figure("evaluation/cal_z_seg_mult_{0}_mae".format(i + 1),
+                                              plot_z_acc_matrix(
+                                                  self.z_scale * safe_divide_2d(
+                                                      self.results["seg_mult_mae_cal"][0][:, :, i],
+                                                      self.results["seg_mult_mae_cal"][1][:, :, i]),
+                                                  self.nx, self.ny, "mult = {0}".format(i + 1)))
 
-            self.logger.experiment.add_figure("evaluation/cal_z_mult_dual",
-                                              plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
+        self.logger.experiment.add_figure("evaluation/cal_z_mult_dual",
+                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
+                                                      self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
+                                                      0:self.nmult],
+                                                      "Total - double ended", "Z [mm]", "multiplicity",
+                                                      r'# Pulses [$mm^{-1}$', cm=self.colormap))
+        self.logger.experiment.add_figure("evaluation/cal_z_mult_single",
+                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
+                                                      self.results["z_mult_mae_single_cal"][1][1:self.n_bins + 1,
+                                                      0:self.nmult],
+                                                      "Total - single ended", "Z [mm]", "multiplicity",
+                                                      r'# Pulses [$mm^{-1}$]', cm=self.colormap))
+
+        self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_dual",
+                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
+                                                      safe_divide_2d(
+                                                          self.results["z_mult_mae_dual_cal"][0][1:self.n_bins + 1,
+                                                          0:self.nmult],
                                                           self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
-                                                          0:self.nmult],
-                                                          "Total - double ended", "Z [mm]", "multiplicity",
-                                                          r'# Pulses [$mm^{-1}$', cm=self.colormap))
-            self.logger.experiment.add_figure("evaluation/cal_z_mult_single",
-                                              plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                          self.results["z_mult_mae_single_cal"][1][1:self.n_bins + 1,
-                                                          0:self.nmult],
-                                                          "Total - single ended", "Z [mm]", "multiplicity",
-                                                          r'# Pulses [$mm^{-1}$]', cm=self.colormap))
+                                                          0:self.nmult]) * self.z_scale,
+                                                      "MAE - double ended", "Z [mm]", "multiplicity",
+                                                      r'# mean average error [mm]', norm_to_bin_width=False,
+                                                      logz=False,
+                                                      cm=self.colormap))
 
-            self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_dual",
-                                              plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                          safe_divide_2d(
-                                                              self.results["z_mult_mae_dual_cal"][0][1:self.n_bins + 1,
-                                                              0:self.nmult],
-                                                              self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
-                                                              0:self.nmult]) * self.z_scale,
-                                                          "MAE - double ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]', norm_to_bin_width=False,
-                                                          logz=False,
-                                                          cm=self.colormap))
-
-            self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_single",
-                                              plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                          safe_divide_2d(self.results["z_mult_mae_single_cal"][0][
-                                                                         1:self.n_bins + 1,
-                                                                         0:self.nmult],
-                                                                         self.results["z_mult_mae_single_cal"][1][
-                                                                         1:self.n_bins + 1,
-                                                                         0:self.nmult]) * self.z_scale,
-                                                          "MAE - single ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]', norm_to_bin_width=False,
-                                                          logz=False,
-                                                          cm=self.colormap))
+        self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_single",
+                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
+                                                      safe_divide_2d(self.results["z_mult_mae_single_cal"][0][
+                                                                     1:self.n_bins + 1,
+                                                                     0:self.nmult],
+                                                                     self.results["z_mult_mae_single_cal"][1][
+                                                                     1:self.n_bins + 1,
+                                                                     0:self.nmult]) * self.z_scale,
+                                                      "MAE - single ended", "Z [mm]", "multiplicity",
+                                                      r'# mean average error [mm]', norm_to_bin_width=False,
+                                                      logz=False,
+                                                      cm=self.colormap))
         self._init_results()
 
     def z_from_cal(self, c, f, targ):
