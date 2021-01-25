@@ -3,6 +3,9 @@ from math import floor
 
 import matplotlib.pyplot as plt
 import numpy as np
+import spconv
+import torch
+
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.Calibrator import Calibrator
 # from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
@@ -167,8 +170,13 @@ class ZPhysEvaluator:
         self._init_results()
 
     def z_from_cal(self, c, f, targ):
-        c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
-        pred = f[:, 4]
+        batch_size = c[-1, -1] + 1
+        spatial_size = np.array([14, 11])
+        permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
+        pred = spconv.SparseConvTensor(f[:,4], c[:, permute_tensor],
+                                                spatial_size, batch_size)
+        pred = pred.dense()
+        pred = pred.detach().cpu().numpy()
         z_deviation(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                     self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
