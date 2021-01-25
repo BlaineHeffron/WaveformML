@@ -24,7 +24,7 @@ class SingleEndedZConv(nn.Module):
         elif self.net_config.algorithm == "point":
             self.model = Pointwise2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.point))
         elif self.net_config.algorithm == "features":
-            self.model = Pointwise2DForZ(self.nsamples, **DictionaryUtility.to_dict(self.net_config.hparams.point))
+            self.model = Pointwise2DForZ(self.nsamples, **DictionaryUtility.to_dict(self.net_config.hparams.conv))
         self.spatial_size = array([14, 11])
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
