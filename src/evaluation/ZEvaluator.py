@@ -55,25 +55,20 @@ class ZPhysEvaluator:
         #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
         #    i += 1
         # self.metric_pairs = MetricPairAggregator(self.metrics)
-        self.results = {
-            "seg_mult_mae": (
-                np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32)),
-            "z_mult_mae_single": (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
-            "z_mult_mae_dual": (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
-        }
-        self.results["seg_mult_mae_cal"] = (np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
-                                            np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32))
-        self.results["z_mult_mae_single_cal"] = (
+        self.results = {"seg_mult_mae": (
+            np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
+            np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32)), "z_mult_mae_single": (
             np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
-        self.results["z_mult_mae_dual_cal"] = (
+            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)), "z_mult_mae_dual": (
             np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
+            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
+            "seg_mult_mae_cal": (np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
+                                 np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32)),
+            "z_mult_mae_single_cal": (
+                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
+                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)), "z_mult_mae_dual_cal": (
+                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
+                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))}
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
