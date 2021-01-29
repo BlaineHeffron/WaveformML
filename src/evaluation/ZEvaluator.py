@@ -177,7 +177,7 @@ class ZPhysEvaluator:
         pred = np.zeros(f.shape)
         coo = c.detach().cpu().numpy()
         z = f[:,4].detach().cpu().numpy()
-        z_basic_prediction(c,z,pred)
+        z_basic_prediction(coo,z,pred)
         pred = spconv.SparseConvTensor(pred, c[:, permute_tensor],
                                        spatial_size, batch_size)
         pred = pred.dense()
