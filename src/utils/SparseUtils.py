@@ -798,6 +798,8 @@ def z_basic_prediction(coo,feat,pred):
                 j += 1
             if n > 0:
                 pred[i] = p/n
+            else:
+                pred[i] = 0.5
 
 
 @nb.jit(nopython=True)
