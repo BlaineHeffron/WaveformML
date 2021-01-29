@@ -179,7 +179,7 @@ class ZPhysEvaluator:
         z = f[:,4].detach().cpu().numpy()
         z_basic_prediction(coo,z,pred)
         pred = torch.tensor(pred)
-        pred = spconv.SparseConvTensor(pred, c[:, permute_tensor],
+        pred = spconv.SparseConvTensor(pred.unsqueeze(1), c[:, permute_tensor],
                                        spatial_size, batch_size)
         pred = pred.dense()
         pred = pred.detach().cpu().numpy()
