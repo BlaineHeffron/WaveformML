@@ -777,7 +777,7 @@ def z_basic_prediction(coo,feat,pred):
     for i in range(coo.shape[0]):
         if coo[i,2] != cur_ind:
             cur_ind = coo[i,2]
-        if feat[i] != 0:
+        if feat[i] != 0.5:
             pred[i] = feat[i]
         else:
             j = i - 1
@@ -785,14 +785,14 @@ def z_basic_prediction(coo,feat,pred):
             n = 0
             while coo[j,2] == cur_ind:
                 if abs(coo[j,0] - coo[i,0]) <= 1 and abs(coo[j,1] - coo[i,1]) <= 1:
-                    if feat[j] != 0:
+                    if feat[j] != 0.5:
                         p += feat[j]
                         n += 1
                 j -= 1
             j = i + 1
             while coo[j,2] == cur_ind:
                 if abs(coo[j,0] - coo[i,0]) <= 1 and abs(coo[j,1] - coo[i,1]) <= 1:
-                    if feat[j] != 0:
+                    if feat[j] != 0.5:
                         p += feat[j]
                         n += 1
                 j += 1
