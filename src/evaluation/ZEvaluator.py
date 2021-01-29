@@ -12,7 +12,7 @@ from src.evaluation.Calibrator import Calibrator
 from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
-from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E
+from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction
 from src.utils.util import get_bins
 
 
@@ -174,11 +174,13 @@ class ZPhysEvaluator:
         batch_size = c[-1, -1] + 1
         spatial_size = np.array([14, 11])
         permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
-        pred = spconv.SparseConvTensor(f, c[:, permute_tensor],
+        pred = np.zeros_like(f[:,4])
+        z_basic_prediction(c,f[:,4],pred)
+        pred = spconv.SparseConvTensor(pred, c[:, permute_tensor],
                                        spatial_size, batch_size)
         pred = pred.dense()
         pred = pred.detach().cpu().numpy()
-        z_deviation(pred[:, 4, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
+        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                     self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                     self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,

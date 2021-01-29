@@ -1,7 +1,7 @@
 import numba as nb
 from math import ceil, floor, sqrt, log
 from numba.typed import List
-from numpy import zeros, append, int32, float32
+from numpy import zeros, int32, float32
 from src.utils.NumbaFunctions import merge_sort_two, merge_sort_main_numba
 
 
@@ -770,6 +770,33 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                 z = (z_dt * z_dt_weight + z_light * z_light_weight) / (z_dt_weight + z_light_weight)
                 z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
                 E_out[coord[2], coord[0], coord[1]] = E
+
+@nb.jit(nopython=True)
+def z_basic_prediction(coo,feat,pred):
+    cur_ind = coo[0,2]
+    for i in range(coo.shape[0]):
+        if coo[i,2] != cur_ind:
+            cur_ind = coo[i,2]
+        if feat[i] != 0:
+            pred[i] = feat[i]
+        else:
+            j = i - 1
+            p = 0.0
+            n = 0
+            while coo[j,2] == cur_ind:
+                if abs(coo[j,0] - coo[i,0]) <= 1 and abs(coo[j,1] - coo[i,1]) <= 1:
+                    if feat[j] != 0:
+                        p += feat[j]
+                        n += 1
+                j -= 1
+            j = i + 1
+            while coo[j,2] == cur_ind:
+                if abs(coo[j,0] - coo[i,0]) <= 1 and abs(coo[j,1] - coo[i,1]) <= 1:
+                    if feat[j] != 0:
+                        p += feat[j]
+                        n += 1
+                j += 1
+            pred[i] = p/n
 
 @nb.jit(nopython=True)
 def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
