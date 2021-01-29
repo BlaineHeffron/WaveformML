@@ -174,8 +174,10 @@ class ZPhysEvaluator:
         batch_size = c[-1, -1] + 1
         spatial_size = np.array([14, 11])
         permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
-        pred = np.zeros_like(f[:,4])
-        z_basic_prediction(c,f[:,4],pred)
+        pred = np.zeros(f.shape)
+        coo = c.detach().cpu().numpy()
+        z = f[:,4].detach().cpu().numpy()
+        z_basic_prediction(c,z,pred)
         pred = spconv.SparseConvTensor(pred, c[:, permute_tensor],
                                        spatial_size, batch_size)
         pred = pred.dense()

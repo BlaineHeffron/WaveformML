@@ -796,7 +796,9 @@ def z_basic_prediction(coo,feat,pred):
                         p += feat[j]
                         n += 1
                 j += 1
-            pred[i] = p/n
+            if n > 0:
+                pred[i] = p/n
+
 
 @nb.jit(nopython=True)
 def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
