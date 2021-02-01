@@ -3,6 +3,9 @@ import re
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import SimpleProfiler
+from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule
+
 import optuna
 
 from src.engineering.LitCallbacks import *
@@ -19,13 +22,13 @@ class PruningCallback(Callback):
         super(PruningCallback, self).__init__()
         self.log = logging.getLogger(__name__)
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule):
         if trainer.callback_metrics:
             val = trainer.callback_metrics["val_loss"].detach().item()
             if not hasattr(pl_module, "trial"):
                 raise Exception("No Trial found in lightning module {}".format(pl_module))
-            self.log.debug("val loss of {0} reported for  batch id {1}.".format(val, batch_idx))
-            pl_module.trial.report(val, batch_idx)
+            self.log.debug("val loss of {0} reported for epoch {1}.".format(val, trainer.current_epoch))
+            pl_module.trial.report(val, trainer.current_epoch)
             prune = False
             try:
                 prune = pl_module.trial.should_prune()
