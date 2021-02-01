@@ -15,18 +15,24 @@ INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 
 
 class PruningCallback(Callback):
+    def __init__(self):
+        super(PruningCallback, self).__init__()
+        self.log = logging.getLogger(__name__)
+
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if trainer.callback_metrics:
             val = trainer.callback_metrics["val_loss"].detach().item()
             if not hasattr(pl_module, "trial"):
                 raise Exception("No Trial found in lightning module {}".format(pl_module))
+            self.log.debug("val loss of {0} reported for  batch id {1}.".format(val,batch_idx))
             pl_module.trial.report(val, batch_idx)
             prune = False
             try:
                 prune = pl_module.trial.should_prune()
             except Exception as e: 
                 print(e)
-            if prune: 
+            if prune:
+                self.log.info("Pruning trial {}".format(pl_module.trial))
                 raise optuna.TrialPruned()
 
 
