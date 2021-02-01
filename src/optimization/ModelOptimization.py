@@ -24,12 +24,12 @@ class PruningCallback(Callback):
             val = trainer.callback_metrics["val_loss"].detach().item()
             if not hasattr(pl_module, "trial"):
                 raise Exception("No Trial found in lightning module {}".format(pl_module))
-            self.log.debug("val loss of {0} reported for  batch id {1}.".format(val,batch_idx))
+            self.log.debug("val loss of {0} reported for  batch id {1}.".format(val, batch_idx))
             pl_module.trial.report(val, batch_idx)
             prune = False
             try:
                 prune = pl_module.trial.should_prune()
-            except Exception as e: 
+            except Exception as e:
                 print(e)
             if prune:
                 self.log.info("Pruning trial {}".format(pl_module.trial))
@@ -156,7 +156,7 @@ class ModelOptimization:
                 setattr(self.hyperparameters[hp], name,
                         trial.suggest_int(name, 0, 1))
             self.log.info("setting {0} to {1}"
-                           .format(hp, getattr(self.hyperparameters[hp], name)))
+                          .format(hp, getattr(self.hyperparameters[hp], name)))
 
     def objective(self, trial):
         self.modify_config(trial)
@@ -182,11 +182,7 @@ class ModelOptimization:
         save_config(self.config, log_folder, "trial_{}".format(trial.number), "config")
         # save_config(DictionaryUtility.to_object(trainer_args), log_folder,
         #        "trial_{}".format(trial.number), "train_args")
-        metrics_callback = MetricsCallback()
-        cbs = [metrics_callback]
-        cbs.append(LoggingCallback())
-        cbs.append(PruningCallback())
-        cbs.append(checkpoint_callback)
+        cbs = [LoggingCallback(), PruningCallback(), checkpoint_callback]
         # trainer_args["early_stop_callback"] = PyTorchLightningPruningCallback(trial, monitor="val_early_stop_on")
         if self.config.run_config.run_class == "LitZ":
             cbs.append(EarlyStopping(monitor='val_loss', min_delta=.00, verbose=True, mode="min", patience=5))
@@ -198,10 +194,9 @@ class ModelOptimization:
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config, trial)
         data_module = PSDDataModule(self.config, model.device)
         trainer.fit(model, datamodule=data_module)
-        if metrics_callback.metrics:
-            return metrics_callback.metrics[-1]["val_loss"].detach().item()
-        else:
-            return 0
+        loss = trainer.checkpoint_callback.best_model_score
+        self.log.info("best loss found for trial {0} is {1}".format(trial.number, loss))
+        return loss
 
     def run_study(self, pruning=False):
         pruner = optuna.pruners.MedianPruner(n_warmup_steps=10,
