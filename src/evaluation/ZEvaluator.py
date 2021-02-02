@@ -41,7 +41,6 @@ class ZEvaluatorBase:
         self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
         self.set_SE_segs(SE_dead_pmts)
         # self.metrics = []
-        self._init_results()
 
     def set_SE_segs(self, SE_dead_pmts):
         for pmt in SE_dead_pmts:
