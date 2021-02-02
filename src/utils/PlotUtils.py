@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib import rcParams
+import matplotlib.dates as mdate
+from pytz import timezone
 from math import ceil, floor
 from collections import OrderedDict
 
@@ -433,4 +436,100 @@ def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=F
     ax.set_xlabel('t [ns]')
     ax.set_ylabel('rate [counts/ns]')
     plt.legend(loc="upper right")
+    return fig
+
+
+def GetMPLStyles():
+    colors = ['b','r','g','c','k','m','y']
+    line_styles = ['-','--',':','-.']
+    style_list = []
+    for l in line_styles:
+        for c in colors:
+            style_list.append(c + l)
+    return style_list
+
+
+def MultiLinePlot(xaxis,yvals,line_labels,xlabel,ylabel,\
+        xmax=-1,ymax=-1,ymin=None,xmin=None,ylog=True,xdates=False,\
+        vertlines=None,vlinelabel=None,xlog=False,title=None):
+    argvals = []
+    styles = GetMPLStyles()
+    if(xdates):
+        xaxis = mdate.epoch2num(xaxis)
+        if(vertlines):
+            vertlines = mdate.epoch2num(vertlines)
+    for i,val in enumerate(yvals):
+        argvals.append(xaxis)
+        argvals.append(val)
+        argvals.append(styles[i])
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    if(ymin is None):
+        if(ylog):
+            ymin = min([min(y)  for y in yvals])*0.5
+            if(ymin <= 0):
+                print("error: ymin is ", ymin, " on a log-y axis. Defaulting to 1e-5")
+                ymin = 1e-5
+        else:
+            ymin = min([min(y)  for y in yvals])*0.95
+    if(xmin is None):
+        xmin = min(xaxis)
+    if(xlog):
+        ax1.set_xscale('log')
+    else:
+        ax1.set_xscale('linear')
+    if(ylog):
+        ax1.set_yscale('log')
+    else:
+        ax1.set_yscale('linear')
+    if(ymax == -1):
+        if(ylog):
+            ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.5)
+        else:
+            ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.05)
+    else:
+        ax1.set_ylim(ymin,ymax)
+    if(xmax == -1):
+        ax1.set_xlim(xmin,max(xaxis))
+    else:
+        ax1.set_xlim(xmin,xmax)
+    #for i, y in enumerate(yvals):
+    ax1.plot(*argvals)
+    if(vertlines is not None):
+        for v in vertlines:
+            ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
+    if(xdates):
+        #date_fmt = '%y-%m-%d %H:%M:%S'
+        date_fmt = '%y-%m-%d'
+        date_formatter = mdate.DateFormatter(date_fmt,tz=timezone('US/Eastern'))
+        ax1.xaxis.set_major_formatter(date_formatter)
+        fig.autofmt_xdate()
+    else:
+        pass
+        #start,end = ax1.get_xlim()
+        #diff = (end - start) / 8.
+        #ax1.xaxis.set_ticks(np.arange(start,end,diff))
+        #ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
+        #plt.setp(ax1.get_xticklabels(), rotation=30,\
+        #horizontalalignment='right')
+    box = ax1.get_position()
+    if(len(yvals) == 1):
+        if(not title):
+            ax1.set_title(line_labels[0])
+        else:
+            ax1.set_title(title)
+    else:
+        if(title):
+            ax1.set_title(title)
+        ax1.set_position([box.x0,box.y0,box.width*0.75,box.height])
+        ax1.legend(line_labels,loc='center left',\
+                bbox_to_anchor=(1,.5),ncol=1)
+        rcParams.update({'font.size':14})
+    #plt.gcf().subplots_adjust(left=0.16)
+    #plt.gcf().subplots_adjust(bottom=0.22)
+    #plt.gcf().subplots_adjust(right=0.05)
+    #plt.savefig(outname)
+    #plt.close()
     return fig
