@@ -111,11 +111,13 @@ class ZEvaluatorBase:
         xlabel = "multiplicity"
         ylabel = "MAE [mm]"
         if plot_cal:
+            self.logger.experiment.add_figure("evaluation/error_summary",
             MultiLinePlot([i for i in range(1,self.nmult+1)],[single_err_mult,dual_err_mult,single_err_mult_cal,dual_err_mult_cal],
-                          labels,xlabel,ylabel)
+                          labels,xlabel,ylabel))
         else:
+            self.logger.experiment.add_figure("evaluation/error_summary",
             MultiLinePlot([i for i in range(1,self.nmult+1)],[single_err_mult,dual_err_mult],
-                          labels[0:2],xlabel,ylabel)
+                          labels[0:2],xlabel,ylabel))
 
 
 class ZPhysEvaluator(ZEvaluatorBase):
