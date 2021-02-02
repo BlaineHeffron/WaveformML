@@ -94,7 +94,7 @@ class ZPhysEvaluator:
             for j in range(self.sample_segs.shape[0]):
                 self.logger.experiment.add_figure("evaluation/z_seg_{0}_{1}_mult_{2}_error".format(
                     self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
-                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error"][j, i],
+                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error"][j, i, 1:self.n_bins + 1],
                                 "segment {0},{1} mult {2}".format(
                                     self.sample_segs[j, 0] + 1,
                                     self.sample_segs[j, 1] + 1, i + 1),
@@ -144,7 +144,7 @@ class ZPhysEvaluator:
             for j in range(self.sample_segs.shape[0]):
                 self.logger.experiment.add_figure("evaluation/cal_z_seg_{0}_{1}_mult_{2}_error".format(
                     self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
-                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error_cal"][j, i],
+                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error_cal"][j, i][1:self.n_bins + 1],
                                 "segment {0},{1} mult {2}".format(
                                     self.sample_segs[j, 0] + 1,
                                     self.sample_segs[j, 1] + 1, i + 1),
@@ -316,7 +316,7 @@ class ZEvaluator:
             for j in range(self.sample_segs.shape[0]):
                 self.logger.experiment.add_figure("evaluation/z_seg_{0}_{1}_mult_{2}_error".format(
                     self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
-                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error"][j, i],
+                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error"][j, i, 1:self.n_bins + 1],
                                 "segment {0},{1} mult {2}".format(
                                     self.sample_segs[j, 0] + 1,
                                     self.sample_segs[j, 1] + 1, i + 1),
@@ -367,7 +367,7 @@ class ZEvaluator:
                 for j in range(self.sample_segs.shape[0]):
                     self.logger.experiment.add_figure("evaluation/cal_z_seg_{0}_{1}_mult_{2}_error".format(
                         self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
-                        plot_hist1d(self.z_err_edges, self.results["seg_sample_error_cal"][j, i],
+                        plot_hist1d(self.z_err_edges, self.results["seg_sample_error_cal"][j, i, 1:self.n_bins + 1],
                                     "segment {0},{1} mult {2}".format(
                                         self.sample_segs[j, 0] + 1,
                                         self.sample_segs[j, 1] + 1, i + 1),
