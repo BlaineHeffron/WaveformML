@@ -15,6 +15,7 @@ from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction, z_error
 from src.utils.util import get_bins
 
+
 class ZEvaluatorBase:
     def __init__(self, logger):
         self.logger = logger
@@ -100,24 +101,30 @@ class ZEvaluatorBase:
         single_err_mult_cal = []
         dual_err_mult_cal = []
         for i in range(self.nmult):
-            single_err_mult.append(np.sum(self.results["z_mult_mae_single"][0][:,:,i]) / np.sum(self.results["z_mult_mae_single"][1][:,:,i]))
-            dual_err_mult.append(np.sum(self.results["z_mult_mae_dual"][0]) / np.sum(self.results["z_mult_mae_dual"][1]))
+            single_err_mult.append(
+                np.sum(self.results["z_mult_mae_single"][0][:, i]) / np.sum(self.results["z_mult_mae_single"][1][:, i]))
+            dual_err_mult.append(
+                np.sum(self.results["z_mult_mae_dual"][0][:, i]) / np.sum(self.results["z_mult_mae_dual"][1][:, i]))
             if plot_cal:
-                single_err_mult_cal.append(np.sum(self.results["z_mult_mae_single_cal"][0][:, :, i]) / np.sum(
-                    self.results["z_mult_mae_single_cal"][1][:, :, i]))
+                single_err_mult_cal.append(np.sum(self.results["z_mult_mae_single_cal"][0][:, i]) / np.sum(
+                    self.results["z_mult_mae_single_cal"][1][:, i]))
                 dual_err_mult_cal.append(
-                    np.sum(self.results["z_mult_mae_dual_cal"][0]) / np.sum(self.results["z_mult_mae_dual_cal"][1]))
-        labels = ["single NN","dual NN", "single cal", "dual cal"]
+                    np.sum(self.results["z_mult_mae_dual_cal"][0][:, i]) / np.sum(
+                        self.results["z_mult_mae_dual_cal"][1][:, i]))
+        labels = ["single NN", "dual NN", "single cal", "dual cal"]
         xlabel = "multiplicity"
         ylabel = "MAE [mm]"
         if plot_cal:
             self.logger.experiment.add_figure("evaluation/error_summary",
-            MultiLinePlot([i for i in range(1,self.nmult+1)],[single_err_mult,dual_err_mult,single_err_mult_cal,dual_err_mult_cal],
-                          labels,xlabel,ylabel))
+                                              MultiLinePlot([i for i in range(1, self.nmult + 1)],
+                                                            [single_err_mult, dual_err_mult, single_err_mult_cal,
+                                                             dual_err_mult_cal],
+                                                            labels, xlabel, ylabel))
         else:
             self.logger.experiment.add_figure("evaluation/error_summary",
-            MultiLinePlot([i for i in range(1,self.nmult+1)],[single_err_mult,dual_err_mult],
-                          labels[0:2],xlabel,ylabel))
+                                              MultiLinePlot([i for i in range(1, self.nmult + 1)],
+                                                            [single_err_mult, dual_err_mult],
+                                                            labels[0:2], xlabel, ylabel))
 
 
 class ZPhysEvaluator(ZEvaluatorBase):
@@ -147,8 +154,6 @@ class ZPhysEvaluator(ZEvaluatorBase):
         self.set_SE_segs(SE_dead_pmts)
         # self.metrics = []
         self._init_results()
-
-
 
     def set_SE_segs(self, SE_dead_pmts):
         for pmt in SE_dead_pmts:
@@ -182,7 +187,8 @@ class ZPhysEvaluator(ZEvaluatorBase):
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
             "seg_sample_error": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2), dtype=np.int32),
-            "seg_sample_error_cal": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2), dtype=np.int32)
+            "seg_sample_error_cal": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2),
+                                             dtype=np.int32)
         }
 
     def add(self, predictions, target, c, f):
@@ -322,7 +328,8 @@ class ZPhysEvaluator(ZEvaluatorBase):
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                     self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
                     self.nmult, self.n_bins, self.z_scale)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins, self.error_low,
+        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins,
+                self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
 
@@ -406,8 +413,9 @@ class ZEvaluator(ZEvaluatorBase):
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
 
-            self.results["seg_sample_error_cal"] = np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2),
-                                                            dtype=np.int32)
+            self.results["seg_sample_error_cal"] = np.zeros(
+                (len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2),
+                dtype=np.int32)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
