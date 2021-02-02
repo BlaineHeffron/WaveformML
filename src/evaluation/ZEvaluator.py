@@ -103,14 +103,18 @@ class ZEvaluatorBase:
         for i in range(self.nmult):
             single_err_mult.append(
                 self.z_scale*np.sum(self.results["z_mult_mae_single"][0][:, i]) / np.sum(self.results["z_mult_mae_single"][1][:, i]))
+            self.logger.experiment.add_scalar("evaluation/single_mae_mult", single_err_mult[-1],global_step=i+1)
             dual_err_mult.append(
                 self.z_scale*np.sum(self.results["z_mult_mae_dual"][0][:, i]) / np.sum(self.results["z_mult_mae_dual"][1][:, i]))
+            self.logger.experiment.add_scalar("evaluation/dual_mae_mult", dual_err_mult[-1],global_step=i+1)
             if plot_cal:
                 single_err_mult_cal.append(self.z_scale*np.sum(self.results["z_mult_mae_single_cal"][0][:, i]) / np.sum(
                     self.results["z_mult_mae_single_cal"][1][:, i]))
+                self.logger.experiment.add_scalar("evaluation/single_mae_mult_cal", single_err_mult_cal[-1], global_step=i + 1)
                 dual_err_mult_cal.append(
                     self.z_scale*np.sum(self.results["z_mult_mae_dual_cal"][0][:, i]) / np.sum(
                         self.results["z_mult_mae_dual_cal"][1][:, i]))
+                self.logger.experiment.add_scalar("evaluation/dual_mae_mult_cal", dual_err_mult_cal[-1], global_step=i + 1)
         labels = ["single NN", "dual NN", "single cal", "dual cal"]
         xlabel = "multiplicity"
         ylabel = "MAE [mm]"
