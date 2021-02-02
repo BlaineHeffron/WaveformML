@@ -345,7 +345,7 @@ def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
     if norm_to_bin_width:
         vals = vals.astype(np.float32)
         vals /= xwidth
-    tot = vals.shape[0] * vals.shape[1]
+    tot = vals.shape[0]
     xs = np.zeros((tot,))
     n = 0
     for i in range(len(xedges) - 1):
