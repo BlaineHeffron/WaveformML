@@ -364,6 +364,7 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
         out_quantities[0, current_ind] = ene_current
     return out_coords, out_quantities, out_mult
 
+
 @nb.jit(nopython=True)
 def calc_arrival_from_peak(fdat, peak_ind):
     peak = fdat[peak_ind]
@@ -378,6 +379,7 @@ def calc_arrival_from_peak(fdat, peak_ind):
             return thresh / fdat[cur_ind]
         cur_ind -= 1
     return 0.
+
 
 @nb.jit(nopython=True)
 def calc_arrival(fdat):
@@ -509,14 +511,14 @@ def find_peaks(v, maxloc, sep):
     global_maxpos = local_maxima[0]
     maxloc[0] = global_maxpos
     max_index = 1
-    for i in range(local_maxima.shape[0]-1):
+    for i in range(local_maxima.shape[0] - 1):
         within_range = True
         for j in range(max_index):
-            if abs(local_maxima[i+1] - maxloc[j]) <= sep*2:
+            if abs(local_maxima[i + 1] - maxloc[j]) <= sep * 2:
                 within_range = False
                 break
         if within_range:
-            maxloc[max_index] = local_maxima[i+1]
+            maxloc[max_index] = local_maxima[i + 1]
             max_index += 1
         if max_index > 4:
             break
@@ -541,7 +543,7 @@ def find_peaks(v, maxloc, sep):
 def peak_area(data, peak_ind):
     start = peak_ind - 10
     stop = peak_ind + 25
-    return sum_range(data,start,stop)
+    return sum_range(data, start, stop)
 
 
 @nb.jit(nopython=True)
@@ -621,6 +623,7 @@ def peak_to_z(wf, m0, m1, x, y, gain_factors, t_interp_curves, sample_times, rel
     E = (PE[0] + PE[1]) / lin_interp(light_sum_curves[x, y], z)
     return z, E
 
+
 @nb.jit(nopython=True)
 def excluded_inds(inds, size):
     if size <= inds.shape[0]:
@@ -628,18 +631,18 @@ def excluded_inds(inds, size):
         return None
     duplicates = 0
     if inds.shape[0] > 1:
-        #check for duplicates
-        for i in range(inds.shape[0]-1):
-            for j in range(i+1, inds.shape[0]):
+        # check for duplicates
+        for i in range(inds.shape[0] - 1):
+            for j in range(i + 1, inds.shape[0]):
                 if inds[i] == inds[j]:
                     duplicates += 1
                     break
-    exc = zeros((size-inds.shape[0]+duplicates,), dtype=int32)
+    exc = zeros((size - inds.shape[0] + duplicates,), dtype=int32)
     cur_ind = 0
     for i in range(size):
         included = False
         for j in inds:
-            if i==j:
+            if i == j:
                 included = True
                 break
         if not included:
@@ -650,11 +653,11 @@ def excluded_inds(inds, size):
 
 @nb.jit(nopython=True)
 def z_from_total_light(wf, x, y, gain_factors, eres, light_pos_curves,
-                  light_sum_curves, n_samples=150):
+                       light_sum_curves, n_samples=150):
     L = [sum1d(wf[0:n_samples]) * gain_factors[x, y, 0],
          sum1d(wf[n_samples:]) * gain_factors[x, y, 1]]
     if L[0] == 0 or L[1] == 0:
-        return 0., 1./100000., (L[0] + L[1]) / lin_interp(light_sum_curves[x, y], 0.)
+        return 0., 1. / 100000., (L[0] + L[1]) / lin_interp(light_sum_curves[x, y], 0.)
     PE = [L[0] * eres[x, y, 0], L[1] * eres[x, y, 1]]
     R = log(L[1] / L[0])
     validratio = (R == R)
@@ -667,9 +670,10 @@ def z_from_total_light(wf, x, y, gain_factors, eres, light_pos_curves,
     E = (PE[0] + PE[1]) / lin_interp(light_sum_curves[x, y], z)
     return z, Rweight, E
 
+
 @nb.jit(nopython=True)
 def match_peaks(small, large):
-    #dumb way to match peaks that could have duplicates
+    # dumb way to match peaks that could have duplicates
     ldiffs = zeros((small.shape[0],), dtype=int32)
     for i in range(small.shape[0]):
         ldiffs[i] = 100000
@@ -682,12 +686,14 @@ def match_peaks(small, large):
                 inds[i] = j
     return inds
 
+
 @nb.jit(nopython=True)
 def z_dt_to_z(wf, z_dt, x, y, gain_factors, eres, light_pos_curves, light_sum_curves, n_samples=150):
     z_dt_weight = 1. / (60. * 60.)
     z_light, z_light_weight, E = z_from_total_light(wf, x, y, gain_factors, eres,
                                                     light_pos_curves, light_sum_curves, n_samples)
     return (z_dt_weight * z_dt + z_light * z_light_weight) / (z_light_weight + z_dt_weight), E
+
 
 @nb.jit(nopython=True)
 def dt_to_z(wf, dt, x, y, gain_factors, eres, light_pos_curves, light_sum_curves, time_pos_curves, n_samples=150):
@@ -704,7 +710,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                    eres, time_pos_curves, light_pos_curves, light_sum_curves, z_scale, n_samples):
     minsep = 10
     for coord, wf in zip(coordinates, waveforms):
-        local_maxima0 = zeros((5,), dtype=int32) # unlikely there would be more than 5
+        local_maxima0 = zeros((5,), dtype=int32)  # unlikely there would be more than 5
         local_maxima1 = zeros((5,), dtype=int32)
         for i in range(5):
             local_maxima0[i] = -1
@@ -728,16 +734,16 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                 z_dt_weighted = 0.
                 total_area = 0.
                 for m0, m1 in zip(local_maxima0, local_maxima1):
-                    #peak_z, peak_E = peak_to_z(wf, m0, m1, coord[0], coord[1], gain_factors, t_interp_curves, sample_times,
+                    # peak_z, peak_E = peak_to_z(wf, m0, m1, coord[0], coord[1], gain_factors, t_interp_curves, sample_times,
                     #                 rel_times, eres, light_pos_curves, time_pos_curves, light_sum_curves,
                     #                 sample_width, n_samples)
 
                     peak_dt, peak_area = peak_to_dt(wf, m0, m1, coord[0], coord[1], t_interp_curves, sample_times,
                                                     rel_times, gain_factors, sample_width, n_samples)
                     z_dt = lin_interp(time_pos_curves[coord[0], coord[1]], peak_dt)
-                    z_dt_weighted += z_dt*peak_area
+                    z_dt_weighted += z_dt * peak_area
                     total_area += peak_area
-                z_dt = z_dt_weighted/total_area
+                z_dt = z_dt_weighted / total_area
                 z, E = z_dt_to_z(wf, z_dt, coord[0], coord[1], gain_factors, eres, light_pos_curves, light_sum_curves,
                                  n_samples)
                 z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
@@ -751,7 +757,8 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                     for i in range(local_maxima0.shape[0]):
                         peak_z, peak_E = peak_to_z(wf, local_maxima0[i], local_maxima1[inds[i]], coord[0], coord[1],
                                                    gain_factors, t_interp_curves, sample_times, rel_times, eres,
-                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width, n_samples)
+                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width,
+                                                   n_samples)
                         z_weighted += peak_z * peak_E
                         total_E += peak_E
                 else:
@@ -760,44 +767,47 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                     for i in range(local_maxima1.shape[0]):
                         peak_z, peak_E = peak_to_z(wf, local_maxima0[inds[i]], local_maxima1[i], coord[0], coord[1],
                                                    gain_factors, t_interp_curves, sample_times, rel_times, eres,
-                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width, n_samples)
+                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width,
+                                                   n_samples)
                         z_weighted += peak_z * peak_E
                         total_E += peak_E
-                z_dt = z_weighted/total_E
-                z_dt_weight = 1./(60*60)
-                z_light, z_light_weight, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres, light_pos_curves,
-                                                light_sum_curves, n_samples)
+                z_dt = z_weighted / total_E
+                z_dt_weight = 1. / (60 * 60)
+                z_light, z_light_weight, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres,
+                                                                light_pos_curves,
+                                                                light_sum_curves, n_samples)
                 z = (z_dt * z_dt_weight + z_light * z_light_weight) / (z_dt_weight + z_light_weight)
                 z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
                 E_out[coord[2], coord[0], coord[1]] = E
 
+
 @nb.jit(nopython=True)
-def z_basic_prediction(coo,feat,pred):
-    cur_ind = coo[0,2]
+def z_basic_prediction(coo, feat, pred):
+    cur_ind = coo[0, 2]
     for i in range(coo.shape[0]):
-        if coo[i,2] != cur_ind:
-            cur_ind = coo[i,2]
+        if coo[i, 2] != cur_ind:
+            cur_ind = coo[i, 2]
         if feat[i] != 0.5:
             pred[i] = feat[i]
         else:
             j = i - 1
             p = 0.0
             n = 0
-            while coo[j,2] == cur_ind:
-                if abs(coo[j,0] - coo[i,0]) <= 1 and abs(coo[j,1] - coo[i,1]) <= 1:
+            while coo[j, 2] == cur_ind:
+                if abs(coo[j, 0] - coo[i, 0]) <= 1 and abs(coo[j, 1] - coo[i, 1]) <= 1:
                     if feat[j] != 0.5:
                         p += feat[j]
                         n += 1
                 j -= 1
             j = i + 1
-            while coo[j,2] == cur_ind:
-                if abs(coo[j,0] - coo[i,0]) <= 1 and abs(coo[j,1] - coo[i,1]) <= 1:
+            while coo[j, 2] == cur_ind:
+                if abs(coo[j, 0] - coo[i, 0]) <= 1 and abs(coo[j, 1] - coo[i, 1]) <= 1:
                     if feat[j] != 0.5:
                         p += feat[j]
                         n += 1
                 j += 1
             if n > 0:
-                pred[i] = p/n
+                pred[i] = p / n
             else:
                 pred[i] = 0.5
 
@@ -844,3 +854,56 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
                         else:
                             z_mult_dual_dev[z_bin, nmult] += z_dev
                             z_mult_dual_out[z_bin, nmult] += 1
+
+
+@nb.jit(nopython=True)
+def is_in_sample(sample_segs, i, j):
+    for seg in sample_segs:
+        if i == seg[0] and j == seg[1]:
+            return True
+    return False
+
+
+@nb.jit(nopython=True)
+def sample_index(sample_segs, i, j):
+    for k, seg in enumerate(sample_segs):
+        if i == seg[0] and j == seg[1]:
+            return k
+    return -1
+
+
+@nb.jit(nopython=True)
+def z_error(predictions, targets, results, n_bins, low, high, nmult, sample_segs, zrange):
+    bin_width = (high - low) / n_bins
+    for batch in range(predictions.shape[0]):
+        mult = 0
+        has_sample = False
+        for i in range(targets.shape[1]):
+            for j in range(targets.shape[2]):
+                if targets[batch, i, j] > 0:
+                    if is_in_sample(sample_segs, i, j):
+                        has_sample = True
+                    mult += 1
+        if not has_sample:
+            continue
+        for i in range(targets.shape[1]):
+            for j in range(targets.shape[2]):
+                if targets[batch, i, j] > 0:
+                    if not is_in_sample(sample_segs, i, j):
+                        continue
+                    s_ind = sample_index(sample_segs, i, j)
+                    z_err = (predictions[batch, i, j] - targets[batch, i, j]) * zrange
+                    err_bin = 0
+                    if z_err < low:
+                        err_bin = 0
+                    elif z_err >= high:
+                        err_bin = n_bins + 1
+                    else:
+                        for k in range(1, n_bins + 1):
+                            if k * bin_width + low > z_err:
+                                err_bin = k
+                                break
+                    if 0 < mult <= nmult:
+                        results[s_ind, mult - 1, err_bin] += 1
+                    else:
+                        results[s_ind, nmult, err_bin] += 1

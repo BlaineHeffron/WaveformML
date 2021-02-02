@@ -9,10 +9,10 @@ import torch
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.Calibrator import Calibrator
 # from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
-from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d
+from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d, plot_hist1d
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
-from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction
+from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction, z_error
 from src.utils.util import get_bins
 
 
@@ -24,8 +24,11 @@ class ZPhysEvaluator:
         self.ny = 11
         self.z_scale = 1200.
         self.n_bins = 20
+        self.error_low = -600.
+        self.error_high = 600.
         self.zmin = -1. * self.z_scale / 2
         self.zmax = self.z_scale / 2
+        self.z_err_edges = get_bins(self.error_low, self.error_high, self.n_bins)
         self.z_bin_edges = get_bins(self.zmin, self.zmax, self.n_bins)
         self.mult_bin_edges = get_bins(0.5, self.nmult + 0.5, self.nmult)
         self.colormap = plt.cm.viridis
@@ -55,6 +58,7 @@ class ZPhysEvaluator:
         #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
         #    i += 1
         # self.metric_pairs = MetricPairAggregator(self.metrics)
+        self.sample_segs = np.array([[5, 4], [10, 3], [7, 5]], dtype=np.int32)
         self.results = {"seg_mult_mae": (
             np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
             np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32)), "z_mult_mae_single": (
@@ -68,7 +72,10 @@ class ZPhysEvaluator:
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)), "z_mult_mae_dual_cal": (
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))}
+                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
+            "seg_sample_error": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_bins + 2), dtype=np.int32),
+            "seg_sample_error_cal": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_bins + 2), dtype=np.int32)
+        }
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
@@ -78,10 +85,20 @@ class ZPhysEvaluator:
                     self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
                     self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
                     self.nmult, self.n_bins, self.z_scale)
+        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_bins, self.error_low,
+                self.error_high, self.nmult, self.sample_segs, self.z_scale)
         self.z_from_cal(c, f, targ)
 
     def dump(self):
         for i in range(self.nmult):
+            for j in range(self.sample_segs.shape[0]):
+                self.logger.experiment.add_figure("evaluation/z_seg_{0}_{1}_mult_{2}_error".format(
+                    self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
+                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error"][j, i],
+                                "segment {0},{1} mult {2}".format(
+                                    self.sample_segs[j, 0] + 1,
+                                    self.sample_segs[j, 1] + 1, i + 1),
+                                "z error [mm]", r'total / bin width [$mm^{-1}$]'))
             self.logger.experiment.add_figure("evaluation/z_seg_mult_{0}_mae".format(i + 1),
                                               plot_z_acc_matrix(
                                                   self.z_scale * safe_divide_2d(
@@ -124,6 +141,14 @@ class ZPhysEvaluator:
                                                       r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
         for i in range(self.nmult):
+            for j in range(self.sample_segs.shape[0]):
+                self.logger.experiment.add_figure("evaluation/cal_z_seg_{0}_{1}_mult_{2}_error".format(
+                    self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
+                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error_cal"][j, i],
+                                "segment {0},{1} mult {2}".format(
+                                    self.sample_segs[j, 0] + 1,
+                                    self.sample_segs[j, 1] + 1, i + 1),
+                                "z error [mm]", r'total / bin width [$mm^{-1}$]'))
             self.logger.experiment.add_figure("evaluation/cal_z_seg_mult_{0}_mae".format(i + 1),
                                               plot_z_acc_matrix(
                                                   self.z_scale * safe_divide_2d(
@@ -174,10 +199,10 @@ class ZPhysEvaluator:
         batch_size = c[-1, -1] + 1
         spatial_size = np.array([14, 11])
         permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
-        pred = np.zeros(f[:,4].shape)
+        pred = np.zeros(f[:, 4].shape)
         coo = c.detach().cpu().numpy()
-        z = f[:,4].detach().cpu().numpy()
-        z_basic_prediction(coo,z,pred)
+        z = f[:, 4].detach().cpu().numpy()
+        z_basic_prediction(coo, z, pred)
         pred = torch.tensor(pred)
         pred = spconv.SparseConvTensor(pred.unsqueeze(1), c[:, permute_tensor],
                                        spatial_size, batch_size)
@@ -188,6 +213,8 @@ class ZPhysEvaluator:
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                     self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
                     self.nmult, self.n_bins, self.z_scale)
+        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_bins, self.error_low,
+                self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
 
 class ZEvaluator:
@@ -200,8 +227,11 @@ class ZEvaluator:
         self.sample_width = 4
         self.n_samples = 150
         self.n_bins = 20
+        self.error_low = -600.
+        self.error_high = 600.
         self.zmin = -1. * self.z_scale / 2
         self.zmax = self.z_scale / 2
+        self.z_err_edges = get_bins(self.error_low, self.error_high, self.n_bins)
         self.z_bin_edges = get_bins(self.zmin, self.zmax, self.n_bins)
         self.mult_bin_edges = get_bins(0.5, self.nmult + 0.5, self.nmult)
         self.hascal = False
@@ -242,6 +272,7 @@ class ZEvaluator:
         #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
         #    i += 1
         # self.metric_pairs = MetricPairAggregator(self.metrics)
+        self.sample_segs = np.array([[5, 4], [10, 3], [7, 5]], dtype=np.int32)
         self.results = {
             "seg_mult_mae": (
                 np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
@@ -251,7 +282,8 @@ class ZEvaluator:
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
             "z_mult_mae_dual": (
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
+                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
+            "seg_sample_error": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_bins + 2), dtype=np.int32)
         }
         if self.hascal:
             self.results["seg_mult_mae_cal"] = (np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
@@ -263,6 +295,9 @@ class ZEvaluator:
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
                 np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
 
+            self.results["seg_sample_error_cal"] = np.zeros((len(self.sample_segs), self.nmult + 1, self.n_bins + 2),
+                                                            dtype=np.int32)
+
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
@@ -271,11 +306,21 @@ class ZEvaluator:
                     self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
                     self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
                     self.nmult, self.n_bins, self.z_scale)
+        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_bins, self.error_low,
+                self.error_high, self.nmult, self.sample_segs, self.z_scale)
         if self.hascal:
             self.z_from_cal(c, f, targ)
 
     def dump(self):
         for i in range(self.nmult):
+            for j in range(self.sample_segs.shape[0]):
+                self.logger.experiment.add_figure("evaluation/z_seg_{0}_{1}_mult_{2}_error".format(
+                    self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
+                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error"][j, i],
+                                "segment {0},{1} mult {2}".format(
+                                    self.sample_segs[j, 0] + 1,
+                                    self.sample_segs[j, 1] + 1, i + 1),
+                                "z error [mm]", r'total / bin width [$mm^{-1}$]'))
             self.logger.experiment.add_figure("evaluation/z_seg_mult_{0}_mae".format(i + 1),
                                               plot_z_acc_matrix(
                                                   self.z_scale * safe_divide_2d(
@@ -319,6 +364,14 @@ class ZEvaluator:
                                                       cm=self.colormap))
         if self.hascal:
             for i in range(self.nmult):
+                for j in range(self.sample_segs.shape[0]):
+                    self.logger.experiment.add_figure("evaluation/cal_z_seg_{0}_{1}_mult_{2}_error".format(
+                        self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
+                        plot_hist1d(self.z_err_edges, self.results["seg_sample_error_cal"][j, i],
+                                    "segment {0},{1} mult {2}".format(
+                                        self.sample_segs[j, 0] + 1,
+                                        self.sample_segs[j, 1] + 1, i + 1),
+                                    "z error [mm]", r'total / bin width [$mm^{-1}$]'))
                 self.logger.experiment.add_figure("evaluation/cal_z_seg_mult_{0}_mae".format(i + 1),
                                                   plot_z_acc_matrix(
                                                       self.z_scale * safe_divide_2d(
@@ -378,3 +431,5 @@ class ZEvaluator:
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                     self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
                     self.nmult, self.n_bins, self.z_scale)
+        z_error(pred, targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_bins, self.error_low,
+                self.error_high, self.nmult, self.sample_segs, self.z_scale)
