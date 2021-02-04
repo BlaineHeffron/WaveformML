@@ -67,7 +67,7 @@ class LitEZ(pl.LightningModule):
         return optimizer
 
     def _format_target_and_prediction(self, pred, coords, target, batch_size):
-        target_tensor = spconv.SparseConvTensor(target.unsqueeze(1), coords[:, self.model.permute_tensor],
+        target_tensor = spconv.SparseConvTensor(target, coords[:, self.model.permute_tensor],
                                                 self.model.spatial_size, batch_size)
         target_tensor = target_tensor.dense()
         # set output to 0 if there was no value for input
