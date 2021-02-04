@@ -25,6 +25,10 @@ class LitEZ(pl.LightningModule):
         self.model = SingleEndedEZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        self.escale = 300.
+        if hasattr(config.net_config, "escale"):
+            self.escale = config.net_config.escale
+        self.eweight = self.escale / 9.0  # 300. is the normalization factor of E which is probably too high
         if config.net_config.algorithm == "features":
             self.evaluator = ZPhysEvaluator(self.logger)
         else:
@@ -73,12 +77,17 @@ class LitEZ(pl.LightningModule):
         # set output to 0 if there was no value for input
         return where(target_tensor == 0, target_tensor, pred), target_tensor
 
+    def _calc_loss(self, p, t):
+        ELoss = self.criterion.forward(p[:, 0, :, :], t[:, 0, :, :])
+        ZLoss = self.criterion.forward(p[:, 1, :, :], t[:, 1, :, :])
+        return self.eweight * ELoss + ZLoss, ELoss, ZLoss
+
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor)
+        loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
@@ -87,8 +96,8 @@ class LitEZ(pl.LightningModule):
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor)
-        results_dict = {'val_loss': loss}
+        loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
+        results_dict = {'val_loss': loss, 'val_loss_E': ELoss, 'val_loss_z': ZLoss}
         self.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return results_dict
 
@@ -97,8 +106,8 @@ class LitEZ(pl.LightningModule):
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor)
-        results_dict = {'test_loss': loss}
+        loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
+        results_dict = {'test_loss': loss, 'test_loss_E': ELoss, 'test_loss_z': ZLoss}
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
         self.evaluator.add(predictions, target_tensor, c, f)
