@@ -9,8 +9,7 @@ from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, 
 class SparseConv2DForEZ(nn.Module):
     def __init__(self, in_planes, out_planes=2, kernel_size=3, n_conv=1, n_point=3, conv_position=3, pointwise_factor=0.8):
         """
-
-        @type out_planes: object
+        @type out_planes: int
         """
         super(SparseConv2DForEZ, self).__init__()
         self.log = logging.getLogger(__name__)
@@ -31,7 +30,7 @@ class SparseConv2DForEZ(nn.Module):
         if not isinstance(n_layers, int) or n_layers < 1:
             raise ValueError("n_layers must be  integer >= 1")
         out = copy(in_planes)
-        reset_kernel = False
+        inp = copy(in_planes)
         curr_kernel = copy(kernel_size)
         conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
         for i in range(n_layers):
@@ -52,13 +51,13 @@ class SparseConv2DForEZ(nn.Module):
                 raise ValueError("error: kernel size is even")
             pd = int((curr_kernel - 1) / 2)
             self.log.debug(
-                "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes, out,
-                                                                                               kernel_size, pd))
-            layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
+                "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(inp, out,
+                                                                                               curr_kernel, pd))
+            layers.append(spconv.SparseConv2d(inp, out, curr_kernel, 1, pd))
             if i != (n_layers - 1):
                 layers.append(nn.BatchNorm1d(out))
             layers.append(nn.ReLU())
-            in_planes = out
+            inp = out
         layers.append(spconv.ToDense())
         self.network = spconv.SparseSequential(*layers)
 
