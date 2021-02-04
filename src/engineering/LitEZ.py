@@ -28,7 +28,7 @@ class LitEZ(pl.LightningModule):
         self.escale = 300.
         if hasattr(config.net_config, "escale"):
             self.escale = config.net_config.escale
-        self.eweight = self.escale / 9.0  # 300. is the normalization factor of E which is probably too high
+        self.eweight = self.escale / 3.0  # 300. is the normalization factor of E which is probably too high
         if config.net_config.algorithm == "features":
             self.evaluator = ZPhysEvaluator(self.logger)
         else:
