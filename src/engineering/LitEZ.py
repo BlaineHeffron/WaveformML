@@ -25,9 +25,12 @@ class LitEZ(pl.LightningModule):
         self.model = SingleEndedEZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        self.zscale = 1200.
         self.escale = 300.
         if hasattr(config.net_config, "escale"):
             self.escale = config.net_config.escale
+        if hasattr(config.net_config, "zscale"):
+            self.zscale = config.net_config.zscale
         self.eweight = self.escale / 3.0  # 300. is the normalization factor of E which is probably too high
         if config.net_config.algorithm == "features":
             self.evaluator = ZPhysEvaluator(self.logger)
@@ -80,7 +83,7 @@ class LitEZ(pl.LightningModule):
     def _calc_loss(self, p, t):
         ELoss = self.criterion.forward(p[:, 0, :, :], t[:, 0, :, :])
         ZLoss = self.criterion.forward(p[:, 1, :, :], t[:, 1, :, :])
-        return self.eweight * ELoss + ZLoss, ELoss, ZLoss
+        return self.eweight * ELoss + ZLoss, self.escale*ELoss, self.zscale*ZLoss
 
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
@@ -97,7 +100,7 @@ class LitEZ(pl.LightningModule):
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
-        results_dict = {'val_loss': loss, 'val_loss_E': ELoss, 'val_loss_z': ZLoss}
+        results_dict = {'val_loss': loss, 'val_MAE_E': ELoss, 'val_MAE_z': ZLoss}
         self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
         return results_dict
 
@@ -107,7 +110,7 @@ class LitEZ(pl.LightningModule):
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
-        results_dict = {'test_loss': loss, 'test_loss_E': ELoss, 'test_loss_z': ZLoss}
+        results_dict = {'test_loss': loss, 'test_MAE_E': ELoss, 'test_MAE_z': ZLoss}
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
         self.evaluator.add(predictions, target_tensor, c, f)
