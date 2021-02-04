@@ -7,7 +7,7 @@ from src.utils.util import ModuleUtility
 from src.utils.util import DictionaryUtility
 
 
-class SingleEndedZConv(nn.Module):
+class SingleEndedEZConv(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.log = logging.getLogger(__name__)

@@ -718,7 +718,6 @@ class PulseDataset2DWithEZ(PulseDataset):
             config: configuration file object
             n_per_dir: number of events to use per directory
             file_excludes: list of file paths to exclude from dataset
-            label_name: name of the table
             data_cache_size: number of file to hold in memory
         """
         super().__init__(config, dataset_type,
@@ -803,7 +802,6 @@ class PulseDatasetDetWithEZ(PulseDataset):
             config: configuration file object
             n_per_dir: number of events to use per directory
             file_excludes: list of file paths to exclude from dataset
-            label_name: name of the table
             data_cache_size: number of file to hold in memory
         """
         super().__init__(config, dataset_type,
