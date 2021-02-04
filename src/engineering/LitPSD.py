@@ -119,7 +119,7 @@ class LitPSD(pl.LightningModule):
         pred = argmax(self.softmax(predictions), dim=1)
         acc = self.accuracy(pred, target)
         results_dict = {'val_loss': loss, 'val_acc': acc}
-        self.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
         if self.pylog.level <= logging.INFO:
             if not hasattr(self, "confusion_matrix"):
                 self.confusion_matrix = self.confusion(pred, target, num_classes=self.n_type)

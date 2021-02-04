@@ -98,7 +98,7 @@ class LitEZ(pl.LightningModule):
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
         results_dict = {'val_loss': loss, 'val_loss_E': ELoss, 'val_loss_z': ZLoss}
-        self.log_dict(results_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
         return results_dict
 
     def test_step(self, batch, batch_idx):
