@@ -7,7 +7,7 @@ from src.utils.util import ModuleUtility
 from src.utils.util import DictionaryUtility
 
 
-class SingleEndedEZConv(nn.Module):
+class SingleEndedZConv(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.log = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class SingleEndedEZConv(nn.Module):
         if not hasattr(self.net_config, "algorithm"):
             setattr(self.net_config, "algorithm", "conv")
         if self.net_config.algorithm == "conv":
-            self.model = SparseConv2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.conv))
+            self.model = SparseConv2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparamsconv))
         elif self.net_config.algorithm == "point":
             self.model = Pointwise2DForZ(self.nsamples*2, **DictionaryUtility.to_dict(self.net_config.hparams.point))
         elif self.net_config.algorithm == "features":

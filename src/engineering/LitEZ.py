@@ -1,5 +1,5 @@
 import spconv
-from src.models.SingleEndedZConv import SingleEndedEZConv
+from src.models.SingleEndedEZConv import SingleEndedEZConv
 from src.engineering.PSDDataModule import *
 from torch import where
 from src.evaluation.ZEvaluator import ZEvaluator, ZPhysEvaluator
