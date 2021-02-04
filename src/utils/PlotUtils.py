@@ -17,8 +17,8 @@ TITLE_SIZE = 16
 
 # initialize globals
 cmaps = OrderedDict()
-tab_colors = ['tab:blue', 'tab:red', 'tab:brown', 'tab:purple', 'tab:orange', 'tab:green', 'tab:grey', 'tab:olive',
-              'tab:cyan', 'tab:pink']
+tab_colors = ['tab:blue', 'tab:red', 'tab:brown', 'tab:purple', 'black', 'tab:green', 'tab:grey', 'tab:olive',
+              'tab:cyan', 'tab:pink', 'tab:orange']
 # see markers list here https://matplotlib.org/3.2.1/api/markers_api.html
 category_markers = ['.', '^', 'o', 'v', 's', 'P', 'x', '*', 'd', 'h', '8', 'D', '|', '1', 'p', '<', 'H', '4']
 category_styles = ['-', '--', '--', '-', ':']
@@ -440,28 +440,24 @@ def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=F
 
 
 def GetMPLStyles():
-    colors = ['b','r','g','c','k','m','y']
-    line_styles = ['-','--',':','-.']
     style_list = []
-    for l in line_styles:
-        for c in colors:
-            style_list.append(c + l)
+    for i in range(20):
+        style_list.append(tab_colors[i%10] + category_styles[i%len(category_styles)])
     return style_list
 
 
-def MultiLinePlot(xaxis,yvals,line_labels,xlabel,ylabel,\
-        xmax=-1,ymax=-1,ymin=None,xmin=None,ylog=True,xdates=False,\
-        vertlines=None,vlinelabel=None,xlog=False,title=None):
-    argvals = []
-    styles = GetMPLStyles()
+def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel, \
+                  colors=None, styles=None,
+                  xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False, \
+                  vertlines=None, vlinelabel=None, xlog=False, title=None):
+    if colors is None:
+        colors = []
+    if styles is None:
+        styles = []
     if(xdates):
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):
             vertlines = mdate.epoch2num(vertlines)
-    for i,val in enumerate(yvals):
-        argvals.append(xaxis)
-        argvals.append(val)
-        argvals.append(styles[i])
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
@@ -496,7 +492,12 @@ def MultiLinePlot(xaxis,yvals,line_labels,xlabel,ylabel,\
     else:
         ax1.set_xlim(xmin,xmax)
     #for i, y in enumerate(yvals):
-    ax1.plot(*argvals)
+    if not colors:
+        colors = tab_colors
+    if not styles:
+        styles = category_styles
+    for i in range(len(yvals)):
+        ax1.plot(xaxis,yvals[i],color=colors[i%10],linestyle=styles[i%len(styles)])
     if(vertlines is not None):
         for v in vertlines:
             ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
@@ -525,7 +526,7 @@ def MultiLinePlot(xaxis,yvals,line_labels,xlabel,ylabel,\
             ax1.set_title(title)
         ax1.set_position([box.x0,box.y0,box.width*0.75,box.height])
         ax1.legend(line_labels,loc='center left',\
-                bbox_to_anchor=(1,.5),ncol=1)
+                bbox_to_anchor=(0.4,0.75),ncol=1)
         rcParams.update({'font.size':14})
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)

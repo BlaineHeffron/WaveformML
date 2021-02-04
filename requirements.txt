@@ -4,7 +4,7 @@ setuptools~=41.6.0
 torch>=1.6
 pytorch_lightning>=1.0.0
 json>=1.0.0
-h5py>=2.0.0
+h5py>=3.0.0
 ruamel.yaml>=0.16.0
 gitpython>=3.0.0
 

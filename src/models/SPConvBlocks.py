@@ -1,9 +1,69 @@
 from math import floor
+from copy import copy
 
 import spconv
 import torch.nn as nn
 from src.models.Algorithm import *
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
+
+class SparseConv2DForEZ(nn.Module):
+    def __init__(self, in_planes, out_planes=2, kernel_size=3, n_conv=1, n_point=3, conv_position=3, pointwise_factor=0.8):
+        """
+
+        @type out_planes: object
+        """
+        super(SparseConv2DForEZ, self).__init__()
+        self.log = logging.getLogger(__name__)
+        layers = []
+        if n_conv < 1:
+            raise ValueError("n_conv must be greater than 0")
+        if conv_position < 1:
+            raise ValueError("conv_position must be greater than 0")
+        n_layers = n_conv + n_point
+        if n_point > 0:
+            if n_layers == 1:
+                raise ValueError("n_layers must be > 1 if using pointwise convolution")
+            increment = int(round(int(round(in_planes * pointwise_factor - out_planes)) / float(n_layers - 1)))
+        else:
+            increment = int(round(float(in_planes-out_planes) / float(n_layers)))
+        if kernel_size % 2 != 1:
+            raise ValueError("Kernel size must be an odd integer")
+        if not isinstance(n_layers, int) or n_layers < 1:
+            raise ValueError("n_layers must be  integer >= 1")
+        out = copy(in_planes)
+        reset_kernel = False
+        curr_kernel = copy(kernel_size)
+        conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
+        for i in range(n_layers):
+            if i == (n_layers - 1):
+                out = copy(out_planes)
+            else:
+                out -= increment
+                if i == 0 and n_point > 0:
+                    if pointwise_factor > 0:
+                        out = int(round(pointwise_factor * in_planes))
+            if not i in conv_positions:
+                curr_kernel = 1
+            else:
+                curr_kernel = kernel_size - int((i+1 - conv_position)*2)
+                if curr_kernel < 3:
+                    curr_kernel = 3
+            if curr_kernel % 2 == 0:
+                raise ValueError("error: kernel size is even")
+            pd = int((curr_kernel - 1) / 2)
+            self.log.debug(
+                "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(in_planes, out,
+                                                                                               kernel_size, pd))
+            layers.append(spconv.SparseConv2d(in_planes, out, kernel_size, 1, pd))
+            if i != (n_layers - 1):
+                layers.append(nn.BatchNorm1d(out))
+            layers.append(nn.ReLU())
+            in_planes = out
+        layers.append(spconv.ToDense())
+        self.network = spconv.SparseSequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
 
 
 class SparseConv2DForZ(nn.Module):
