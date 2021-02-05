@@ -109,19 +109,35 @@ def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
     xlen = xrange[1] - xrange[0]
     bin_width = xlen / nbins
     for i in range(metric.shape[0]):
-        bin = 0
+        bin_index = 0
         find_bin = True
         if metric[i] < xrange[0]:
             find_bin = False
         elif metric[i] > xrange[1]:
-            bin = nbins + 1
+            bin_index = nbins + 1
             find_bin = False
         if find_bin:
             for j in range(1, nbins + 1):
                 if j * bin_width + xrange[0] > metric[i]:
-                    bin = j - 1
+                    bin_index = j - 1
                     break
-            output[bin, label[i], prediction[i]] += 1
+            output[bin_index, label[i], prediction[i]] += 1
+
+
+def get_bin_index(val, low, high, bin_width, nbins):
+    bin_index = 0
+    find_bin = True
+    if val < low:
+        find_bin = False
+    elif val >= high:
+        bin_index = nbins + 1
+        find_bin = False
+    if find_bin:
+        for j in range(1, nbins + 1):
+            if j * bin_width + low > val:
+                bin_index = j
+                break
+    return bin_index
 
 
 @nb.jit(nopython=True)
@@ -130,20 +146,20 @@ def metric_accumulate_1d(results, metric, output, out_n, xrange, nbins):
     xlen = xrange[1] - xrange[0]
     bin_width = xlen / nbins
     for i in range(results.shape[0]):
-        bin = 0
+        bin_index = 0
         find_bin = True
         if metric[i] < xrange[0]:
             find_bin = False
-        elif metric[i] > xrange[1]:
-            bin = nbins + 1
+        elif metric[i] >= xrange[1]:
+            bin_index = nbins + 1
             find_bin = False
         if find_bin:
             for j in range(1, nbins + 1):
                 if j * bin_width + xrange[0] > metric[i]:
-                    bin = j
+                    bin_index = j
                     break
-        output[bin] += results[i]
-        out_n[bin] += 1
+        output[bin_index] += results[i]
+        out_n[bin_index] += 1
 
 
 def get_typed_list(mylist):
@@ -166,12 +182,12 @@ def metric_accumulate_2d(results, metric, output, out_n, xrange, yrange, nbinsx,
         find_biny = True
         if metric[i, 0] < xrange[0]:
             find_binx = False
-        elif metric[i, 0] > xrange[1]:
+        elif metric[i, 0] >= xrange[1]:
             binx = nbinsx + 1
             find_binx = False
         if metric[i, 1] < yrange[0]:
             find_biny = False
-        elif metric[i, 1] > yrange[1]:
+        elif metric[i, 1] >= yrange[1]:
             biny = nbinsy + 1
             find_biny = False
         if find_binx:
@@ -854,6 +870,62 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
                         else:
                             z_mult_dual_dev[z_bin, nmult] += z_dev
                             z_mult_dual_out[z_bin, nmult] += 1
+
+
+@nb.jit(nopython=True)
+def z_deviation_with_E(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
+                z_mult_single_out, seg_status, nx, ny, nmult, nz, zrange, E,
+                E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev, E_mult_single_out,
+                E_low, E_high):
+    E_bin_width = (E_high - E_low) / 2.
+    for batch in range(predictions.shape[0]):
+        mult = 0
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    mult += 1
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    z_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
+                    true_z = (targets[batch, i, j] - 0.5) * zrange
+                    E_bin = get_bin_index(E[batch, i, j], E_low, E_high, E_bin_width, nz)
+                    z_bin = 0
+                    if true_z < (-zrange / 2.):
+                        z_bin = 0
+                    elif true_z >= (zrange / 2.):
+                        z_bin = nz + 1
+                    else:
+                        for k in range(1, nz + 1):
+                            if k * (zrange / nz) - zrange / 2. > true_z:
+                                z_bin = k
+                                break
+                    if 0 < mult <= nmult:
+                        dev[i, j, mult - 1] += z_dev
+                        out_n[i, j, mult - 1] += 1
+                        if seg_status[i, j] > 0:
+                            z_mult_single_dev[z_bin, mult - 1] += z_dev
+                            z_mult_single_out[z_bin, mult - 1] += 1
+                            E_mult_single_dev[E_bin, mult - 1] += z_dev
+                            E_mult_single_out[E_bin, mult - 1] += 1
+                        else:
+                            z_mult_dual_dev[z_bin, mult - 1] += z_dev
+                            z_mult_dual_out[z_bin, mult - 1] += 1
+                            E_mult_dual_dev[E_bin, mult - 1] += z_dev
+                            E_mult_dual_out[E_bin, mult - 1] += 1
+                    else:
+                        dev[i, j, nmult] += z_dev
+                        out_n[i, j, nmult] += 1
+                        if seg_status[i, j] > 0:
+                            z_mult_single_dev[z_bin, nmult] += z_dev
+                            z_mult_single_out[z_bin, nmult] += 1
+                            E_mult_single_dev[E_bin, nmult] += z_dev
+                            E_mult_single_out[E_bin, nmult] += 1
+                        else:
+                            z_mult_dual_dev[z_bin, nmult] += z_dev
+                            z_mult_dual_out[z_bin, nmult] += 1
+                            E_mult_dual_dev[E_bin, nmult] += z_dev
+                            E_mult_dual_out[E_bin, nmult] += 1
 
 
 @nb.jit(nopython=True)
