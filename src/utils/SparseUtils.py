@@ -124,6 +124,7 @@ def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
             output[bin_index, label[i], prediction[i]] += 1
 
 
+@nb.jit(nopython=True)
 def get_bin_index(val, low, high, bin_width, nbins):
     bin_index = 0
     find_bin = True
