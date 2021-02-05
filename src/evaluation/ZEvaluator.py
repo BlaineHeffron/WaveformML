@@ -18,6 +18,7 @@ from src.utils.util import get_bins
 
 class ZEvaluatorBase:
     def __init__(self, logger):
+        self.hascal = False
         self.logger = logger
         self.nmult = 10
         self.nx = 14
@@ -41,6 +42,7 @@ class ZEvaluatorBase:
         self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
         self.set_SE_segs(SE_dead_pmts)
         # self.metrics = []
+        self._init_results()
 
     def set_SE_segs(self, SE_dead_pmts):
         for pmt in SE_dead_pmts:
@@ -77,6 +79,19 @@ class ZEvaluatorBase:
             "seg_sample_error_cal": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2),
                                              dtype=np.int32)
         }
+
+    def add(self, predictions, target, c, f):
+        pred = predictions.detach().cpu().numpy()
+        targ = target.detach().cpu().numpy()
+        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
+                    self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
+                    self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
+                    self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
+                    self.nmult, self.n_bins, self.z_scale)
+        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
+                self.error_high, self.nmult, self.sample_segs, self.z_scale)
+        if self.hascal:
+            self.z_from_cal(c, f, targ)
 
     def retrieve_error_metrics(self):
         single_err = np.sum(self.results["z_mult_mae_single"][0]) / np.sum(self.results["z_mult_mae_single"][1])
@@ -91,29 +106,34 @@ class ZEvaluatorBase:
         else:
             single_cal_err = 0
             dual_cal_err = 0
-        self.logger.experiment.add_scalar("evaluation/single_mae", single_err*self.z_scale)
-        self.logger.experiment.add_scalar("evaluation/dual_mae", dual_err*self.z_scale)
-        self.logger.experiment.add_scalar("evaluation/single_mae_cal", single_cal_err*self.z_scale)
-        self.logger.experiment.add_scalar("evaluation/dual_mae_cal", dual_cal_err*self.z_scale)
+        self.logger.experiment.add_scalar("evaluation/single_mae", single_err * self.z_scale)
+        self.logger.experiment.add_scalar("evaluation/dual_mae", dual_err * self.z_scale)
+        self.logger.experiment.add_scalar("evaluation/single_mae_cal", single_cal_err * self.z_scale)
+        self.logger.experiment.add_scalar("evaluation/dual_mae_cal", dual_cal_err * self.z_scale)
         single_err_mult = []
         dual_err_mult = []
         single_err_mult_cal = []
         dual_err_mult_cal = []
         for i in range(self.nmult):
             single_err_mult.append(
-                self.z_scale*np.sum(self.results["z_mult_mae_single"][0][:, i]) / np.sum(self.results["z_mult_mae_single"][1][:, i]))
-            self.logger.experiment.add_scalar("evaluation/single_mae_mult", single_err_mult[-1],global_step=i+1)
+                self.z_scale * np.sum(self.results["z_mult_mae_single"][0][:, i]) / np.sum(
+                    self.results["z_mult_mae_single"][1][:, i]))
+            self.logger.experiment.add_scalar("evaluation/single_mae_mult", single_err_mult[-1], global_step=i + 1)
             dual_err_mult.append(
-                self.z_scale*np.sum(self.results["z_mult_mae_dual"][0][:, i]) / np.sum(self.results["z_mult_mae_dual"][1][:, i]))
-            self.logger.experiment.add_scalar("evaluation/dual_mae_mult", dual_err_mult[-1],global_step=i+1)
+                self.z_scale * np.sum(self.results["z_mult_mae_dual"][0][:, i]) / np.sum(
+                    self.results["z_mult_mae_dual"][1][:, i]))
+            self.logger.experiment.add_scalar("evaluation/dual_mae_mult", dual_err_mult[-1], global_step=i + 1)
             if plot_cal:
-                single_err_mult_cal.append(self.z_scale*np.sum(self.results["z_mult_mae_single_cal"][0][:, i]) / np.sum(
-                    self.results["z_mult_mae_single_cal"][1][:, i]))
-                self.logger.experiment.add_scalar("evaluation/single_mae_mult_cal", single_err_mult_cal[-1], global_step=i + 1)
+                single_err_mult_cal.append(
+                    self.z_scale * np.sum(self.results["z_mult_mae_single_cal"][0][:, i]) / np.sum(
+                        self.results["z_mult_mae_single_cal"][1][:, i]))
+                self.logger.experiment.add_scalar("evaluation/single_mae_mult_cal", single_err_mult_cal[-1],
+                                                  global_step=i + 1)
                 dual_err_mult_cal.append(
-                    self.z_scale*np.sum(self.results["z_mult_mae_dual_cal"][0][:, i]) / np.sum(
+                    self.z_scale * np.sum(self.results["z_mult_mae_dual_cal"][0][:, i]) / np.sum(
                         self.results["z_mult_mae_dual_cal"][1][:, i]))
-                self.logger.experiment.add_scalar("evaluation/dual_mae_mult_cal", dual_err_mult_cal[-1], global_step=i + 1)
+                self.logger.experiment.add_scalar("evaluation/dual_mae_mult_cal", dual_err_mult_cal[-1],
+                                                  global_step=i + 1)
         labels = ["single NN", "dual NN", "single cal", "dual cal"]
         xlabel = "multiplicity"
         ylabel = "MAE [mm]"
@@ -128,310 +148,6 @@ class ZEvaluatorBase:
                                               MultiLinePlot([i for i in range(1, self.nmult + 1)],
                                                             [single_err_mult, dual_err_mult],
                                                             labels[0:2], xlabel, ylabel, ylog=False))
-
-
-class ZPhysEvaluator(ZEvaluatorBase):
-    def __init__(self, logger):
-        super(ZPhysEvaluator, self).__init__(logger)
-        self.logger = logger
-        self.nmult = 10
-        self.nx = 14
-        self.ny = 11
-        self.z_scale = 1200.
-        self.n_bins = 20
-        self.n_err_bins = 50
-        self.error_low = -1000.
-        self.error_high = 1000.
-        self.zmin = -1. * self.z_scale / 2
-        self.zmax = self.z_scale / 2
-        self.z_err_edges = get_bins(self.error_low, self.error_high, self.n_err_bins)
-        self.z_bin_edges = get_bins(self.zmin, self.zmax, self.n_bins)
-        self.mult_bin_edges = get_bins(0.5, self.nmult + 0.5, self.nmult)
-        self.colormap = plt.cm.viridis
-        SE_dead_pmts = [1, 0, 2, 4, 6, 7, 9, 10, 12, 13, 16, 19, 20, 21, 22, 24, 26, 27, 34, 36, 37, 43, 46, 48,
-                        55,
-                        54, 56, 58, 65, 68, 72, 80, 82, 85, 88, 93, 95, 97, 96, 105, 111, 112, 120, 122, 137, 138,
-                        139, 141, 147, 158, 166, 173, 175, 188, 195, 215, 230, 243, 244, 245, 252, 255, 256, 261,
-                        273, 279, 282]
-        self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
-        self.set_SE_segs(SE_dead_pmts)
-        # self.metrics = []
-        self._init_results()
-
-    def set_SE_segs(self, SE_dead_pmts):
-        for pmt in SE_dead_pmts:
-            r = pmt % 2
-            seg = int((pmt - r) / 2)
-            x = seg % 14
-            y = floor(seg / 14)
-            self.seg_status[x, y] += 0.5
-
-    def _init_results(self):
-        # metric_names = ["energy", "multiplicity", "true_z", "pred_z"]
-        # metric_params = [[0.0, 10.0, 40], [0.5, 10.5, 10], [-600.,600.,40],[-600.,600.,40]]
-        # i = 0
-        # for name in metric_names:
-        #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
-        #    i += 1
-        # self.metric_pairs = MetricPairAggregator(self.metrics)
-        self.sample_segs = np.array([[5, 4], [10, 3], [7, 5]], dtype=np.int32)
-        self.results = {"seg_mult_mae": (
-            np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
-            np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32)), "z_mult_mae_single": (
-            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)), "z_mult_mae_dual": (
-            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-            np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
-            "seg_mult_mae_cal": (np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
-                                 np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32)),
-            "z_mult_mae_single_cal": (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)), "z_mult_mae_dual_cal": (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
-            "seg_sample_error": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2), dtype=np.int32),
-            "seg_sample_error_cal": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2),
-                                             dtype=np.int32)
-        }
-
-    def add(self, predictions, target, c, f):
-        pred = predictions.detach().cpu().numpy()
-        targ = target.detach().cpu().numpy()
-        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
-                    self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
-                    self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
-                    self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
-                    self.nmult, self.n_bins, self.z_scale)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
-                self.error_high, self.nmult, self.sample_segs, self.z_scale)
-        self.z_from_cal(c, f, targ)
-
-    def dump(self):
-        self.retrieve_error_metrics()
-        for i in range(self.nmult):
-            for j in range(self.sample_segs.shape[0]):
-                self.logger.experiment.add_figure("evaluation/z_seg_{0}_{1}_mult_{2}_error".format(
-                    self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
-                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error"][j, i, 1:self.n_err_bins + 1],
-                                "segment {0},{1} mult {2}".format(
-                                    self.sample_segs[j, 0] + 1,
-                                    self.sample_segs[j, 1] + 1, i + 1),
-                                "z error [mm]", r'total / bin width [$mm^{-1}$]'))
-            self.logger.experiment.add_figure("evaluation/z_seg_mult_{0}_mae".format(i + 1),
-                                              plot_z_acc_matrix(
-                                                  self.z_scale * safe_divide_2d(
-                                                      self.results["seg_mult_mae"][0][:, :, i],
-                                                      self.results["seg_mult_mae"][1][:, :, i]),
-                                                  self.nx, self.ny, "mult = {0}".format(i + 1)))
-
-        self.logger.experiment.add_figure("evaluation/z_mult_dual",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
-                                                      0:self.nmult],
-                                                      "Total - double ended", "Z [mm]", "multiplicity",
-                                                      r'# Pulses [$mm^{-1}$', cm=self.colormap))
-        self.logger.experiment.add_figure("evaluation/z_mult_single",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
-                                                      0:self.nmult],
-                                                      "Total - single ended", "Z [mm]", "multiplicity",
-                                                      r'# Pulses [$mm^{-1}$]', cm=self.colormap))
-
-        self.logger.experiment.add_figure("evaluation/z_mult_mae_dual",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(
-                                                          self.results["z_mult_mae_dual"][0][1:self.n_bins + 1,
-                                                          0:self.nmult],
-                                                          self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
-                                                          0:self.nmult]) * self.z_scale,
-                                                      "MAE - double ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
-                                                      cm=self.colormap))
-
-        self.logger.experiment.add_figure("evaluation/z_mult_mae_single",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(
-                                                          self.results["z_mult_mae_single"][0][1:self.n_bins + 1,
-                                                          0:self.nmult],
-                                                          self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
-                                                          0:self.nmult]) * self.z_scale,
-                                                      "MAE - single ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
-                                                      cm=self.colormap))
-        for i in range(self.nmult):
-            for j in range(self.sample_segs.shape[0]):
-                self.logger.experiment.add_figure("evaluation/cal_z_seg_{0}_{1}_mult_{2}_error".format(
-                    self.sample_segs[j, 0] + 1, self.sample_segs[j, 1] + 1, i + 1),
-                    plot_hist1d(self.z_err_edges, self.results["seg_sample_error_cal"][j, i][1:self.n_err_bins + 1],
-                                "segment {0},{1} mult {2}".format(
-                                    self.sample_segs[j, 0] + 1,
-                                    self.sample_segs[j, 1] + 1, i + 1),
-                                "z error [mm]", r'total / bin width [$mm^{-1}$]'))
-            self.logger.experiment.add_figure("evaluation/cal_z_seg_mult_{0}_mae".format(i + 1),
-                                              plot_z_acc_matrix(
-                                                  self.z_scale * safe_divide_2d(
-                                                      self.results["seg_mult_mae_cal"][0][:, :, i],
-                                                      self.results["seg_mult_mae_cal"][1][:, :, i]),
-                                                  self.nx, self.ny, "mult = {0}".format(i + 1)))
-
-        self.logger.experiment.add_figure("evaluation/cal_z_mult_dual",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
-                                                      0:self.nmult],
-                                                      "Total - double ended", "Z [mm]", "multiplicity",
-                                                      r'# Pulses [$mm^{-1}$', cm=self.colormap))
-        self.logger.experiment.add_figure("evaluation/cal_z_mult_single",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      self.results["z_mult_mae_single_cal"][1][1:self.n_bins + 1,
-                                                      0:self.nmult],
-                                                      "Total - single ended", "Z [mm]", "multiplicity",
-                                                      r'# Pulses [$mm^{-1}$]', cm=self.colormap))
-
-        self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_dual",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(
-                                                          self.results["z_mult_mae_dual_cal"][0][1:self.n_bins + 1,
-                                                          0:self.nmult],
-                                                          self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
-                                                          0:self.nmult]) * self.z_scale,
-                                                      "MAE - double ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False,
-                                                      logz=False,
-                                                      cm=self.colormap))
-
-        self.logger.experiment.add_figure("evaluation/cal_z_mult_mae_single",
-                                          plot_hist2d(self.z_bin_edges, self.mult_bin_edges,
-                                                      safe_divide_2d(self.results["z_mult_mae_single_cal"][0][
-                                                                     1:self.n_bins + 1,
-                                                                     0:self.nmult],
-                                                                     self.results["z_mult_mae_single_cal"][1][
-                                                                     1:self.n_bins + 1,
-                                                                     0:self.nmult]) * self.z_scale,
-                                                      "MAE - single ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False,
-                                                      logz=False,
-                                                      cm=self.colormap))
-        self._init_results()
-
-    def z_from_cal(self, c, f, targ):
-        batch_size = c[-1, -1] + 1
-        spatial_size = np.array([14, 11])
-        permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
-        pred = np.zeros(f[:, 4].shape)
-        coo = c.detach().cpu().numpy()
-        z = f[:, 4].detach().cpu().numpy()
-        z_basic_prediction(coo, z, pred)
-        pred = torch.tensor(pred)
-        pred = spconv.SparseConvTensor(pred.unsqueeze(1), c[:, permute_tensor],
-                                       spatial_size, batch_size)
-        pred = pred.dense()
-        pred = pred.detach().cpu().numpy()
-        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
-                    self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
-                    self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
-                    self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
-                    self.nmult, self.n_bins, self.z_scale)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins,
-                self.error_low,
-                self.error_high, self.nmult, self.sample_segs, self.z_scale)
-
-
-class ZEvaluator(ZEvaluatorBase):
-    def __init__(self, logger, calgroup=None):
-        super(ZEvaluator, self).__init__(logger)
-        self.logger = logger
-        self.nmult = 10
-        self.nx = 14
-        self.ny = 11
-        self.z_scale = 1200.
-        self.sample_width = 4
-        self.n_samples = 150
-        self.n_bins = 20
-        self.n_err_bins = 50
-        self.error_low = -1000.
-        self.error_high = 1000.
-        self.zmin = -1. * self.z_scale / 2
-        self.zmax = self.z_scale / 2
-        self.z_err_edges = get_bins(self.error_low, self.error_high, self.n_err_bins)
-        self.z_bin_edges = get_bins(self.zmin, self.zmax, self.n_bins)
-        self.mult_bin_edges = get_bins(0.5, self.nmult + 0.5, self.nmult)
-        self.hascal = False
-        self.colormap = plt.cm.viridis
-        SE_dead_pmts = [1, 0, 2, 4, 6, 7, 9, 10, 12, 13, 16, 19, 20, 21, 22, 24, 26, 27, 34, 36, 37, 43, 46, 48,
-                        55,
-                        54, 56, 58, 65, 68, 72, 80, 82, 85, 88, 93, 95, 97, 96, 105, 111, 112, 120, 122, 137, 138,
-                        139, 141, 147, 158, 166, 173, 175, 188, 195, 215, 230, 243, 244, 245, 252, 255, 256, 261,
-                        273, 279, 282]
-        self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
-        self.set_SE_segs(SE_dead_pmts)
-        if calgroup is not None:
-            self.hascal = True
-            if "PROSPECT_CALDB" not in os.environ.keys():
-                raise ValueError(
-                    "Error: could not find PROSPECT_CALDB environment variable. Please set PROSPECT_CALDB to be the "
-                    "path of the sqlite3 calibration database.")
-            gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
-            self.gain_factor = np.divide(np.full((self.nx, self.ny, 2), MAX_RANGE), gains)
-            self.t_center = np.arange(2, self.n_samples * self.sample_width - 1, self.sample_width)
-            self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
-        # self.metrics = []
-        self._init_results()
-
-    def set_SE_segs(self, SE_dead_pmts):
-        for pmt in SE_dead_pmts:
-            r = pmt % 2
-            seg = int((pmt - r) / 2)
-            x = seg % 14
-            y = floor(seg / 14)
-            self.seg_status[x, y] += 0.5
-
-    def _init_results(self):
-        # metric_names = ["energy", "multiplicity", "true_z", "pred_z"]
-        # metric_params = [[0.0, 10.0, 40], [0.5, 10.5, 10], [-600.,600.,40],[-600.,600.,40]]
-        # i = 0
-        # for name in metric_names:
-        #    self.metrics.append(MetricAggregator(name, *metric_params[i], ["positron"]))
-        #    i += 1
-        # self.metric_pairs = MetricPairAggregator(self.metrics)
-        self.sample_segs = np.array([[5, 4], [10, 3], [7, 5]], dtype=np.int32)
-        self.results = {
-            "seg_mult_mae": (
-                np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32)),
-            "z_mult_mae_single": (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
-            "z_mult_mae_dual": (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32)),
-            "seg_sample_error": np.zeros((len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2), dtype=np.int32)
-        }
-        if self.hascal:
-            self.results["seg_mult_mae_cal"] = (np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.float32),
-                                                np.zeros((self.nx, self.ny, self.nmult + 1), dtype=np.int32))
-            self.results["z_mult_mae_single_cal"] = (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
-            self.results["z_mult_mae_dual_cal"] = (
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.float32),
-                np.zeros((self.n_bins + 2, self.nmult + 1), dtype=np.int32))
-
-            self.results["seg_sample_error_cal"] = np.zeros(
-                (len(self.sample_segs), self.nmult + 1, self.n_err_bins + 2),
-                dtype=np.int32)
-
-    def add(self, predictions, target, c, f):
-        pred = predictions.detach().cpu().numpy()
-        targ = target.detach().cpu().numpy()
-        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
-                    self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
-                    self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
-                    self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
-                    self.nmult, self.n_bins, self.z_scale)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
-                self.error_high, self.nmult, self.sample_segs, self.z_scale)
-        if self.hascal:
-            self.z_from_cal(c, f, targ)
 
     def dump(self):
         self.retrieve_error_metrics()
@@ -540,6 +256,54 @@ class ZEvaluator(ZEvaluatorBase):
                                                           logz=False,
                                                           cm=self.colormap))
         self._init_results()
+
+    def z_from_cal(self, c, f, targ):
+        pass
+
+
+class ZPhysEvaluator(ZEvaluatorBase):
+    def __init__(self, logger):
+        super(ZPhysEvaluator, self).__init__(logger)
+        self.hascal = True
+
+    def z_from_cal(self, c, f, targ):
+        batch_size = c[-1, -1] + 1
+        spatial_size = np.array([14, 11])
+        permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
+        pred = np.zeros(f[:, 4].shape)
+        coo = c.detach().cpu().numpy()
+        z = f[:, 4].detach().cpu().numpy()
+        z_basic_prediction(coo, z, pred)
+        pred = torch.tensor(pred)
+        pred = spconv.SparseConvTensor(pred.unsqueeze(1), c[:, permute_tensor],
+                                       spatial_size, batch_size)
+        pred = pred.dense()
+        pred = pred.detach().cpu().numpy()
+        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
+                    self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
+                    self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
+                    self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
+                    self.nmult, self.n_bins, self.z_scale)
+        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins,
+                self.error_low,
+                self.error_high, self.nmult, self.sample_segs, self.z_scale)
+
+
+class ZEvaluator(ZEvaluatorBase):
+    def __init__(self, logger, calgroup=None):
+        super(ZEvaluator, self).__init__(logger)
+        self.sample_width = 4
+        self.n_samples = 150
+        if calgroup is not None:
+            self.hascal = True
+            if "PROSPECT_CALDB" not in os.environ.keys():
+                raise ValueError(
+                    "Error: could not find PROSPECT_CALDB environment variable. Please set PROSPECT_CALDB to be the "
+                    "path of the sqlite3 calibration database.")
+            gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
+            self.gain_factor = np.divide(np.full((self.nx, self.ny, 2), MAX_RANGE), gains)
+            self.t_center = np.arange(2, self.n_samples * self.sample_width - 1, self.sample_width)
+            self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
 
     def z_from_cal(self, c, f, targ):
         c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
