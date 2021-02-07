@@ -741,7 +741,11 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
             L = [sum1d(wf[0:n_samples]) * gain_factors[coord[0], coord[1], 0],
                  sum1d(wf[n_samples:]) * gain_factors[coord[0], coord[1], 1]]
             PE = [L[0] * eres[coord[0], coord[1], 0], L[1] * eres[coord[0], coord[1], 1]]
-            E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]], 0.)
+            if PE[0] == 0 or PE[1] == 0:
+                E_out[coord[2], coord[0], coord[1]] = (L[0] + L[1]) # just output uncorrected energy if only 1 pmt fired
+            else:
+                E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]],
+                                                                                   0.)
         else:
             if local_maxima0.shape[0] > 1:
                 local_maxima0 = merge_sort_main_numba(local_maxima0)
