@@ -368,18 +368,21 @@ class ZPhysEvaluator(ZEvaluatorBase):
         self.hascal = True
 
     def z_from_cal(self, c, f, targ):
-        batch_size = c[-1, -1] + 1
         pred = np.zeros(f[:, 4].shape)
         coo = c.detach().cpu().numpy()
         z = f[:, 4].detach().cpu().numpy()
         z_basic_prediction(coo, z, pred)
+        E = f[:, 0]*self.E_scale
+        E = self.get_dense_matrix(E, c)
         pred = torch.tensor(pred)
         pred = self.get_dense_matrix(pred, c)
-        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
+        z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                     self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                     self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
-                    self.nmult, self.n_bins, self.z_scale)
+                    self.nmult, self.n_bins, self.z_scale, E, self.results["E_mult_mae_dual_cal"][0],
+                    self.results["E_mult_mae_dual_cal"][1], self.results["E_mult_mae_single_cal"][0],
+                    self.results["E_mult_mae_single_cal"][1], self.E_low, self.E_high)
         z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins,
                 self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
@@ -426,11 +429,13 @@ class ZEvaluator(ZEvaluatorBase):
                        self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
                        self.calibrator.time_pos_curves, self.calibrator.light_pos_curves,
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
-        z_deviation(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
+        z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                     self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                     self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                     self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
-                    self.nmult, self.n_bins, self.z_scale)
+                    self.nmult, self.n_bins, self.z_scale, E, self.results["E_mult_mae_dual_cal"][0],
+                    self.results["E_mult_mae_dual_cal"][1], self.results["E_mult_mae_single_cal"][0],
+                    self.results["E_mult_mae_single_cal"][1], self.E_low, self.E_high)
         z_error(pred, targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         return E
