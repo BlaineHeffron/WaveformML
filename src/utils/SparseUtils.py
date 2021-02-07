@@ -878,7 +878,7 @@ def z_deviation_with_E(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult
                 z_mult_single_out, seg_status, nx, ny, nmult, nz, zrange, E,
                 E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev, E_mult_single_out,
                 E_low, E_high):
-    E_bin_width = (E_high - E_low) / 2.
+    E_bin_width = (E_high - E_low) / nz
     for batch in range(predictions.shape[0]):
         mult = 0
         for i in range(nx):
