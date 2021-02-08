@@ -29,7 +29,7 @@ class ZEvaluatorBase:
         self.n_err_bins = 50
         self.error_low = -1000.
         self.error_high = 1000.
-        self.E_high = 9.0
+        self.E_high = 12.0
         self.E_low = 0.0
         self.spatial_size = np.array([14, 11])
         self.permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
