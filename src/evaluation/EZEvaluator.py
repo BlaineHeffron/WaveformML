@@ -9,8 +9,8 @@ class EZEvaluatorBase:
         self.ZEvaluator = ZEvaluatorBase(logger)
 
     def add(self, predictions, target, c, f):
-        self.EnergyEvaluator.add(predictions[:, 0, :, :], target[:, 0, :, :], c, f)
-        self.ZEvaluator.add(predictions[:, 1, :, :], target[:, 1, :, :], c, f)
+        self.EnergyEvaluator.add(predictions[:, 0, :, :].unsqueeze(1), target[:, 0, :, :].unsqueeze(1), c, f)
+        self.ZEvaluator.add(predictions[:, 1, :, :].unsqueeze(1), target[:, 1, :, :].unsqueeze(1), c, f)
 
     def dump(self):
         self.EnergyEvaluator.dump()
