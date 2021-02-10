@@ -100,13 +100,13 @@ class StatsAggregator:
 
     def get_plot_metadata(self, name, base_name="results"):
         labels = []
-        for name, unit in zip(
+        for n, unit in zip(
                 self.metric_metadata[base_name][name]["dim_names"],
                 self.metric_metadata[base_name][name]["dim_units"]):
             if unit == "":
-                labels.append("{0}".format(name))
+                labels.append("{0}".format(n))
             else:
-                labels.append("{0} [{1}]".format(name, unit))
+                labels.append("{0} [{1}]".format(n, unit))
         return self.metric_metadata[base_name][name]["dim"], \
                self.metric_metadata[base_name][name]["scale"], \
                self.metric_metadata[base_name][name]["bin_edges"], \
