@@ -123,10 +123,10 @@ class StatsAggregator:
         for i in range(dim):
             if under[i]:
                 lower.append(1)
-                upper.append(n_bins + 1)
+                upper.append(n_bins[i] + 1)
             else:
                 lower.append(0)
-                upper.append(n_bins)
+                upper.append(n_bins[i])
         return lower, upper
 
     def log_total(self, name, log_name, plot_title, base_name="results"):
