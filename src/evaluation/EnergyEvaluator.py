@@ -101,4 +101,4 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
         targ = target.detach().cpu().numpy()
         Z = self.get_dense_matrix(f[:, self.z_index], c)
         E = self.get_dense_matrix(f[:, self.E_index], c)
-        self.calc_deviation_with_z(pred, targ, E, Z)
+        self.calc_deviation_with_z(pred, targ, E[:, 0, :, :], Z[:, 0, :, :])
