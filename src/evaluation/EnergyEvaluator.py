@@ -10,7 +10,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
     def __init__(self, logger, calgroup=None):
         super(EnergyEvaluatorBase, self).__init__(logger)
-        super(EnergyEvaluatorBase, self).__init__(calgroup=calgroup)
+        SingleEndedEvaluator.__init__(self,calgroup=calgroup)
         self.hascal = False
         self.E_bounds = [0., 12.]
         self.mult_bounds = [0.5, 10.5]
