@@ -43,14 +43,16 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                            self.results["seg_mult_Emae"][1], self.results["E_mult_dual"][0],
                            self.results["E_mult_dual"][1], self.results["E_mult_single"][0],
                            self.results["E_mult_single"][1], self.seg_status, self.nx, self.ny,
-                           self.n_mult, self.n_E, self.E_scale, self.z_scale, Z, self.results["E_z_dual"][0],
+                           self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale,
+                           self.z_scale, Z, self.results["E_z_dual"][0],
                            self.results["E_z_dual"][1], self.results["E_z_single"][0],
                            self.results["E_z_single"][1])
         E_deviation_with_z(E, targ[:, 0, :, :], self.results["seg_mult_Emae_cal"][0],
                            self.results["seg_mult_Emae_cal"][1], self.results["E_mult_dual_cal"][0],
                            self.results["E_mult_dual_cal"][1], self.results["E_mult_single_cal"][0],
                            self.results["E_mult_single_cal"][1], self.seg_status, self.nx, self.ny,
-                           self.n_mult, self.n_E, self.E_scale, self.z_scale, Z, self.results["E_z_dual_cal"][0],
+                           self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale,
+                           self.z_scale, Z, self.results["E_z_dual_cal"][0],
                            self.results["E_z_dual_cal"][1], self.results["E_z_single_cal"][0],
                            self.results["E_z_single_cal"][1])
 
@@ -86,7 +88,7 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
                         self.results["seg_mult_Emae"][1], self.results["E_mult_dual"][0],
                         self.results["E_mult_dual"][1], self.results["E_mult_single"][0],
                         self.results["E_mult_single"][1], self.seg_status, self.nx, self.ny,
-                        self.n_mult, self.n_E, self.E_scale)
+                        self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale)
 
 
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
