@@ -2,7 +2,7 @@ import spconv
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
 from torch import where
-from src.evaluation.ZEvaluator import ZEvaluator, ZPhysEvaluator
+from src.evaluation.ZEvaluator import ZEvaluatorWF, ZEvaluatorPhys
 
 
 class LitZ(pl.LightningModule):
@@ -26,12 +26,12 @@ class LitZ(pl.LightningModule):
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         if config.net_config.algorithm == "features":
-            self.evaluator = ZPhysEvaluator(self.logger)
+            self.evaluator = ZEvaluatorPhys(self.logger)
         else:
             if hasattr(self.config.dataset_config, "calgroup"):
-                self.evaluator = ZEvaluator(self.logger, calgroup=self.config.dataset_config.calgroup)
+                self.evaluator = ZEvaluatorWF(self.logger, calgroup=self.config.dataset_config.calgroup)
             else:
-                self.evaluator = ZEvaluator(self.logger)
+                self.evaluator = ZEvaluatorWF(self.logger)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)

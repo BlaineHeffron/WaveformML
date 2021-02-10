@@ -1,8 +1,9 @@
 import spconv
+
+from src.evaluation.EZEvaluator import EZEvaluatorWF, EZEvaluatorPhys
 from src.models.SingleEndedEZConv import SingleEndedEZConv
 from src.engineering.PSDDataModule import *
 from torch import where
-from src.evaluation.ZEvaluator import ZEvaluator, ZPhysEvaluator
 
 
 class LitEZ(pl.LightningModule):
@@ -33,12 +34,12 @@ class LitEZ(pl.LightningModule):
             self.zscale = config.net_config.zscale
         self.eweight = self.escale / 3.0  # 300. is the normalization factor of E which is probably too high
         if config.net_config.algorithm == "features":
-            self.evaluator = ZPhysEvaluator(self.logger)
+            self.evaluator = EZEvaluatorPhys(self.logger)
         else:
             if hasattr(self.config.dataset_config, "calgroup"):
-                self.evaluator = ZEvaluator(self.logger, calgroup=self.config.dataset_config.calgroup)
+                self.evaluator = EZEvaluatorWF(self.logger, calgroup=self.config.dataset_config.calgroup)
             else:
-                self.evaluator = ZEvaluator(self.logger)
+                self.evaluator = EZEvaluatorWF(self.logger)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)

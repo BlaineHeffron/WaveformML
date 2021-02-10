@@ -260,12 +260,12 @@ def calc_spread(coords, pulses, nsamp, mult, x, y, dt, E):
 def calc_time(pulse, nsamp):
     """ returns energy weighted time in units of samples"""
     t = 0.0
-    sum = 0.0
+    mysum = 0.0
     for i in range(nsamp):
         t += pulse[i] * (i + 0.5)
-        sum += pulse[i]
-    if sum != 0.0:
-        return t / sum
+        mysum += pulse[i]
+    if mysum != 0.0:
+        return t / mysum
     else:
         return 0
 
@@ -834,6 +834,94 @@ def z_basic_prediction(coo, feat, pred):
 
 
 @nb.jit(nopython=True)
+def increment_metric_mult_SE(dev, bin_number, i, j, mult, nmult, out_dev, out_n, single_dev, single_n, dual_dev,
+                             dual_n, seg_status):
+    if 0 < mult <= nmult:
+        out_dev[i, j, mult - 1] += dev
+        out_n[i, j, mult - 1] += 1
+        if seg_status[i, j] > 0:
+            single_dev[bin_number, mult - 1] += dev
+            single_n[bin_number, mult - 1] += 1
+        else:
+            dual_dev[bin_number, mult - 1] += dev
+            dual_n[bin_number, mult - 1] += 1
+    else:
+        out_dev[i, j, nmult] += dev
+        out_n[i, j, nmult] += 1
+        if seg_status[i, j] > 0:
+            single_dev[bin_number, nmult] += dev
+            single_n[bin_number, nmult] += 1
+        else:
+            dual_dev[bin_number, nmult] += dev
+            dual_n[bin_number, nmult] += 1
+
+
+@nb.jit(nopython=True)
+def E_deviation(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev,
+                E_mult_single_out, seg_status, nx, ny, nmult, nE, E_low, E_high, E_scale):
+    bin_width = (E_high - E_low) / nE
+    for batch in range(predictions.shape[0]):
+        mult = 0
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    mult += 1
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
+                    true_E = targets[batch, i, j] * E_scale
+                    E_bin = get_bin_index(true_E, E_low, E_high, bin_width, nE)
+                    increment_metric_mult_SE(E_dev, E_bin, i, j, mult, nmult, dev, out_n, E_mult_single_dev,
+                                             E_mult_single_out, E_mult_dual_dev, E_mult_dual_out, seg_status)
+
+
+@nb.jit(nopython=True)
+def E_deviation_with_z(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev,
+                       E_mult_single_out, seg_status, nx, ny, nmult, nE, E_low, E_high, E_scale, zrange, Z,
+                       E_z_dual_dev, E_z_dual_out, E_z_single_dev, E_z_single_out):
+    E_bin_width = (E_high - E_low) / nE
+    for batch in range(predictions.shape[0]):
+        mult = 0
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    mult += 1
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
+                    true_E = targets[batch, i, j]*E_scale
+                    E_bin = get_bin_index(true_E, E_low, E_high, E_bin_width, nE)
+                    z_bin = get_bin_index((Z[batch, i, j] - 0.5)*zrange, -zrange/2., zrange/2., zrange/nE, nE)
+                    if 0 < mult <= nmult:
+                        dev[i, j, mult - 1] += E_dev
+                        out_n[i, j, mult - 1] += 1
+                        if seg_status[i, j] > 0:
+                            E_mult_single_dev[E_bin, mult - 1] += E_dev
+                            E_mult_single_out[E_bin, mult - 1] += 1
+                            E_z_single_dev[E_bin, z_bin] += E_dev
+                            E_z_single_out[E_bin, z_bin] += 1
+                        else:
+                            E_mult_dual_dev[E_bin, mult - 1] += E_dev
+                            E_mult_dual_out[E_bin, mult - 1] += 1
+                            E_z_dual_dev[E_bin, z_bin] += E_dev
+                            E_z_dual_out[E_bin, z_bin] += 1
+                    else:
+                        dev[i, j, nmult] += E_dev
+                        out_n[i, j, nmult] += 1
+                        if seg_status[i, j] > 0:
+                            E_mult_single_dev[E_bin, nmult] += E_dev
+                            E_mult_single_out[E_bin, nmult] += 1
+                            E_z_single_dev[E_bin, z_bin] += E_dev
+                            E_z_single_out[E_bin, z_bin] += 1
+                        else:
+                            E_mult_dual_dev[E_bin, nmult] += E_dev
+                            E_mult_dual_out[E_bin, nmult] += 1
+                            E_z_dual_dev[E_bin, z_bin] += E_dev
+                            E_z_dual_out[E_bin, z_bin] += 1
+
+@nb.jit(nopython=True)
 def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
                 z_mult_single_out, seg_status, nx, ny, nmult, nz, zrange):
     for batch in range(predictions.shape[0]):
@@ -857,24 +945,8 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
                             if k * (zrange / nz) - zrange / 2. > true_z:
                                 z_bin = k
                                 break
-                    if 0 < mult <= nmult:
-                        dev[i, j, mult - 1] += z_dev
-                        out_n[i, j, mult - 1] += 1
-                        if seg_status[i, j] > 0:
-                            z_mult_single_dev[z_bin, mult - 1] += z_dev
-                            z_mult_single_out[z_bin, mult - 1] += 1
-                        else:
-                            z_mult_dual_dev[z_bin, mult - 1] += z_dev
-                            z_mult_dual_out[z_bin, mult - 1] += 1
-                    else:
-                        dev[i, j, nmult] += z_dev
-                        out_n[i, j, nmult] += 1
-                        if seg_status[i, j] > 0:
-                            z_mult_single_dev[z_bin, nmult] += z_dev
-                            z_mult_single_out[z_bin, nmult] += 1
-                        else:
-                            z_mult_dual_dev[z_bin, nmult] += z_dev
-                            z_mult_dual_out[z_bin, nmult] += 1
+                    increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
+                                             z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
 
 
 @nb.jit(nopython=True)

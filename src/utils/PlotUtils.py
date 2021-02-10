@@ -50,7 +50,7 @@ cmaps['Miscellaneous'] = [
     'gist_rainbow', 'rainbow', 'jet', 'nipy_spectral', 'gist_ncar']
 
 
-def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
+def plot_z_acc_matrix(cm, nx, ny, title, zlabel="mean average error [mm]", cmap=plt.cm.viridis):
     fontsize = 12
     fig = plt.figure(figsize=(9, 6.5))
     min = 10000000
@@ -65,7 +65,7 @@ def plot_z_acc_matrix(cm, nx, ny, title, cmap=plt.cm.viridis):
     if title != '':
         plt.title(title)
     cbar = plt.colorbar()
-    cbar.set_label('mean average error [mm]', labelpad=18)
+    cbar.set_label(zlabel, labelpad=18)
     tick_x = np.arange(nx)
     tick_y = np.arange(ny)
     tick_labelx = np.arange(1, nx + 1)
@@ -446,9 +446,9 @@ def GetMPLStyles():
     return style_list
 
 
-def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel, \
+def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
-                  xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False, \
+                  xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
                   vertlines=None, vlinelabel=None, xlog=False, title=None):
     if colors is None:
         colors = []

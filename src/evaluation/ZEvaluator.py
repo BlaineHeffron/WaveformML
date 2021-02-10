@@ -400,9 +400,9 @@ class ZEvaluatorBase:
         return data
 
 
-class ZPhysEvaluator(ZEvaluatorBase):
+class ZEvaluatorPhys(ZEvaluatorBase):
     def __init__(self, logger):
-        super(ZPhysEvaluator, self).__init__(logger)
+        super(ZEvaluatorPhys, self).__init__(logger)
         self.hascal = True
 
     def z_from_cal(self, c, f, targ):
@@ -443,9 +443,9 @@ class ZPhysEvaluator(ZEvaluatorBase):
             self.z_from_cal(c, f, targ)
 
 
-class ZEvaluator(ZEvaluatorBase):
+class ZEvaluatorWF(ZEvaluatorBase):
     def __init__(self, logger, calgroup=None):
-        super(ZEvaluator, self).__init__(logger)
+        super(ZEvaluatorWF, self).__init__(logger)
         self.sample_width = 4
         self.n_samples = 150
         if calgroup is not None:
