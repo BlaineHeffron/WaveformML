@@ -9,8 +9,8 @@ import numpy as np
 class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
     def __init__(self, logger, calgroup=None):
-        super(EnergyEvaluatorBase, self).__init__(logger)
-        SingleEndedEvaluator.__init__(self,calgroup=calgroup)
+        StatsAggregator.__init__(self, logger)
+        SingleEndedEvaluator.__init__(self, calgroup=calgroup)
         self.hascal = False
         self.E_bounds = [0., 12.]
         self.mult_bounds = [0.5, 10.5]
@@ -27,11 +27,13 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
     def initialize(self):
         self.register_duplicates(self.E_mult_names,
                                  [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
-                                 [self.E_bounds[1], self.mult_bounds[1]], 2, ["True Energy Deposited", "Multiplicity"], ["MeV", ""],
+                                 [self.E_bounds[1], self.mult_bounds[1]], 2, ["True Energy Deposited", "Multiplicity"],
+                                 ["MeV", ""],
                                  "Energy MAE", "MeV", underflow=(1, 0), scale=self.E_scale)
         self.register_duplicates(self.E_z_names, [self.n_E, self.n_z],
                                  [self.E_bounds[0], self.z_bounds[0]],
-                                 [self.E_bounds[1], self.z_bounds[1]], 2, ["True Energy Deposited", "Calculated Z Position"], ["MeV", "mm"],
+                                 [self.E_bounds[1], self.z_bounds[1]], 2,
+                                 ["True Energy Deposited", "Calculated Z Position"], ["MeV", "mm"],
                                  "Energy MAE", "MeV", scale=self.E_scale)
         self.register_duplicates(self.seg_mult_names, [self.nx, self.ny, self.n_mult],
                                  [0.5, 0.5, 0.5],
@@ -101,13 +103,13 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         coo = c.detach().cpu().numpy()
-        z = (f[:, self.z_index].detach().cpu().numpy() - 0.5)*self.z_scale
-        e = f[:, self.E_index].detach().cpu().numpy()*self.E_scale
-        PE0 = f[:, self.PE0_index].detach().cpu().numpy()*self.PE_scale
-        PE1 = f[:, self.PE1_index].detach().cpu().numpy()*self.PE_scale
+        z = (f[:, self.z_index].detach().cpu().numpy() - 0.5) * self.z_scale
+        e = f[:, self.E_index].detach().cpu().numpy() * self.E_scale
+        PE0 = f[:, self.PE0_index].detach().cpu().numpy() * self.PE_scale
+        PE1 = f[:, self.PE1_index].detach().cpu().numpy() * self.PE_scale
         cal_z_pred = np.zeros(f[:, self.z_index].shape)
         z_basic_prediction(coo, z, cal_z_pred)
-        if hasattr(self,"calibrator"):
+        if hasattr(self, "calibrator"):
             cal_E_pred = np.zeros(f[:, self.E_index].shape)
             E_basic_prediction(coo, e, PE0, PE1, cal_z_pred, self.seg_status, self.calibrator.light_pos_curves,
                                self.calibrator.light_sum_curves, self.PE_scale, cal_E_pred)

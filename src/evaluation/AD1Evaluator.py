@@ -40,8 +40,8 @@ class PhysCoordEvaluator(AD1Evaluator):
     vs[5] = p.PSD;
     vs[6] = ((Float_t)(p.t - toffset)) / 600.;
     """
-    def __init__(self):
-        super(PhysCoordEvaluator, self).__init__()
+    def __init__(self, calgroup=None):
+        super(PhysCoordEvaluator, self).__init__(calgroup)
         self.dt_scale = 200.
         self.toffset_scale = 600.
         self.PE_scale = 125000.
