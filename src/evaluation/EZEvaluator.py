@@ -22,9 +22,9 @@ class EZEvaluatorBase:
         self.ZEvaluator.logger = l
 
 class EZEvaluatorPhys(EZEvaluatorBase):
-    def __init__(self, logger):
+    def __init__(self, logger, calgroup=None):
         super().__init__(logger)
-        self.EnergyEvaluator = EnergyEvaluatorPhys(logger)
+        self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup)
         self.ZEvaluator = ZEvaluatorPhys(logger)
 
 

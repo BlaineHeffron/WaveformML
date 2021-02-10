@@ -337,8 +337,9 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=TITLE_SIZE)
-    plt.colorbar(h[3])
-    # cb.set_label(zlabel, rotation=270)
+    cb = plt.colorbar(h[3])
+    if(zlabel):
+        cb.set_label(zlabel, rotation=270, labelpad=20)
     return fig
 
 

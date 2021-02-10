@@ -100,7 +100,7 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
     def __init__(self, logger, calgroup=None):
         super(EnergyEvaluatorPhys, self).__init__(logger)
-        PhysCoordEvaluator.__init__(self)
+        PhysCoordEvaluator.__init__(self, calgroup)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
