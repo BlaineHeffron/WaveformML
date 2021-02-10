@@ -31,18 +31,18 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                                  [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
                                  [self.E_bounds[1], self.mult_bounds[1]], 2, ["True Energy Deposited", "Multiplicity"],
                                  ["MeV", ""],
-                                 "Energy Mean Absolute Percent Error", "", underflow=(1, 0), scale=self.E_scale)
+                                 "Energy Mean Absolute Percent Error", "", underflow=(1, 0))
         self.register_duplicates(self.E_z_names, [self.n_E, self.n_z],
                                  [self.E_bounds[0], self.z_bounds[0]],
                                  [self.E_bounds[1], self.z_bounds[1]], 2,
                                  ["True Energy Deposited", "Calculated Z Position"], ["MeV", "mm"],
-                                 "Energy Mean Absolute Percent Error", "", scale=self.E_scale)
+                                 "Energy Mean Absolute Percent Error", "")
         self.register_duplicates(self.seg_mult_names, [self.nx, self.ny, self.n_mult],
                                  [0.5, 0.5, 0.5],
                                  [self.nx + 0.5, self.ny + 0.5, self.n_mult + 0.5], 3,
                                  ["x segment", "y segment", "Multiplicity"], [""] * 3,
                                  "Energy Mean Absolute Percent Error", "",
-                                 underflow=False, overflow=(0, 0, 1), scale=self.E_scale)
+                                 underflow=False, overflow=(0, 0, 1))
 
     def calc_deviation_with_z(self, pred, targ, cal_E, cal_Z):
         E_deviation_with_z(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emae"][0],

@@ -825,8 +825,6 @@ def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_
                 continue
             elif PE0[batch] != 0 and PE1[batch] != 0:
                 print("error: seg status is incongruent with PE0, PE1, for segment ")
-                print(x)
-                print(y)
             logR = lin_interp_inverse(light_pos_curves[x,y], z[batch])
             if PE0[batch] == 0:
                 P0 = PE1[batch]/exp(logR)

@@ -136,18 +136,18 @@ class StatsAggregator:
         low, up = self.get_plot_ranges(name, base_name)
         if dim == 1:
             if units[0]:
-                ylabel = "total [" + units[0] + r"$^{-1}]"
+                ylabel = "total [" + units[0] + r"$^{-1}$]"
             else:
                 ylabel = "total"
             fig = plot_hist1d(bin_edges, getattr(self, base_name)[name][1][low[0]:up[0]], plot_title, labels[0], ylabel,
                               norm_to_bin_width=True)
         elif dim == 2:
             if units[0] and units[1]:
-                zlabel = "total [" + units[0] + r"$^{-1}" + units[1] + r"$^{-1}]"
+                zlabel = "total [" + units[0] + r"$^{-1}$" + units[1] + r"$^{-1}$]"
             elif units[0]:
-                zlabel = "total [" + units[0] + r"$^{-1}]"
+                zlabel = "total [" + units[0] + r"$^{-1}$]"
             elif units[1]:
-                zlabel = "total [" + units[1] + r"$^{-1}]"
+                zlabel = "total [" + units[1] + r"$^{-1}$]"
             else:
                 zlabel = "total"
             fig = plot_hist2d(bin_edges[0], bin_edges[1],
