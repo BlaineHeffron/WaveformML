@@ -31,18 +31,18 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                                  [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
                                  [self.E_bounds[1], self.mult_bounds[1]], 2, ["True Energy Deposited", "Multiplicity"],
                                  ["MeV", ""],
-                                 "Energy Mean Absolute Percent Error", "", underflow=(1, 0))
+                                 "Energy Mean Absolute Percent Error", "", underflow=(1, 0), scale=100.)
         self.register_duplicates(self.E_z_names, [self.n_E, self.n_z],
                                  [self.E_bounds[0], self.z_bounds[0]],
                                  [self.E_bounds[1], self.z_bounds[1]], 2,
                                  ["True Energy Deposited", "Calculated Z Position"], ["MeV", "mm"],
-                                 "Energy Mean Absolute Percent Error", "")
+                                 "Energy Mean Absolute Percent Error", "", scale=100.)
         self.register_duplicates(self.seg_mult_names, [self.nx, self.ny, self.n_mult],
                                  [0.5, 0.5, 0.5],
                                  [self.nx + 0.5, self.ny + 0.5, self.n_mult + 0.5], 3,
                                  ["x segment", "y segment", "Multiplicity"], [""] * 3,
                                  "Energy Mean Absolute Percent Error", "",
-                                 underflow=False, overflow=(0, 0, 1))
+                                 underflow=False, overflow=(0, 0, 1), scale=100.)
 
     def calc_deviation_with_z(self, pred, targ, cal_E, cal_Z):
         E_deviation_with_z(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emae"][0],
@@ -106,12 +106,13 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         coo = c.detach().cpu().numpy()
-        z = (f[:, self.z_index].detach().cpu().numpy() - 0.5) * self.z_scale
+        z = f[:, self.z_index].detach().cpu().numpy()
         e = f[:, self.E_index].detach().cpu().numpy() * self.E_scale
         PE0 = f[:, self.PE0_index].detach().cpu().numpy() * self.PE_scale
         PE1 = f[:, self.PE1_index].detach().cpu().numpy() * self.PE_scale
         cal_z_pred = np.zeros(f[:, self.z_index].shape)
         z_basic_prediction(coo, z, cal_z_pred)
+        cal_z_pred = (cal_z_pred - 0.5) * self.z_scale
         if hasattr(self, "calibrator"):
             cal_E_pred = np.zeros(f[:, self.E_index].shape)
             E_basic_prediction(coo, e, PE0, PE1, cal_z_pred, self.seg_status, self.calibrator.light_pos_curves,
