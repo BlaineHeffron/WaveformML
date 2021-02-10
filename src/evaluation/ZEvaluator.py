@@ -244,7 +244,7 @@ class ZEvaluatorBase:
                                                           self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
                                                       "MAE - double ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/z_mult_mae_single",
@@ -255,7 +255,7 @@ class ZEvaluatorBase:
                                                           self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
                                                       "MAE - single ended", "Z [mm]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False, logz=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False, logz=False,
                                                       cm=self.colormap))
         if self.hascal:
             for i in range(self.nmult):
@@ -295,7 +295,7 @@ class ZEvaluatorBase:
                                                               self.results["z_mult_mae_dual_cal"][1][1:self.n_bins + 1,
                                                               0:self.nmult]) * self.z_scale,
                                                           "MAE - double ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]', norm_to_bin_width=False,
+                                                          r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                           logz=False,
                                                           cm=self.colormap))
 
@@ -308,7 +308,7 @@ class ZEvaluatorBase:
                                                                          1:self.n_bins + 1,
                                                                          0:self.nmult]) * self.z_scale,
                                                           "MAE - single ended", "Z [mm]", "multiplicity",
-                                                          r'# mean average error [mm]', norm_to_bin_width=False,
+                                                          r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                           logz=False,
                                                           cm=self.colormap))
 
@@ -333,7 +333,7 @@ class ZEvaluatorBase:
                                                           self.results["E_mult_mae_dual"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
                                                       "MAE - double ended", "Visible Energy [MeV]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
 
@@ -346,7 +346,7 @@ class ZEvaluatorBase:
                                                                      1:self.n_bins + 1,
                                                                      0:self.nmult]) * self.z_scale,
                                                       "MAE - single ended", "Visible Energy [MeV]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
         self.logger.experiment.add_figure("evaluation/E_mult_dual",
@@ -370,7 +370,7 @@ class ZEvaluatorBase:
                                                           self.results["E_mult_mae_dual_cal"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
                                                       "MAE - double ended", "Visible Energy [MeV]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
 
@@ -383,7 +383,7 @@ class ZEvaluatorBase:
                                                                      1:self.n_bins + 1,
                                                                      0:self.nmult]) * self.z_scale,
                                                       "MAE - single ended", "Visible Energy [MeV]", "multiplicity",
-                                                      r'# mean average error [mm]', norm_to_bin_width=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
         self._init_results()

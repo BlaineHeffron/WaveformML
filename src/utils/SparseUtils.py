@@ -905,7 +905,7 @@ def E_deviation(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult_dual_o
         for i in range(nx):
             for j in range(ny):
                 if targets[batch, i, j] > 0:
-                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
+                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j]) / targets[batch, i, j]
                     true_E = targets[batch, i, j] * E_scale
                     E_bin = get_bin_index(true_E, E_low, E_high, bin_width, nE)
                     increment_metric_mult_SE(E_dev, E_bin, i, j, mult, nmult, dev, out_n, E_mult_single_dev,
@@ -926,7 +926,7 @@ def E_deviation_with_z(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult
         for i in range(nx):
             for j in range(ny):
                 if targets[batch, i, j] > 0:
-                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
+                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j]) / targets[batch,i,j]
                     true_E = targets[batch, i, j]*E_scale
                     E_bin = get_bin_index(true_E, E_low, E_high, E_bin_width, nE)
                     z_bin = get_bin_index((Z[batch, i, j] - 0.5)*zrange, -zrange/2., zrange/2., zrange/nE, nE)
