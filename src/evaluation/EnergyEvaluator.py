@@ -9,7 +9,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
     def __init__(self, logger):
         super(EnergyEvaluatorBase, self).__init__(logger)
-        super(EnergyEvaluatorBase, self).__init__()
+        SingleEndedEvaluator.__init__(self)
         self.hascal = False
         self.E_bounds = [0., 12.]
         self.mult_bounds = [0.5, 10.5]
@@ -27,7 +27,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
         self.register_duplicates(self.E_mult_names,
                                  [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
                                  [self.E_bounds[1], self.mult_bounds[1]], 2, ["Energy", "Multiplicity"], ["MeV", ""],
-                                 "Energy MAE", "MeV", underflow=[1, 0], scale=self.E_scale)
+                                 "Energy MAE", "MeV", underflow=(1, 0), scale=self.E_scale)
         self.register_duplicates(self.E_z_names, [self.n_E, self.n_z],
                                  [self.E_bounds[0], self.z_bounds[0]],
                                  [self.E_bounds[1], self.z_bounds[1]], 2, ["Energy", "Z Position"], ["MeV", "mm"],
@@ -36,7 +36,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                                  [0.5, 0.5, 0.5],
                                  [self.nx + 0.5, self.ny + 0.5, self.n_mult + 0.5], 3,
                                  ["x segment", "y segment", "Multiplicity"], [""] * 3, "Energy MAE", "MeV",
-                                 underflow=False, overflow=[0, 0, 1], scale=self.E_scale)
+                                 underflow=False, overflow=(0, 0, 1), scale=self.E_scale)
 
     def calc_deviation_with_z(self, pred, targ, E, Z):
         E_deviation_with_z(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emae"][0],
@@ -92,7 +92,7 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
     def __init__(self, logger):
         super(EnergyEvaluatorPhys, self).__init__(logger)
-        super(EnergyEvaluatorPhys, self).__init__()
+        PhysCoordEvaluator.__init__(self)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
