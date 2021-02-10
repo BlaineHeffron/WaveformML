@@ -16,6 +16,10 @@ class EZEvaluatorBase:
         self.EnergyEvaluator.dump()
         self.ZEvaluator.dump()
 
+    def set_logger(self, l):
+        self.logger = l
+        self.EnergyEvaluator.logger = l
+        self.ZEvaluator.logger = l
 
 class EZEvaluatorPhys(EZEvaluatorBase):
     def __init__(self, logger):

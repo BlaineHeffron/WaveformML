@@ -113,7 +113,7 @@ class LitEZ(pl.LightningModule):
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
         results_dict = {'test_loss': loss, 'test_MAE_E': ELoss, 'test_MAE_z': ZLoss}
         if not self.evaluator.logger:
-            self.evaluator.logger = self.logger
+            self.evaluator.set_logger(self.logger)
         self.evaluator.add(predictions, target_tensor, c, f)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict
