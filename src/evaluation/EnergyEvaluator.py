@@ -16,11 +16,11 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
         self.n_E = 20
         self.n_z = 20
         self.z_bounds = [-600., 600.]
-        self.initialize()
         self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
         self.E_mult_titles = ["Single Ended", "Single Ended", "Double Ended", "Double Ended"]
         self.E_z_names = ["E_z_single", "E_z_single_cal", "E_z_dual", "E_z_dual_cal"]
         self.seg_mult_names = ["seg_mult_Emae", "seg_mult_Emae_cal"]
+        self.initialize()
 
     def initialize(self):
         self.register_duplicates(self.E_mult_names,
