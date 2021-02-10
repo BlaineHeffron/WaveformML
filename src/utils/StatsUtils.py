@@ -96,7 +96,7 @@ class StatsAggregator:
         getattr(self, base_name)[name] = (np.zeros(tuple(n_bins[i] + underflow[i] + overflow[i] for i in range(dim)),
                                                    dtype=np.float32),
                                           np.zeros(tuple(n_bins[i] + underflow[i] + overflow[i] for i in range(dim)),
-                                                   dtype=np.int32)),
+                                                   dtype=np.int32))
 
     def get_plot_metadata(self, name, base_name="results"):
         labels = []
