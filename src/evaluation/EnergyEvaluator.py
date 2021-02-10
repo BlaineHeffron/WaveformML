@@ -8,8 +8,8 @@ from src.utils.SparseUtils import E_deviation, E_deviation_with_z
 class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
     def __init__(self, logger):
-        super(EnergyEvaluatorBase, self).__init__()
         super(EnergyEvaluatorBase, self).__init__(logger)
+        super(EnergyEvaluatorBase, self).__init__()
         self.hascal = False
         self.E_bounds = [0., 12.]
         self.mult_bounds = [0.5, 10.5]
@@ -91,8 +91,8 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
 
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
     def __init__(self, logger):
-        super(EnergyEvaluatorPhys, self).__init__()
         super(EnergyEvaluatorPhys, self).__init__(logger)
+        super(EnergyEvaluatorPhys, self).__init__()
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
