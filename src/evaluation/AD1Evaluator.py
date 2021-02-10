@@ -1,10 +1,17 @@
+import os
+
 import spconv
 import torch
 import numpy as np
 
+from src.datasets.HDF5Dataset import MAX_RANGE
+from src.evaluation.Calibrator import Calibrator
+from src.utils.SQLUtils import CalibrationDB
+from src.utils.SQLiteUtils import get_gains
+
 
 class AD1Evaluator:
-    def __init__(self):
+    def __init__(self, calgroup=None):
         self.nx = 14
         self.ny = 11
         self.spatial_size = np.array([self.nx, self.ny])
@@ -12,6 +19,15 @@ class AD1Evaluator:
         self.z_scale = 1200.
         self.E_scale = 300.
 
+        if calgroup is not None:
+            self.hascal = True
+            if "PROSPECT_CALDB" not in os.environ.keys():
+                raise ValueError(
+                    "Error: could not find PROSPECT_CALDB environment variable. Please set PROSPECT_CALDB to be the "
+                    "path of the sqlite3 calibration database.")
+            gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
+            self.gain_factor = np.divide(np.full((self.nx, self.ny, 2), MAX_RANGE), gains)
+            self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
 
 class PhysCoordEvaluator(AD1Evaluator):
     """

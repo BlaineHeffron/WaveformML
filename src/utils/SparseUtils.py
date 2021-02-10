@@ -1,5 +1,5 @@
 import numba as nb
-from math import ceil, floor, sqrt, log
+from math import ceil, floor, sqrt, log, exp
 from numba.typed import List
 from numpy import zeros, int32, float32
 from src.utils.NumbaFunctions import merge_sort_two, merge_sort_main_numba
@@ -475,6 +475,18 @@ def sum1d(vec):
 
 
 @nb.jit(nopython=True)
+def lin_interp_inverse(xy, y):
+    """xy is vector of shape (n,2), second index denotes x (0) and y (1)"""
+    for i in range(xy.shape[0]):
+        if xy[i, 1] > y:
+            if i == 0:
+                return xy[i, 0]
+            else:
+                return xy[i - 1, 0] + (y - xy[i - 1, 1]) * ((xy[i, 0] - xy[i - 1, 0]) / (xy[i, 1] - xy[i - 1, 1]))
+    return xy[xy.shape[0] - 1, 0]
+
+
+@nb.jit(nopython=True)
 def lin_interp(xy, x):
     """xy is vector of shape (n,2), second index denotes x (0) and y (1)"""
     for i in range(xy.shape[0]):
@@ -800,6 +812,30 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                 z = (z_dt * z_dt_weight + z_light * z_light_weight) / (z_dt_weight + z_light_weight)
                 z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
                 E_out[coord[2], coord[0], coord[1]] = E
+
+
+@nb.jit(nopython=True)
+def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_sum_curves, PE_scale, pred):
+    """assumes z contains some z prediction for single ended"""
+    for batch in range(coo.shape[0]):
+        x = coo[batch,0]
+        y = coo[batch,1]
+        if seg_status[x, y] > 0:
+            if PE0[batch] == 0 and PE1[batch] == 0:
+                continue
+            elif PE0[batch] != 0 and PE1[batch] != 0:
+                print("error: seg status is incongruent with PE0, PE1, for segment {0}, {1}".format(x,y))
+            logR = lin_interp_inverse(light_pos_curves[x,y], z[batch])
+            if PE0[batch] == 0:
+                P0 = PE1[batch]/exp(logR)
+                pred[batch] = PE_scale*(P0 + PE1[batch]) / lin_interp(light_sum_curves[x, y], z[batch])
+            else:
+                P1 = PE0[batch]*exp(logR)
+                pred[batch] = PE_scale*(PE0[batch] + P1) / lin_interp(light_sum_curves[x, y], z[batch])
+        else:
+            pred[batch] = E[batch]
+
+
 
 
 @nb.jit(nopython=True)

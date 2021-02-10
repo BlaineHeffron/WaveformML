@@ -192,12 +192,12 @@ class ZEvaluatorBase:
             self.logger.experiment.add_figure("evaluation/z_error_summary_E_single",
                                               MultiLinePlot(self.E_bin_centers,
                                                             [single_err_E, single_err_E_cal],
-                                                            ["NN", "calibration"], "visible energy [MeVee]", ylabel,
+                                                            ["NN", "calibration"], "visible energy [MeV]", ylabel,
                                                             ylog=False, title="Single Ended"))
             self.logger.experiment.add_figure("evaluation/z_error_summary_E_dual",
                                               MultiLinePlot(self.E_bin_centers,
                                                             [dual_err_E, dual_err_E_cal],
-                                                            ["NN", "calibration"], "visible energy [MeVee]", ylabel,
+                                                            ["NN", "calibration"], "visible energy [MeV]", ylabel,
                                                             ylog=False, title="Dual Ended"))
         else:
             self.logger.experiment.add_figure("evaluation/error_summary_mult",
@@ -316,13 +316,13 @@ class ZEvaluatorBase:
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_dual"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - double ended", "E [MeV]", "multiplicity",
+                                                      "Total - double ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$', cm=self.colormap))
         self.logger.experiment.add_figure("evaluation/E_mult_single",
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_single"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - single ended", "E [MeV]", "multiplicity",
+                                                      "Total - single ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$]', cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/E_mult_mae_dual",
@@ -332,7 +332,7 @@ class ZEvaluatorBase:
                                                           0:self.nmult],
                                                           self.results["E_mult_mae_dual"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
-                                                      "MAE - double ended", "E [MeV]", "multiplicity",
+                                                      "MAE - double ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# mean average error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
@@ -345,7 +345,7 @@ class ZEvaluatorBase:
                                                                      self.results["E_mult_mae_single"][1][
                                                                      1:self.n_bins + 1,
                                                                      0:self.nmult]) * self.z_scale,
-                                                      "MAE - single ended", "E [MeV]", "multiplicity",
+                                                      "MAE - single ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# mean average error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
@@ -353,13 +353,13 @@ class ZEvaluatorBase:
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_dual"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - double ended", "E [MeV]", "multiplicity",
+                                                      "Total - double ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$', cm=self.colormap))
         self.logger.experiment.add_figure("evaluation/cal_E_mult_single",
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_single_cal"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - single ended", "E [MeV]", "multiplicity",
+                                                      "Total - single ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$]', cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/cal_E_mult_mae_dual",
@@ -369,7 +369,7 @@ class ZEvaluatorBase:
                                                           0:self.nmult],
                                                           self.results["E_mult_mae_dual_cal"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
-                                                      "MAE - double ended", "E [MeV]", "multiplicity",
+                                                      "MAE - double ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# mean average error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
@@ -382,7 +382,7 @@ class ZEvaluatorBase:
                                                                      self.results["E_mult_mae_single_cal"][1][
                                                                      1:self.n_bins + 1,
                                                                      0:self.nmult]) * self.z_scale,
-                                                      "MAE - single ended", "E [MeV]", "multiplicity",
+                                                      "MAE - single ended", "Visible Energy [MeV]", "multiplicity",
                                                       r'# mean average error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))

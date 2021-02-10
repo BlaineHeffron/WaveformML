@@ -2,14 +2,15 @@ from src.evaluation.AD1Evaluator import PhysCoordEvaluator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
 from src.utils.StatsUtils import StatsAggregator
-from src.utils.SparseUtils import E_deviation, E_deviation_with_z
+from src.utils.SparseUtils import E_deviation, E_deviation_with_z, z_basic_prediction, E_basic_prediction
+import numpy as np
 
 
 class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
-    def __init__(self, logger):
+    def __init__(self, logger, calgroup=None):
         super(EnergyEvaluatorBase, self).__init__(logger)
-        SingleEndedEvaluator.__init__(self)
+        super(EnergyEvaluatorBase, self).__init__(calgroup=calgroup)
         self.hascal = False
         self.E_bounds = [0., 12.]
         self.mult_bounds = [0.5, 10.5]
@@ -26,11 +27,11 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
     def initialize(self):
         self.register_duplicates(self.E_mult_names,
                                  [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
-                                 [self.E_bounds[1], self.mult_bounds[1]], 2, ["Energy", "Multiplicity"], ["MeV", ""],
+                                 [self.E_bounds[1], self.mult_bounds[1]], 2, ["True Energy Deposited", "Multiplicity"], ["MeV", ""],
                                  "Energy MAE", "MeV", underflow=(1, 0), scale=self.E_scale)
         self.register_duplicates(self.E_z_names, [self.n_E, self.n_z],
                                  [self.E_bounds[0], self.z_bounds[0]],
-                                 [self.E_bounds[1], self.z_bounds[1]], 2, ["Energy", "Z Position"], ["MeV", "mm"],
+                                 [self.E_bounds[1], self.z_bounds[1]], 2, ["True Energy Deposited", "Calculated Z Position"], ["MeV", "mm"],
                                  "Energy MAE", "MeV", scale=self.E_scale)
         self.register_duplicates(self.seg_mult_names, [self.nx, self.ny, self.n_mult],
                                  [0.5, 0.5, 0.5],
@@ -38,31 +39,31 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                                  ["x segment", "y segment", "Multiplicity"], [""] * 3, "Energy MAE", "MeV",
                                  underflow=False, overflow=(0, 0, 1), scale=self.E_scale)
 
-    def calc_deviation_with_z(self, pred, targ, E, Z):
+    def calc_deviation_with_z(self, pred, targ, cal_E, cal_Z):
         E_deviation_with_z(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emae"][0],
                            self.results["seg_mult_Emae"][1], self.results["E_mult_dual"][0],
                            self.results["E_mult_dual"][1], self.results["E_mult_single"][0],
                            self.results["E_mult_single"][1], self.seg_status, self.nx, self.ny,
                            self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale,
-                           self.z_scale, Z, self.results["E_z_dual"][0],
+                           self.z_scale, cal_Z, self.results["E_z_dual"][0],
                            self.results["E_z_dual"][1], self.results["E_z_single"][0],
                            self.results["E_z_single"][1])
-        E_deviation_with_z(E, targ[:, 0, :, :], self.results["seg_mult_Emae_cal"][0],
+        E_deviation_with_z(cal_E, targ[:, 0, :, :], self.results["seg_mult_Emae_cal"][0],
                            self.results["seg_mult_Emae_cal"][1], self.results["E_mult_dual_cal"][0],
                            self.results["E_mult_dual_cal"][1], self.results["E_mult_single_cal"][0],
                            self.results["E_mult_single_cal"][1], self.seg_status, self.nx, self.ny,
                            self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale,
-                           self.z_scale, Z, self.results["E_z_dual_cal"][0],
+                           self.z_scale, cal_Z, self.results["E_z_dual_cal"][0],
                            self.results["E_z_dual_cal"][1], self.results["E_z_single_cal"][0],
                            self.results["E_z_single_cal"][1])
 
     def dump(self):
         for name, title in zip(self.E_mult_names, self.E_mult_titles):
             self.log_total(name, "evaluation/{}".format(name), title)
-            self.log_metric(name, "evaluation/{}".format(name), title)
+            self.log_metric(name, "evaluation/{0}_{1}".format(name, "MAE"), title)
         for name, title in zip(self.E_z_names, self.E_mult_titles):
             self.log_total(name, "evaluation/{}".format(name), title)
-            self.log_metric(name, "evaluation/{}".format(name), title)
+            self.log_metric(name, "evaluation/{0}_{1}".format(name, "MAE"), title)
         for name in self.seg_mult_names:
             self.log_segment_metric(name, "evaluation/{}".format(name))
 
@@ -92,13 +93,26 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
 
 
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
-    def __init__(self, logger):
+    def __init__(self, logger, calgroup=None):
         super(EnergyEvaluatorPhys, self).__init__(logger)
         PhysCoordEvaluator.__init__(self)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
-        Z = self.get_dense_matrix(f[:, self.z_index], c)
-        E = self.get_dense_matrix(f[:, self.E_index], c)
+        coo = c.detach().cpu().numpy()
+        z = (f[:, self.z_index].detach().cpu().numpy() - 0.5)*self.z_scale
+        e = f[:, self.E_index].detach().cpu().numpy()*self.E_scale
+        PE0 = f[:, self.PE0_index].detach().cpu().numpy()*self.PE_scale
+        PE1 = f[:, self.PE1_index].detach().cpu().numpy()*self.PE_scale
+        cal_z_pred = np.zeros(f[:, self.z_index].shape)
+        z_basic_prediction(coo, z, cal_z_pred)
+        if hasattr(self,"calibrator"):
+            cal_E_pred = np.zeros(f[:, self.E_index].shape)
+            E_basic_prediction(coo, e, PE0, PE1, cal_z_pred, self.seg_status, self.calibrator.light_pos_curves,
+                               self.calibrator.light_sum_curves, self.PE_scale, cal_E_pred)
+        else:
+            cal_E_pred = e
+        Z = self.get_dense_matrix(cal_z_pred, c) / self.z_scale + 0.5
+        E = self.get_dense_matrix(cal_E_pred, c) / self.E_scale
         self.calc_deviation_with_z(pred, targ, E[:, 0, :, :], Z[:, 0, :, :])
