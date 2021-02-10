@@ -4,6 +4,7 @@ from src.evaluation.ZEvaluator import ZEvaluatorPhys, ZEvaluatorWF, ZEvaluatorBa
 
 class EZEvaluatorBase:
     def __init__(self, logger):
+        self.logger = logger
         self.EnergyEvaluator = EnergyEvaluatorBase(logger)
         self.ZEvaluator = ZEvaluatorBase(logger)
 
@@ -18,11 +19,13 @@ class EZEvaluatorBase:
 
 class EZEvaluatorPhys(EZEvaluatorBase):
     def __init__(self, logger):
+        super().__init__(logger)
         self.EnergyEvaluator = EnergyEvaluatorPhys(logger)
         self.ZEvaluator = ZEvaluatorPhys(logger)
 
 
 class EZEvaluatorWF(EZEvaluatorBase):
     def __init__(self, logger, calgroup=None):
+        super().__init__(logger)
         self.EnergyEvaluator = EnergyEvaluatorWF(logger, calgroup)
         self.ZEvaluator = ZEvaluatorWF(logger, calgroup)
