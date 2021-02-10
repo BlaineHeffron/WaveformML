@@ -95,7 +95,7 @@ class StatsAggregator:
         self.set_bin_edges(name, lower_bounds, upper_bounds, n_bins, base_name)
         getattr(self, base_name)[name] = (np.zeros(tuple(n_bins[i] + underflow[i] + overflow[i] for i in range(dim)),
                                                    dtype=np.float32),
-                                          np.zeros((n_bins[i] + underflow[i] + overflow[i] for i in range(dim)),
+                                          np.zeros(tuple(n_bins[i] + underflow[i] + overflow[i] for i in range(dim)),
                                                    dtype=np.int32)),
 
     def get_plot_metadata(self, name, base_name="results"):
