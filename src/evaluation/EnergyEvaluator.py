@@ -1,3 +1,5 @@
+import torch
+
 from src.evaluation.AD1Evaluator import PhysCoordEvaluator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
@@ -115,6 +117,8 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
                                self.calibrator.light_sum_curves, self.PE_scale, cal_E_pred)
         else:
             cal_E_pred = e
-        Z = self.get_dense_matrix(cal_z_pred, c) / self.z_scale + 0.5
-        E = self.get_dense_matrix(cal_E_pred, c) / self.E_scale
+        cal_z_pred = cal_z_pred / self.z_scale + 0.5
+        cal_E_pred = cal_E_pred / self.E_scale
+        Z = self.get_dense_matrix(torch.tensor(cal_z_pred), c)
+        E = self.get_dense_matrix(torch.tensor(cal_E_pred), c)
         self.calc_deviation_with_z(pred, targ, E[:, 0, :, :], Z[:, 0, :, :])
