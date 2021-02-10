@@ -115,7 +115,7 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
         if hasattr(self, "calibrator"):
             cal_E_pred = np.zeros(f[:, self.E_index].shape)
             E_basic_prediction(coo, e, PE0, PE1, cal_z_pred, self.seg_status, self.calibrator.light_pos_curves,
-                               self.calibrator.light_sum_curves, self.PE_scale, cal_E_pred)
+                               self.calibrator.light_sum_curves, cal_E_pred)
         else:
             cal_E_pred = e
         cal_z_pred = cal_z_pred / self.z_scale + 0.5

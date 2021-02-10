@@ -815,7 +815,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
 
 
 @nb.jit(nopython=True)
-def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_sum_curves, PE_scale, pred):
+def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_sum_curves, pred):
     """assumes z contains some z prediction for single ended"""
     for batch in range(coo.shape[0]):
         x = coo[batch,0]
@@ -828,10 +828,10 @@ def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_
             logR = lin_interp_inverse(light_pos_curves[x,y], z[batch])
             if PE0[batch] == 0:
                 P0 = PE1[batch]/exp(logR)
-                pred[batch] = PE_scale*(P0 + PE1[batch]) / lin_interp(light_sum_curves[x, y], z[batch])
+                pred[batch] = (P0 + PE1[batch]) / lin_interp(light_sum_curves[x, y], z[batch])
             else:
                 P1 = PE0[batch]*exp(logR)
-                pred[batch] = PE_scale*(PE0[batch] + P1) / lin_interp(light_sum_curves[x, y], z[batch])
+                pred[batch] = (PE0[batch] + P1) / lin_interp(light_sum_curves[x, y], z[batch])
         else:
             pred[batch] = E[batch]
 
