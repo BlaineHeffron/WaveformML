@@ -51,8 +51,8 @@ class SingleEndedEZConv(nn.Module):
     def forward(self, x):
         batch_size = x[0][-1, -1] + 1
         if self.use_z_model:
-            x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
             z = self.z_model(x)
+            x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
             x.features = torch.cat((x.features, z.features), dim=1)
             # new_features = torch.cat((x.features, z.features), dim=1)
             # x = spconv.SparseConvTensor(new_features, x[0][:, self.permute_tensor], self.spatial_size, batch_size)
