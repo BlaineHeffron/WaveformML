@@ -24,10 +24,10 @@ class SingleEndedEZConv(nn.Module):
             self.use_z_model = True
             if not hasattr(self.net_config, "z_config"):
                 raise ValueError("if specifying z_weights, you must also specify corresponding z_config")
-            config = get_config(self.net_config.z_config)
-            setattr(config.net_config.hparams.conv, "todense", False)
-            self.log.info("Using Z model from {}".format(self.config.net_config.z_weights))
-            self.z_model = LitZ.load_from_checkpoint(self.net_config.z_weights, config=config)
+            z_config = get_config(self.net_config.z_config)
+            setattr(z_config.net_config.hparams.conv, "todense", False)
+            self.log.info("Using Z model from {}".format(self.net_config.z_weights))
+            self.z_model = LitZ.load_from_checkpoint(self.net_config.z_weights, config=z_config)
             self.z_model.freeze()
         else:
             self.use_z_model = False
