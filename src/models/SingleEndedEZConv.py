@@ -26,6 +26,7 @@ class SingleEndedEZConv(nn.Module):
                 raise ValueError("if specifying z_weights, you must also specify corresponding z_config")
             config = get_config(self.net_config.z_config)
             setattr(config.net_config.hparams.conv, "todense", False)
+            self.log.info("Using Z model from {}".format(self.config.net_config.z_weights))
             self.z_model = LitZ.load_from_checkpoint(self.net_config.z_weights, config=config)
             self.z_model.freeze()
         else:
