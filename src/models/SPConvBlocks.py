@@ -7,7 +7,8 @@ from src.models.Algorithm import *
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
 
 class SparseConv2DForEZ(nn.Module):
-    def __init__(self, in_planes, out_planes=2, kernel_size=3, n_conv=1, n_point=3, conv_position=3, pointwise_factor=0.8):
+    def __init__(self, in_planes, out_planes=2, kernel_size=3, n_conv=1, n_point=3, conv_position=3,
+                 pointwise_factor=0.8, batchnorm=True):
         """
         @type out_planes: int
         """
@@ -55,7 +56,8 @@ class SparseConv2DForEZ(nn.Module):
                                                                                                curr_kernel, pd))
             layers.append(spconv.SparseConv2d(inp, out, curr_kernel, 1, pd))
             if i != (n_layers - 1):
-                layers.append(nn.BatchNorm1d(out))
+                if batchnorm:
+                    layers.append(nn.BatchNorm1d(out))
             layers.append(nn.ReLU())
             inp = out
         layers.append(spconv.ToDense())

@@ -36,18 +36,6 @@ class LitZ(pl.LightningModule):
     def forward(self, x, *args, **kwargs):
         return self.model(x)
 
-    """
-    def prepare_data(self):
-        self.data_module.prepare_data()
-        self.data_module.setup()
-
-    def train_dataloader(self):
-        return self.data_module.train_dataloader()
-
-    def val_dataloader(self):
-        return self.data_module.val_dataloader()
-    """
-
     def configure_optimizers(self):
         optimizer = \
             self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
