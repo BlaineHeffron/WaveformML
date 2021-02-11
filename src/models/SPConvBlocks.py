@@ -15,11 +15,10 @@ class SparseConv2DForEZ(nn.Module):
         super(SparseConv2DForEZ, self).__init__()
         self.log = logging.getLogger(__name__)
         layers = []
-        if n_conv < 1:
-            raise ValueError("n_conv must be greater than 0")
-        if conv_position < 1:
-            raise ValueError("conv_position must be greater than 0")
         n_layers = n_conv + n_point
+        if n_conv > 0:
+            if conv_position < 1:
+                raise ValueError("conv position must be >= 1 if n_conv > 0")
         if n_point > 0:
             if n_layers == 1:
                 raise ValueError("n_layers must be > 1 if using pointwise convolution")
@@ -33,7 +32,10 @@ class SparseConv2DForEZ(nn.Module):
         out = copy(in_planes)
         inp = copy(in_planes)
         curr_kernel = copy(kernel_size)
-        conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
+        if n_conv > 0:
+            conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
+        else:
+            conv_positions = []
         for i in range(n_layers):
             if i == (n_layers - 1):
                 out = copy(out_planes)
@@ -68,7 +70,8 @@ class SparseConv2DForEZ(nn.Module):
 
 
 class SparseConv2DForZ(nn.Module):
-    def __init__(self, in_planes, kernel_size=3, n_layers=2, pointwise_layers=0, pointwise_factor=0.8):
+    def __init__(self, in_planes, kernel_size=3, n_layers=2, pointwise_layers=0, pointwise_factor=0.8,
+                 todense=True):
         super(SparseConv2DForZ, self).__init__()
         self.log = logging.getLogger(__name__)
         layers = []
@@ -113,7 +116,8 @@ class SparseConv2DForZ(nn.Module):
             in_planes = out
             if kernel_size > 1:
                 kernel_size -= 2
-        layers.append(spconv.ToDense())
+        if todense:
+            layers.append(spconv.ToDense())
         self.network = spconv.SparseSequential(*layers)
 
     def forward(self, x):

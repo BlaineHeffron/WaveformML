@@ -66,7 +66,7 @@ def _file_config_superset(data_info, fname):
 class PulseDataset(HDF5Dataset):
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type,
@@ -481,7 +481,7 @@ class PulseDataset2D(PulseDataset):
     where N is the number of PMTs fired for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
@@ -523,7 +523,7 @@ class PulseDataset3D(PulseDataset):
     where N is the number of cells active * active samples for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
@@ -566,7 +566,7 @@ class PulseDatasetPMT(PulseDataset):
     where N is the number of cells active * active samples for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
@@ -617,7 +617,7 @@ class PulseDatasetDet(PulseDataset):
     where N is the number of PMTs fired for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
@@ -660,7 +660,7 @@ class PulseDataset2DWithZ(PulseDataset):
     where N is the number of PMTs fired for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
@@ -702,7 +702,7 @@ class PulseDataset2DWithEZ(PulseDataset):
     where N is the number of PMTs fired for the M = batch size events"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
@@ -742,7 +742,7 @@ class PulseDatasetDetWithZ(PulseDataset):
     contains z which is the true z value"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
@@ -786,7 +786,7 @@ class PulseDatasetDetWithEZ(PulseDataset):
     contains z which is the true z value and E which is the true E value"""
 
     @classmethod
-    def retrieve_config(cls, config_path, device, use_half):
+    def retrieve_config(cls, config_path, device, use_half=False):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
