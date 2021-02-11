@@ -78,8 +78,8 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
 class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
     def __init__(self, logger, calgroup=None):
-        super().__init__(logger)
-        super().__init__(calgroup=calgroup)
+        EnergyEvaluatorBase.__init__(self, logger, calgroup)
+        WaveformEvaluator.__init__(self, calgroup)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
