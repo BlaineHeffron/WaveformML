@@ -25,7 +25,7 @@ class SingleEndedEZConv(nn.Module):
             if not hasattr(self.net_config, "z_config"):
                 raise ValueError("if specifying z_weights, you must also specify corresponding z_config")
             z_config = get_config(self.net_config.z_config)
-            setattr(z_config.net_config.hparams.conv, "todense", False)
+            #setattr(z_config.net_config.hparams.conv, "todense", False)
             self.log.info("Using Z model from {}".format(self.net_config.z_weights))
             self.z_model = LitZ.load_from_checkpoint(self.net_config.z_weights, config=z_config)
             self.z_model.freeze()
@@ -35,10 +35,10 @@ class SingleEndedEZConv(nn.Module):
             setattr(self.net_config, "algorithm", "conv")
         if self.use_z_model:
             if self.net_config.algorithm == "conv":
-                self.model = SparseConv2DForEZ(self.nsamples * 2 + 1, out_planes=1,
+                self.model = SparseConv2DForEZ(self.nsamples * 2, out_planes=1,
                                                **DictionaryUtility.to_dict(self.net_config.hparams))
             elif self.net_config.algorithm == "features":
-                self.model = SparseConv2DForEZ(self.nsamples + 1, out_planes=1,
+                self.model = SparseConv2DForEZ(self.nsamples, out_planes=1,
                                                **DictionaryUtility.to_dict(self.net_config.hparams))
         else:
             if self.net_config.algorithm == "conv":
@@ -53,7 +53,7 @@ class SingleEndedEZConv(nn.Module):
         if self.use_z_model:
             z = self.z_model(x)
             x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
-            x.features = torch.cat((x.features, z.features), dim=1)
+            #x.features = torch.cat((x.features, z.features), dim=1)
             # new_features = torch.cat((x.features, z.features), dim=1)
             # x = spconv.SparseConvTensor(new_features, x[0][:, self.permute_tensor], self.spatial_size, batch_size)
             x = self.model(x)
