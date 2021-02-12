@@ -16,6 +16,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
         if e_scale:
             self.E_adjust = self.E_scale / e_scale
             self.E_scale = e_scale
+            self.PE_scale = self.PE_scale / self.E_adjust
         else:
             self.E_adjust = 1.0
         self.hascal = False

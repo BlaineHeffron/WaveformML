@@ -29,11 +29,14 @@ class LitEZ(pl.LightningModule):
         self.zscale = 1200.
         self.escale = 300.
         self.e_adjust = 10.
+        self.e_factor = self.escale / self.e_adjust
+        self.phys_coord = False
         if hasattr(config.net_config, "escale"):
             self.escale = config.net_config.escale
         if hasattr(config.net_config, "zscale"):
             self.zscale = config.net_config.zscale
         if config.net_config.algorithm == "features":
+            self.phys_coord = True
             if hasattr(self.config.dataset_config, "calgroup"):
                 self.evaluator = EZEvaluatorPhys(self.logger, calgroup=self.config.dataset_config.calgroup, e_scale=self.e_adjust)
             else:
@@ -78,7 +81,7 @@ class LitEZ(pl.LightningModule):
         return optimizer
 
     def _format_target_and_prediction(self, pred, coords, target, batch_size):
-        target[:, 0] *= (self.escale / self.e_adjust)
+        target[:, 0] *= self.e_factor
         target_tensor = spconv.SparseConvTensor(target, coords[:, self.model.permute_tensor],
                                                 self.model.spatial_size, batch_size)
         target_tensor = target_tensor.dense()
@@ -90,30 +93,33 @@ class LitEZ(pl.LightningModule):
         ZLoss = self.criterion.forward(p[:, 1, :, :], t[:, 1, :, :])
         return ELoss + ZLoss, self.escale*ELoss, self.zscale*ZLoss
 
-    def training_step(self, batch, batch_idx):
+    def _process_batch(self, batch):
         (c, f), target = batch
+        if self.phys_coord:
+            f[:, 0] *= self.e_factor
+            f[:, 2] *= self.e_factor
+            f[:, 3] *= self.e_factor
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
+        return c, f, predictions, target_tensor
+
+
+    def training_step(self, batch, batch_idx):
+        _, _, predictions, target_tensor = self._process_batch(batch)
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        (c, f), target = batch
-        predictions = self.model([c, f])
-        batch_size = c[-1, -1] + 1
-        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
+        _, _, predictions, target_tensor = self._process_batch(batch)
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
         results_dict = {'val_loss': loss, 'val_MAE_E': ELoss, 'val_MAE_z': ZLoss}
         self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
         return results_dict
 
     def test_step(self, batch, batch_idx):
-        (c, f), target = batch
-        predictions = self.model([c, f])
-        batch_size = c[-1, -1] + 1
-        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
+        c, f, predictions, target_tensor = self._process_batch(batch)
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor)
         results_dict = {'test_loss': loss, 'test_MAE_E': ELoss, 'test_MAE_z': ZLoss}
         if not self.evaluator.logger:
