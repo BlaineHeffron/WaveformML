@@ -104,7 +104,7 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
 
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None):
-        super(EnergyEvaluatorPhys, self).__init__(logger, e_scale)
+        EnergyEvaluatorBase.__init__(self, logger, e_scale)
         PhysCoordEvaluator.__init__(self, calgroup)
         self.PE_scale = self.PE_scale / self.E_adjust
 
