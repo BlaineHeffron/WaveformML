@@ -29,12 +29,14 @@ class LitEZ(pl.LightningModule):
         self.zscale = 1200.
         self.escale = 300.
         self.e_adjust = 10.
-        self.e_factor = self.escale / self.e_adjust
         self.phys_coord = False
         if hasattr(config.net_config, "escale"):
             self.escale = config.net_config.escale
         if hasattr(config.net_config, "zscale"):
             self.zscale = config.net_config.zscale
+        if hasattr(config.net_config, "e_adjust"):
+            self.e_adjust = config.net_config.e_adjust
+        self.e_factor = self.escale / self.e_adjust
         if config.net_config.algorithm == "features":
             self.phys_coord = True
             if hasattr(self.config.dataset_config, "calgroup"):

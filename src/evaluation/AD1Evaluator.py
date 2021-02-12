@@ -53,10 +53,11 @@ class PhysCoordEvaluator(AD1Evaluator):
         self.PSD_index = 5
         self.toffset_index = 6
 
-    def get_dense_matrix(self, data: torch.tensor, c: torch.tensor):
+    def get_dense_matrix(self, data: torch.tensor, c: torch.tensor, to_numpy=True):
         batch_size = c[-1, -1] + 1
         data = spconv.SparseConvTensor(data.unsqueeze(1), c[:, self.permute_tensor],
                                        self.spatial_size, batch_size)
         data = data.dense()
-        data = data.detach().cpu().numpy()
+        if to_numpy:
+            data = data.detach().cpu().numpy()
         return data

@@ -10,7 +10,7 @@ import numpy as np
 
 class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
-    def __init__(self, logger, calgroup=None, e_scale=None):
+    def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
         StatsAggregator.__init__(self, logger)
         SingleEndedEvaluator.__init__(self, calgroup=calgroup)
         if e_scale:
@@ -28,7 +28,11 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
         self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
         self.E_mult_titles = ["Single Ended", "Single Ended", "Double Ended", "Double Ended"]
         self.E_z_names = ["E_z_single", "E_z_single_cal", "E_z_dual", "E_z_dual_cal"]
-        self.seg_mult_names = ["seg_mult_Emae", "seg_mult_Emae_cal"]
+        self.seg_mult_names = ["seg_mult_Emape", "seg_mult_Emape_cal"]
+        if namespace:
+            self.namespace = "evaluation/{}_".format(namespace)
+        else:
+            self.namespace = "evaluation/"
         self.initialize()
 
     def initialize(self):
@@ -50,16 +54,16 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                                  underflow=False, overflow=(0, 0, 1), scale=100.)
 
     def calc_deviation_with_z(self, pred, targ, cal_E, cal_Z):
-        E_deviation_with_z(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emae"][0],
-                           self.results["seg_mult_Emae"][1], self.results["E_mult_dual"][0],
+        E_deviation_with_z(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emape"][0],
+                           self.results["seg_mult_Emape"][1], self.results["E_mult_dual"][0],
                            self.results["E_mult_dual"][1], self.results["E_mult_single"][0],
                            self.results["E_mult_single"][1], self.seg_status, self.nx, self.ny,
                            self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale,
                            self.z_scale, cal_Z, self.results["E_z_dual"][0],
                            self.results["E_z_dual"][1], self.results["E_z_single"][0],
                            self.results["E_z_single"][1])
-        E_deviation_with_z(cal_E, targ[:, 0, :, :], self.results["seg_mult_Emae_cal"][0],
-                           self.results["seg_mult_Emae_cal"][1], self.results["E_mult_dual_cal"][0],
+        E_deviation_with_z(cal_E, targ[:, 0, :, :], self.results["seg_mult_Emape_cal"][0],
+                           self.results["seg_mult_Emape_cal"][1], self.results["E_mult_dual_cal"][0],
                            self.results["E_mult_dual_cal"][1], self.results["E_mult_single_cal"][0],
                            self.results["E_mult_single_cal"][1], self.seg_status, self.nx, self.ny,
                            self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale,
@@ -69,21 +73,21 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
     def dump(self):
         for name, title in zip(self.E_mult_names, self.E_mult_titles):
-            self.log_total(name, "evaluation/{}".format(name), title)
-            self.log_metric(name, "evaluation/{0}_{1}".format(name, "MAPE"), title)
+            self.log_total(name, "{0}{1}".format(self.namespace, name), title)
+            self.log_metric(name, "{0}{1}_{2}".format(self.namespace, name, "MAPE"), title)
         for name, title in zip(self.E_z_names, self.E_mult_titles):
-            self.log_total(name, "evaluation/{}".format(name), title)
-            self.log_metric(name, "evaluation/{0}_{1}".format(name, "MAPE"), title)
+            self.log_total(name, "{0}{1}".format(self.namespace, name), title)
+            self.log_metric(name, "{0}{1}_{2}".format(self.namespace, name, "MAPE"), title)
         for name in self.seg_mult_names:
-            self.log_segment_metric(name, "evaluation/{}".format(name))
+            self.log_segment_metric(name, "{0}{1}".format(self.namespace, name))
 
     def add(self, predictions, target, c, f):
         pass
 
 
 class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
-    def __init__(self, logger, calgroup=None, e_scale=None):
-        EnergyEvaluatorBase.__init__(self, logger, calgroup, e_scale)
+    def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
+        EnergyEvaluatorBase.__init__(self, logger, calgroup, e_scale, namespace=namespace)
         WaveformEvaluator.__init__(self, calgroup)
 
     def add(self, predictions, target, c, f):
@@ -95,16 +99,16 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
             self.calc_deviation_with_z(pred, targ, E, Z)
 
         else:
-            E_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emae"][0],
-                        self.results["seg_mult_Emae"][1], self.results["E_mult_dual"][0],
+            E_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emape"][0],
+                        self.results["seg_mult_Emape"][1], self.results["E_mult_dual"][0],
                         self.results["E_mult_dual"][1], self.results["E_mult_single"][0],
                         self.results["E_mult_single"][1], self.seg_status, self.nx, self.ny,
                         self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale)
 
 
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
-    def __init__(self, logger, calgroup=None, e_scale=None):
-        EnergyEvaluatorBase.__init__(self, logger, e_scale=e_scale)
+    def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
+        EnergyEvaluatorBase.__init__(self, logger, e_scale=e_scale, namespace=namespace)
         PhysCoordEvaluator.__init__(self, calgroup=calgroup)
         self.PE_scale = self.PE_scale / self.E_adjust
 
