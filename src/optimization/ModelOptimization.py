@@ -196,9 +196,15 @@ class ModelOptimization:
         modules = ModuleUtility(self.config.run_config.imports)
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config, trial)
         data_module = PSDDataModule(self.config, model.device)
-        trainer.fit(model, datamodule=data_module)
-        loss = trainer.checkpoint_callback.best_model_score
-        self.log.info("best loss found for trial {0} is {1}".format(trial.number, loss))
+        try:
+            trainer.fit(model, datamodule=data_module)
+            loss = trainer.checkpoint_callback.best_model_score
+            self.log.info("best loss found for trial {0} is {1}".format(trial.number, loss))
+        except RuntimeError as e:
+            print("Caught error during trial {0}, moving to next trial. Error message below.".format(trial.number, trial))
+            print(e)
+            self.log.info("Trial {0} failed with error {1}".format(trial.number,e))
+            loss = None
         return loss
 
     def run_study(self, pruning=False):
