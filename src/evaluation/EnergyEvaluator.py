@@ -10,9 +10,14 @@ import numpy as np
 
 class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
-    def __init__(self, logger, calgroup=None):
+    def __init__(self, logger, calgroup=None, e_scale=None):
         StatsAggregator.__init__(self, logger)
         SingleEndedEvaluator.__init__(self, calgroup=calgroup)
+        if e_scale:
+            self.E_adjust = self.E_scale / e_scale
+            self.E_scale = e_scale
+        else:
+            self.E_adjust = 1.0
         self.hascal = False
         self.E_bounds = [0., 9.]
         self.mult_bounds = [0.5, 10.5]
@@ -77,8 +82,8 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
 
 class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
-    def __init__(self, logger, calgroup=None):
-        EnergyEvaluatorBase.__init__(self, logger, calgroup)
+    def __init__(self, logger, calgroup=None, e_scale=None):
+        EnergyEvaluatorBase.__init__(self, logger, calgroup, e_scale)
         WaveformEvaluator.__init__(self, calgroup)
 
     def add(self, predictions, target, c, f):
@@ -98,8 +103,8 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
 
 
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
-    def __init__(self, logger, calgroup=None):
-        super(EnergyEvaluatorPhys, self).__init__(logger)
+    def __init__(self, logger, calgroup=None, e_scale=None):
+        super(EnergyEvaluatorPhys, self).__init__(logger, e_scale)
         PhysCoordEvaluator.__init__(self, calgroup)
 
     def add(self, predictions, target, c, f):

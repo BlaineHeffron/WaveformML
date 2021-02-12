@@ -28,21 +28,21 @@ class LitEZ(pl.LightningModule):
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.zscale = 1200.
         self.escale = 300.
+        self.e_adjust = 10.
         if hasattr(config.net_config, "escale"):
             self.escale = config.net_config.escale
         if hasattr(config.net_config, "zscale"):
             self.zscale = config.net_config.zscale
-        self.eweight = self.escale / 3.0  # 300. is the normalization factor of E which is probably too high
         if config.net_config.algorithm == "features":
             if hasattr(self.config.dataset_config, "calgroup"):
-                self.evaluator = EZEvaluatorPhys(self.logger, calgroup=self.config.dataset_config.calgroup)
+                self.evaluator = EZEvaluatorPhys(self.logger, calgroup=self.config.dataset_config.calgroup, e_scale=self.e_adjust)
             else:
-                self.evaluator = EZEvaluatorPhys(self.logger)
+                self.evaluator = EZEvaluatorPhys(self.logger, e_scale=self.e_adjust)
         else:
             if hasattr(self.config.dataset_config, "calgroup"):
-                self.evaluator = EZEvaluatorWF(self.logger, calgroup=self.config.dataset_config.calgroup)
+                self.evaluator = EZEvaluatorWF(self.logger, calgroup=self.config.dataset_config.calgroup, e_scale=self.e_adjust)
             else:
-                self.evaluator = EZEvaluatorWF(self.logger)
+                self.evaluator = EZEvaluatorWF(self.logger, e_scale=self.e_adjust)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -78,6 +78,7 @@ class LitEZ(pl.LightningModule):
         return optimizer
 
     def _format_target_and_prediction(self, pred, coords, target, batch_size):
+        target[:, 0] *= (self.escale / self.e_adjust)
         target_tensor = spconv.SparseConvTensor(target, coords[:, self.model.permute_tensor],
                                                 self.model.spatial_size, batch_size)
         target_tensor = target_tensor.dense()
@@ -87,7 +88,7 @@ class LitEZ(pl.LightningModule):
     def _calc_loss(self, p, t):
         ELoss = self.criterion.forward(p[:, 0, :, :], t[:, 0, :, :])
         ZLoss = self.criterion.forward(p[:, 1, :, :], t[:, 1, :, :])
-        return self.eweight * ELoss + ZLoss, self.escale*ELoss, self.zscale*ZLoss
+        return ELoss + ZLoss, self.escale*ELoss, self.zscale*ZLoss
 
     def training_step(self, batch, batch_idx):
         (c, f), target = batch

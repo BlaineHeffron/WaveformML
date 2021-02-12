@@ -3,9 +3,9 @@ from src.evaluation.ZEvaluator import ZEvaluatorPhys, ZEvaluatorWF, ZEvaluatorBa
 
 
 class EZEvaluatorBase:
-    def __init__(self, logger):
+    def __init__(self, logger, e_scale=None):
         self.logger = logger
-        self.EnergyEvaluator = EnergyEvaluatorBase(logger)
+        self.EnergyEvaluator = EnergyEvaluatorBase(logger, e_scale=e_scale)
         self.ZEvaluator = ZEvaluatorBase(logger)
 
     def add(self, predictions, target, c, f):
@@ -22,14 +22,14 @@ class EZEvaluatorBase:
         self.ZEvaluator.logger = l
 
 class EZEvaluatorPhys(EZEvaluatorBase):
-    def __init__(self, logger, calgroup=None):
-        super().__init__(logger)
-        self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup)
+    def __init__(self, logger, calgroup=None, e_scale=None):
+        super().__init__(logger, e_scale)
+        self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup, e_scale)
         self.ZEvaluator = ZEvaluatorPhys(logger)
 
 
 class EZEvaluatorWF(EZEvaluatorBase):
-    def __init__(self, logger, calgroup=None):
-        super().__init__(logger)
-        self.EnergyEvaluator = EnergyEvaluatorWF(logger, calgroup)
+    def __init__(self, logger, calgroup=None, e_scale=None):
+        super().__init__(logger, e_scale)
+        self.EnergyEvaluator = EnergyEvaluatorWF(logger, calgroup, e_scale)
         self.ZEvaluator = ZEvaluatorWF(logger, calgroup)
