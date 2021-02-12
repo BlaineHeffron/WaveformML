@@ -16,7 +16,6 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
         if e_scale:
             self.E_adjust = self.E_scale / e_scale
             self.E_scale = e_scale
-            self.PE_scale = self.PE_scale / self.E_adjust
         else:
             self.E_adjust = 1.0
         self.hascal = False
@@ -107,6 +106,7 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None):
         super(EnergyEvaluatorPhys, self).__init__(logger, e_scale)
         PhysCoordEvaluator.__init__(self, calgroup)
+        self.PE_scale = self.PE_scale / self.E_adjust
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
