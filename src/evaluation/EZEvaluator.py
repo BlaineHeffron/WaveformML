@@ -41,16 +41,19 @@ class EZEvaluatorPhys(EZEvaluatorBase):
         self.ZEvaluator.add(predictions[:, 1, :, :].unsqueeze(1), target[:, 1, :, :].unsqueeze(1), c, f)
         if hasattr(self.EnergyEvaluator, "calibrator"):
             cal_E_pred = np.zeros(f[:, self.EnergyEvaluator.E_index].shape)
-            PE0 = f[:, self.EnergyEvaluator.PE0_index].detach().cpu().numpy() * self.EnergyEvaluator.PE_scale
-            PE1 = f[:, self.EnergyEvaluator.PE1_index].detach().cpu().numpy() * self.EnergyEvaluator.PE_scale
-            e = f[:, self.EnergyEvaluator.E_index].detach().cpu().numpy() * self.EnergyEvaluator.E_scale
-            sparse_Z = spconv.SparseConvTensor.from_dense(predictions[:, 1, :, :].unsqueeze(1))
+            PE0 = f[:, self.EnergyEvaluator.PE0_index] * self.EnergyEvaluator.PE_scale
+            PE1 = f[:, self.EnergyEvaluator.PE1_index] * self.EnergyEvaluator.PE_scale
+            e = f[:, self.EnergyEvaluator.E_index] * self.EnergyEvaluator.E_scale
+            dense_E = self.EnergyEvaluator.get_dense_matrix(torch.cat((e, PE0, PE1), dim=1), c, to_numpy=False)
+            sparse_ZE = spconv.SparseConvTensor.from_dense(torch.cat((predictions[:, 1, :, :], dense_E), dim=1))
             permute_tensor = torch.tensor([1, 2, 0])
-            coo = sparse_Z.indices[permute_tensor].detach().cpu().numpy()
-            z_nn_preds = sparse_Z.features
-            assert coo == c.detach().cpu().numpy()
-            E_basic_prediction(sparse_Z.indices[permute_tensor].detach().cpu().numpy(), e, PE0, PE1, z_nn_preds,
-                               self.ZEvaluator.seg_status, self.EnergyEvaluator.calibrator.light_pos_curves,
+            coo = sparse_ZE.indices[permute_tensor].detach().cpu().numpy()
+            z_nn_preds = sparse_ZE.features[:, 0].detach().cpu().numpy()
+            e = sparse_ZE.features[:, 1].detach().cpu().numpy()
+            PE0 = sparse_ZE.features[:, 2].detach().cpu().numpy()
+            PE1 = sparse_ZE.features[:, 3].detach().cpu().numpy()
+            E_basic_prediction(coo, e, PE0, PE1, z_nn_preds, self.ZEvaluator.seg_status,
+                               self.EnergyEvaluator.calibrator.light_pos_curves,
                                self.EnergyEvaluator.calibrator.light_sum_curves, cal_E_pred)
             cal_E_pred = cal_E_pred / self.EnergyEvaluator.E_scale
             cal_E_pred = self.EnergyEvaluator.get_dense_matrix(cal_E_pred, coo, to_numpy=False)
