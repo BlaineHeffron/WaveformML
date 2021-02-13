@@ -45,7 +45,7 @@ class EZEvaluatorPhys(EZEvaluatorBase):
             PE1 = f[:, self.EnergyEvaluator.PE1_index] * self.EnergyEvaluator.PE_scale
             e = f[:, self.EnergyEvaluator.E_index] * self.EnergyEvaluator.E_scale
             dense_E = self.EnergyEvaluator.get_dense_matrix(torch.cat((e.unsqueeze(1), PE0.unsqueeze(1), PE1.unsqueeze(1)), dim=1), c, to_numpy=False)
-            sparse_ZE = spconv.SparseConvTensor.from_dense(torch.cat((predictions[:, 1, :, :], dense_E), dim=1))
+            sparse_ZE = spconv.SparseConvTensor.from_dense(torch.cat((predictions[:, 1, :, :].unsqueeze(1), dense_E), dim=1))
             permute_tensor = torch.tensor([1, 2, 0])
             coo = sparse_ZE.indices[permute_tensor].detach().cpu().numpy()
             z_nn_preds = sparse_ZE.features[:, 0].detach().cpu().numpy()
