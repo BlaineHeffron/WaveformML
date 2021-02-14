@@ -56,8 +56,8 @@ class EZEvaluatorPhys(EZEvaluatorBase):
                                self.EnergyEvaluator.calibrator.light_pos_curves,
                                self.EnergyEvaluator.calibrator.light_sum_curves, cal_E_pred)
             cal_E_pred = cal_E_pred / self.EnergyEvaluator.E_scale
-            cal_E_pred = self.EnergyEvaluator.get_dense_matrix(cal_E_pred, coo, to_numpy=False)
-            self.EnergyFromCalEval.add(cal_E_pred, target[:, 0, :, :].unsqueeze(1), c, f)
+            cal_E_pred = self.EnergyEvaluator.get_dense_matrix(torch.tensor(cal_E_pred), torch.tensor(coo), to_numpy=False)
+            self.EnergyFromCalEval.add(cal_E_pred[:, 0, :, :], target[:, 0, :, :].unsqueeze(1), c, f)
 
     def dump(self):
         self.EnergyEvaluator.dump()
