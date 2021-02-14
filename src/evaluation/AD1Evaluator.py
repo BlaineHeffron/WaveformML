@@ -11,13 +11,18 @@ from src.utils.SQLiteUtils import get_gains
 
 
 class AD1Evaluator:
-    def __init__(self, calgroup=None):
+    def __init__(self, calgroup=None, e_scale=None):
         self.nx = 14
         self.ny = 11
         self.spatial_size = np.array([self.nx, self.ny])
         self.permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
         self.z_scale = 1200.
         self.E_scale = 300.
+        if e_scale:
+            self.E_adjust = self.E_scale / e_scale
+            self.E_scale = e_scale
+        else:
+            self.E_adjust = 1.0
 
         if calgroup is not None:
             self.hascal = True
@@ -40,11 +45,11 @@ class PhysCoordEvaluator(AD1Evaluator):
     vs[5] = p.PSD;
     vs[6] = ((Float_t)(p.t - toffset)) / 600.;
     """
-    def __init__(self, calgroup=None):
-        super(PhysCoordEvaluator, self).__init__(calgroup)
+    def __init__(self, calgroup=None, e_scale=None):
+        super(PhysCoordEvaluator, self).__init__(calgroup, e_scale=e_scale)
         self.dt_scale = 200.
         self.toffset_scale = 600.
-        self.PE_scale = 125000.
+        self.PE_scale = 125000. / self.E_adjust
         self.E_index = 0
         self.dt_index = 1
         self.PE0_index = 2

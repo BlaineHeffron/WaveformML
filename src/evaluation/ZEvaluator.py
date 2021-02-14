@@ -7,6 +7,7 @@ import spconv
 import torch
 
 from src.datasets.HDF5Dataset import MAX_RANGE
+from src.evaluation.AD1Evaluator import PhysCoordEvaluator
 from src.evaluation.Calibrator import Calibrator
 # from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d, plot_hist1d, MultiLinePlot
@@ -400,7 +401,7 @@ class ZEvaluatorBase:
         return data
 
 
-class ZEvaluatorPhys(ZEvaluatorBase):
+class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
     def __init__(self, logger):
         super(ZEvaluatorPhys, self).__init__(logger)
         self.hascal = True

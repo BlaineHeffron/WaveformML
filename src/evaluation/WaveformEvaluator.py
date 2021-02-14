@@ -11,8 +11,8 @@ from src.utils.SparseUtils import calc_calib_z_E
 
 
 class WaveformEvaluator(AD1Evaluator):
-    def __init__(self, calgroup=None):
-        super(WaveformEvaluator, self).__init__(calgroup)
+    def __init__(self, calgroup=None, e_scale=None):
+        super(WaveformEvaluator, self).__init__(calgroup=calgroup, e_scale=e_scale)
         self.hascal = False
         self.sample_width = 4
         self.n_samples = 150

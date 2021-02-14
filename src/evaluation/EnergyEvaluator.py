@@ -12,12 +12,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
         StatsAggregator.__init__(self, logger)
-        SingleEndedEvaluator.__init__(self, calgroup=calgroup)
-        if e_scale:
-            self.E_adjust = self.E_scale / e_scale
-            self.E_scale = e_scale
-        else:
-            self.E_adjust = 1.0
+        SingleEndedEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
         self.hascal = False
         self.E_bounds = [0., 9.]
         self.mult_bounds = [0.5, 10.5]
@@ -88,7 +83,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
         EnergyEvaluatorBase.__init__(self, logger, calgroup, e_scale, namespace=namespace)
-        WaveformEvaluator.__init__(self, calgroup)
+        WaveformEvaluator.__init__(self, calgroup, e_scale=e_scale)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
@@ -109,8 +104,7 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
 class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
         EnergyEvaluatorBase.__init__(self, logger, e_scale=e_scale, namespace=namespace)
-        PhysCoordEvaluator.__init__(self, calgroup=calgroup)
-        self.PE_scale = self.PE_scale / self.E_adjust
+        PhysCoordEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
