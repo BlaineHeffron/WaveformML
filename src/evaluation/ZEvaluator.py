@@ -402,8 +402,9 @@ class ZEvaluatorBase:
 
 
 class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
-    def __init__(self, logger):
-        super(ZEvaluatorPhys, self).__init__(logger)
+    def __init__(self, logger, e_scale=None):
+        ZEvaluatorBase.__init__(self, logger)
+        PhysCoordEvaluator.__init__(self, e_scale=e_scale)
         self.hascal = True
 
     def z_from_cal(self, c, f, targ):
