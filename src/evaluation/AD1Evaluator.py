@@ -55,8 +55,12 @@ class PhysCoordEvaluator(AD1Evaluator):
 
     def get_dense_matrix(self, data: torch.tensor, c: torch.tensor, to_numpy=True):
         batch_size = c[-1, -1] + 1
-        data = spconv.SparseConvTensor(data.unsqueeze(1), c[:, self.permute_tensor],
+        if data.dim() == 1:
+            data = spconv.SparseConvTensor(data.unsqueeze(1), c[:, self.permute_tensor],
                                        self.spatial_size, batch_size)
+        else:
+            data = spconv.SparseConvTensor(data, c[:, self.permute_tensor],
+                                           self.spatial_size, batch_size)
         data = data.dense()
         if to_numpy:
             data = data.detach().cpu().numpy()
