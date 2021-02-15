@@ -70,6 +70,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                            self.results["E_z_single_cal"][1])
 
     def dump(self):
+        self.retrieve_error_metrics()
         for name, title in zip(self.E_mult_names, self.E_mult_titles):
             self.log_total(name, "{0}{1}".format(self.namespace, name), title)
             self.log_metric(name, "{0}{1}_{2}".format(self.namespace, name, "MAPE"), title)
