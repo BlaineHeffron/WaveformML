@@ -27,8 +27,8 @@ class LitEZ(pl.LightningModule):
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.zscale = 1200.
-        self.escale = 300.
-        self.e_adjust = 10.
+        self.escale = 12.
+        self.e_adjust = 12.
         self.phys_coord = False
         if hasattr(config.net_config, "escale"):
             self.escale = config.net_config.escale
@@ -83,7 +83,8 @@ class LitEZ(pl.LightningModule):
         return optimizer
 
     def _format_target_and_prediction(self, pred, coords, target, batch_size):
-        target[:, 0] *= self.e_factor
+        if self.e_factor != 1.:
+            target[:, 0] *= self.e_factor
         target_tensor = spconv.SparseConvTensor(target, coords[:, self.model.permute_tensor],
                                                 self.model.spatial_size, batch_size)
         target_tensor = target_tensor.dense()
@@ -97,7 +98,7 @@ class LitEZ(pl.LightningModule):
 
     def _process_batch(self, batch):
         (c, f), target = batch
-        if self.phys_coord:
+        if self.phys_coord and self.e_factor != 1.:
             f[:, 0] *= self.e_factor
             f[:, 2] *= self.e_factor
             f[:, 3] *= self.e_factor

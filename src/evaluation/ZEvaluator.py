@@ -40,7 +40,7 @@ class ZEvaluatorBase:
         self.z_bin_edges = get_bins(self.zmin, self.zmax, self.n_bins)
         self.E_bin_edges = get_bins(self.E_low, self.E_high, self.n_bins)
         self.E_bin_centers = get_bin_midpoints(self.E_low, self.E_high, self.n_bins)
-        self.E_scale = 300.
+        self.E_scale = 12.
         self.mult_bin_edges = get_bins(0.5, self.nmult + 0.5, self.nmult)
         self.colormap = plt.cm.viridis
         SE_dead_pmts = [1, 0, 2, 4, 6, 7, 9, 10, 12, 13, 16, 19, 20, 21, 22, 24, 26, 27, 34, 36, 37, 43, 46, 48,
