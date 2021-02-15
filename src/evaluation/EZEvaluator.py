@@ -49,7 +49,7 @@ class EZEvaluatorPhys(EZEvaluatorBase):
                                self.EnergyEvaluator.calibrator.light_pos_curves,
                                self.EnergyEvaluator.calibrator.light_sum_curves, cal_E_pred)
             cal_E_pred = cal_E_pred / self.EnergyEvaluator.E_scale
-            self.EnergyFromCalEval.add(cal_E_pred, target[:, 0, :, :].unsqueeze(1), c, f, True)
+            self.EnergyFromCalEval.add(np.expand_dims(cal_E_pred,1), target[:, 0, :, :].unsqueeze(1), c, f, True)
 
     def dump(self):
         self.EnergyEvaluator.dump()
