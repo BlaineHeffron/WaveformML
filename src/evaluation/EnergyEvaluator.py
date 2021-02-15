@@ -90,22 +90,22 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
         dual_err_E_cal = []
         for i in range(1, self.n_E + 1):
             single_err_E.append(
-                self.E_scale * np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
+                100. * np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
                     self.results["E_mult_single"][1][i, :]))
             self.logger.experiment.add_scalar("{}single_E_MAPE".format(self.namespace), single_err_E[-1], global_step=i)
             dual_err_E.append(
-                self.E_scale * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
+                100. * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
                     self.results["E_mult_dual"][1][i, :]))
             self.logger.experiment.add_scalar("{}dual_E_MAPE".format(self.namespace), dual_err_E[-1], global_step=i)
             if not self.hascal:
                 continue
             single_err_E_cal.append(
-                self.E_scale * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
+                100. * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_single_cal"][1][i, :]))
             self.logger.experiment.add_scalar("{}single_E_MAPE_cal".format(self.namespace), single_err_E_cal[-1],
                                               global_step=i)
             dual_err_E_cal.append(
-                self.z_scale * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
+                100. * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_dual_cal"][1][i, :]))
             self.logger.experiment.add_scalar("{}dual_E_MAPE_cal".format(self.namespace), dual_err_E_cal[-1], global_step=i)
         labels = ["single NN", "dual NN", "single cal", "dual cal"]
