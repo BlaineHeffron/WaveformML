@@ -815,6 +815,35 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
 
 
 @nb.jit(nopython=True)
+def E_basic_prediction_dense(E, z, nx, ny, seg_status, light_pos_curves, light_sum_curves, pred):
+    """assumes z contains some z prediction for single ended"""
+    """E is dense matrix, first index is batch index, second index is feature index,
+    features are energy, PE0, PE1 in MeV and photons 
+    z is dense matrix first index is batch index, second and third indices are cooirdinate"""
+    for batch in range(E.shape[0]):
+        for x in range(nx):
+            for y in range(ny):
+                if E[batch, 0, x, y] == 0:
+                    continue
+                if seg_status[x, y] > 0:
+                    if E[batch, 1, x, y] == 0 and E[batch, 2, x, y] == 0:
+                        continue
+                    elif E[batch, 1, x, y] != 0 and E[batch, 2, x, y] != 0:
+                        print("error: seg status is incongruent with PE0, PE1, for segment ")
+                        print(x)
+                        print(y)
+                    logR = lin_interp_inverse(light_pos_curves[x,y], z[batch, x, y])
+                    if E[batch, 1, x, y] == 0:
+                        P0 = E[batch, 2, x, y]/exp(logR)
+                        pred[batch, x, y] = (P0 + E[batch, 2, x, y]) / lin_interp(light_sum_curves[x, y], z[batch, x, y])
+                    else:
+                        P1 = E[batch, 1, x, y]*exp(logR)
+                        pred[batch] = (E[batch, 1, x, y] + P1) / lin_interp(light_sum_curves[x, y], z[batch, x, y])
+                else:
+                    pred[batch, x, y] = E[batch, 0, x, y]
+
+
+@nb.jit(nopython=True)
 def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_sum_curves, pred):
     """assumes z contains some z prediction for single ended"""
     for batch in range(coo.shape[0]):
@@ -834,8 +863,6 @@ def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_
                 pred[batch] = (PE0[batch] + P1) / lin_interp(light_sum_curves[x, y], z[batch])
         else:
             pred[batch] = E[batch]
-
-
 
 
 @nb.jit(nopython=True)
