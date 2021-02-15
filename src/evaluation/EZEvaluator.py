@@ -60,6 +60,7 @@ class EZEvaluatorPhys(EZEvaluatorBase):
     def set_logger(self, l):
         self.logger = l
         self.EnergyEvaluator.logger = l
+        self.ZEvaluator.logger = l
         self.EnergyFromCalEval.logger = l
 
 
