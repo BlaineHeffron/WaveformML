@@ -712,7 +712,8 @@ class PulseDataset2DWithEZ(PulseDataset):
                  model_dir=None,
                  data_dir=None,
                  dataset_dir=None,
-                 use_half=False):
+                 use_half=False,
+                 label_index=None):
         """
         Args:
             config: configuration file object
@@ -732,9 +733,15 @@ class PulseDataset2DWithEZ(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          use_half=use_half)
+        self.label_index = label_index
 
     def __getitem__(self, idx):
-        return super().__getitem__(idx)
+        if self.label_index is not None:
+            val, label = super().__getitem__(idx)
+            return val, label[:, self.label_index]
+        else:
+            return super().__getitem__(idx)
+
 
 class PulseDatasetDetWithZ(PulseDataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2],
@@ -796,7 +803,8 @@ class PulseDatasetDetWithEZ(PulseDataset):
                  model_dir=None,
                  data_dir=None,
                  dataset_dir=None,
-                 use_half=False):
+                 use_half=False,
+                 label_index=None):
         """
         Args:
             config: configuration file object
@@ -817,6 +825,11 @@ class PulseDatasetDetWithEZ(PulseDataset):
                          dataset_dir=dataset_dir,
                          use_half=use_half,
                          normalize=False)
+        self.label_index = label_index
 
     def __getitem__(self, idx):
-        return super().__getitem__(idx)
+        if self.label_index is not None:
+            val, label = super().__getitem__(idx)
+            return val, label[:, self.label_index]
+        else:
+            return super().__getitem__(idx)
