@@ -31,7 +31,7 @@ class EZEvaluatorPhys(EZEvaluatorBase):
     def __init__(self, logger, calgroup=None, e_scale=None):
         EZEvaluatorBase.__init__(self, logger, e_scale=e_scale)
         self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup, e_scale)
-        self.ZEvaluator = ZEvaluatorPhys(logger)
+        self.ZEvaluator = ZEvaluatorPhys(logger, e_scale=e_scale)
         if calgroup is not None:
             self.EnergyFromCalEval = EnergyEvaluatorPhys(logger, calgroup, e_scale, namespace="phys_z_pred")
 
