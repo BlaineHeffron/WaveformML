@@ -3,9 +3,12 @@ import torch
 from src.evaluation.AD1Evaluator import PhysCoordEvaluator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
+from src.utils.PlotUtils import MultiLinePlot
 from src.utils.StatsUtils import StatsAggregator
 from src.utils.SparseUtils import E_deviation, E_deviation_with_z, z_basic_prediction, E_basic_prediction
 import numpy as np
+
+from src.utils.util import get_bin_midpoints
 
 
 class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
@@ -13,11 +16,11 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
         StatsAggregator.__init__(self, logger)
         SingleEndedEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
-        self.hascal = False
         self.E_bounds = [0., 9.]
         self.mult_bounds = [0.5, 10.5]
         self.n_mult = 10
         self.n_E = 20
+        self.E_bin_centers = get_bin_midpoints(self.E_bounds[0], self.E_bounds[1], self.n_E)
         self.n_z = 20
         self.z_bounds = [-600., 600.]
         self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
@@ -78,6 +81,47 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
 
     def add(self, predictions, target, c, f):
         pass
+
+    def retrieve_error_metrics(self):
+        single_err_E = []
+        dual_err_E = []
+        single_err_E_cal = []
+        dual_err_E_cal = []
+        for i in range(1, self.n_E + 1):
+            single_err_E.append(
+                self.E_scale * np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
+                    self.results["E_mult_single"][1][i, :]))
+            self.logger.experiment.add_scalar("{}single_E_MAPE".format(self.namespace), single_err_E[-1], global_step=i)
+            dual_err_E.append(
+                self.E_scale * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
+                    self.results["E_mult_dual"][1][i, :]))
+            self.logger.experiment.add_scalar("{}dual_E_MAPE".format(self.namespace), dual_err_E[-1], global_step=i)
+            if not self.hascal:
+                continue
+            single_err_E_cal.append(
+                self.E_scale * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
+                    self.results["E_mult_single_cal"][1][i, :]))
+            self.logger.experiment.add_scalar("{}single_E_MAPE_cal".format(self.namespace), single_err_E_cal[-1],
+                                              global_step=i)
+            dual_err_E_cal.append(
+                self.z_scale * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
+                    self.results["E_mult_dual_cal"][1][i, :]))
+            self.logger.experiment.add_scalar("{}dual_E_MAPE_cal".format(self.namespace), dual_err_E_cal[-1], global_step=i)
+        labels = ["single NN", "dual NN", "single cal", "dual cal"]
+        xlabel = "True Energy Deposited [MeV]"
+        ylabel = "Mean Absolute Percentage Error"
+        if self.hascal:
+            self.logger.experiment.add_figure("{}E_error_summary_mult".format(self.namespace),
+                                              MultiLinePlot(self.E_bin_centers,
+                                                            [single_err_E, dual_err_E, single_err_E_cal,
+                                                             dual_err_E_cal],
+                                                            labels, xlabel, ylabel, ylog=False))
+        else:
+            self.logger.experiment.add_figure("{}E_error_summary_mult".format(self.namespace),
+                                              MultiLinePlot(self.E_bin_centers,
+                                                            [single_err_E, dual_err_E],
+                                                            labels[0:2], xlabel, ylabel, ylog=False))
+
 
 
 class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
