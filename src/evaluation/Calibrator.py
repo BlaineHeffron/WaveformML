@@ -131,4 +131,3 @@ class Calibrator:
                          vx, vy)
                 self.light_sum_curves[nx, ny, :, 0] = vx
                 self.light_sum_curves[nx, ny, :, 1] = vy
-

@@ -127,7 +127,7 @@ class CalibrationDB(SQLiteBase):
             for r in self.fetchall(
                     "SELECT chan, atten_curve_id, lsum_curve_id, time_curve_id, linearity_curve_id, psd_curve_id, t_interp_curve_id, E_ncapt FROM pmt_response WHERE object_id = {}".format(
                             pmt_response_id)):
-                if r[0]:
+                if r[0] is not None:
                     chan = int(r[0])
                     atten_curves[chan] = self.get_cal_curve(r[1])
                     lsum_curves[chan] = self.get_cal_curve(r[2])
