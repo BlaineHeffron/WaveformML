@@ -838,7 +838,7 @@ def E_basic_prediction_dense(E, z, nx, ny, seg_status, light_pos_curves, light_s
                         pred[batch, x, y] = (P0 + E[batch, 2, x, y]) / lin_interp(light_sum_curves[x, y], z[batch, x, y])
                     else:
                         P1 = E[batch, 1, x, y]*exp(logR)
-                        pred[batch] = (E[batch, 1, x, y] + P1) / lin_interp(light_sum_curves[x, y], z[batch, x, y])
+                        pred[batch, x, y] = (E[batch, 1, x, y] + P1) / lin_interp(light_sum_curves[x, y], z[batch, x, y])
                 else:
                     pred[batch, x, y] = E[batch, 0, x, y]
 
