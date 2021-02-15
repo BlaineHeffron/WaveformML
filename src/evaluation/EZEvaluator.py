@@ -57,6 +57,11 @@ class EZEvaluatorPhys(EZEvaluatorBase):
         if hasattr(self, "EnergyFromCalEval"):
             self.EnergyFromCalEval.dump()
 
+    def set_logger(self, l):
+        self.logger = l
+        self.EnergyEvaluator.logger = l
+        self.EnergyFromCalEval.logger = l
+
 
 class EZEvaluatorWF(EZEvaluatorBase):
     def __init__(self, logger, calgroup=None, e_scale=None):
