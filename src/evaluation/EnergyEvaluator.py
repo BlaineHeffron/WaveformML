@@ -106,8 +106,11 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
         EnergyEvaluatorBase.__init__(self, logger, e_scale=e_scale, namespace=namespace)
         PhysCoordEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
 
-    def add(self, predictions, target, c, f):
-        pred = predictions.detach().cpu().numpy()
+    def add(self, predictions, target, c, f, pred_numpy=False):
+        if not pred_numpy:
+            pred = predictions.detach().cpu().numpy()
+        else:
+            pred = predictions
         targ = target.detach().cpu().numpy()
         coo = c.detach().cpu().numpy()
         z = f[:, self.z_index].detach().cpu().numpy()
