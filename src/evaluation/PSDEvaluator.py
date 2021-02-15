@@ -261,10 +261,10 @@ class PSDEvaluator:
 class PhysEvaluator(PSDEvaluator):
     """for phys pulse training, 7 features in order:
     definition:
-    vs[0] = p.E / 300.;
+    vs[0] = p.E / 12.;
     vs[1] = (p.dt / 200.) + 0.5;
-    vs[2] = p.PE[0] / 125000.;
-    vs[3] = p.PE[1] / 125000.;
+    vs[2] = p.PE[0] / 5000.;
+    vs[3] = p.PE[1] / 5000.;
     vs[4] = (p.z / 1200.0) + 0.5;
     vs[5] = p.PSD;
     vs[6] = ((Float_t)(p.t - toffset)) / 600.;
@@ -284,14 +284,14 @@ class PhysEvaluator(PSDEvaluator):
         z_bins = np.arange(-1000, 1000, 10)
         dt_bins = np.arange(-90., 90., 10)
         t0_bins = np.arange(0., 500., 10)
-        energy = f[:, 0] * 300.
+        energy = f[:, 0] * 12.
         dt = (f[:, 1] - 0.5) * 200.
-        PEL = f[:, 2] * 125000.
-        PER = f[:, 3] * 125000.
+        PEL = f[:, 2] * 5000.
+        PER = f[:, 3] * 5000.
         z = (f[:, 4] - 0.5) * 1200.
         psd = f[:, 5]
         t0 = f[:, 6] * 600.0
-        self.logger.experiment.add_histogram("evaluation/energy", f[:, 0] * 300., 0, max_bins=self.n_bins,
+        self.logger.experiment.add_histogram("evaluation/energy", f[:, 0] * 12., 0, max_bins=self.n_bins,
                                              bins=ene_bins)
         missing_classes = False
         full_feature_list = np.stack((energy, psd, dt, PEL, PER, z, t0), axis=0)

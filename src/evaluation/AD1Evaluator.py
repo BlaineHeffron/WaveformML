@@ -17,7 +17,7 @@ class AD1Evaluator:
         self.spatial_size = np.array([self.nx, self.ny])
         self.permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
         self.z_scale = 1200.
-        self.E_scale = 300.
+        self.E_scale = 12.
         if e_scale:
             self.E_adjust = self.E_scale / e_scale
             self.E_scale = e_scale
@@ -37,10 +37,10 @@ class AD1Evaluator:
 class PhysCoordEvaluator(AD1Evaluator):
     """
     for physcoord definition:
-    vs[0] = p.E / 300.;
+    vs[0] = p.E / 12.;
     vs[1] = (p.dt / 200.) + 0.5;
-    vs[2] = p.PE[0] / 125000.;
-    vs[3] = p.PE[1] / 125000.;
+    vs[2] = p.PE[0] / 5000.;
+    vs[3] = p.PE[1] / 5000.;
     vs[4] = (p.z / 1200.0) + 0.5;
     vs[5] = p.PSD;
     vs[6] = ((Float_t)(p.t - toffset)) / 600.;
@@ -49,7 +49,7 @@ class PhysCoordEvaluator(AD1Evaluator):
         super(PhysCoordEvaluator, self).__init__(calgroup, e_scale=e_scale)
         self.dt_scale = 200.
         self.toffset_scale = 600.
-        self.PE_scale = 125000. / self.E_adjust
+        self.PE_scale = 5000. / self.E_adjust
         self.E_index = 0
         self.dt_index = 1
         self.PE0_index = 2
