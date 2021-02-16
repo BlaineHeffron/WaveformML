@@ -24,7 +24,7 @@ class LitZ(pl.LightningModule):
                                      config.optimize_config.imports)
         self.model = SingleEndedZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
-        self.criterion = self.criterion_class(*config.net_config.criterion_params, reduction="sum")
+        self.criterion = self.criterion_class(*config.net_config.criterion_params)
         if config.net_config.algorithm == "features":
             self.evaluator = ZEvaluatorPhys(self.logger)
         else:
@@ -67,7 +67,7 @@ class LitZ(pl.LightningModule):
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss = self.criterion.forward(predictions, target_tensor) * self.evaluator.z_scale
-        loss /= c.shape[0]
+        loss *= (14*11*batch_size/c.shape[0])
         return loss, predictions, target_tensor, c, f
 
 
