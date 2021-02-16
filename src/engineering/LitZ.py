@@ -39,7 +39,7 @@ class LitZ(pl.LightningModule):
             self._format_SE_mask()
 
     def _format_SE_mask(self):
-        self.SE_mask = tensor(self.evaluator.seg_status)
+        self.SE_mask = tensor(self.evaluator.seg_status, device=self.device)
         for i in range(self.evaluator.nx):
             for j in range(self.evaluator.ny):
                 if self.SE_mask[i,j] == 0.5:
