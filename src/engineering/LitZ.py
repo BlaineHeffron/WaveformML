@@ -66,7 +66,7 @@ class LitZ(pl.LightningModule):
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor) * self.evaluator.z_scale
+        loss = self.criterion.forward(predictions, target_tensor)
         loss *= (14*11*batch_size/c.shape[0])
         return loss, predictions, target_tensor, c, f
 
