@@ -24,7 +24,7 @@ class LitZ(pl.LightningModule):
                                      config.optimize_config.imports)
         self.model = SingleEndedZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
-        self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        self.criterion = self.criterion_class(*config.net_config.criterion_params, reduction="sum")
         if config.net_config.algorithm == "features":
             self.evaluator = ZEvaluatorPhys(self.logger)
         else:
@@ -61,31 +61,28 @@ class LitZ(pl.LightningModule):
         # set output to 0 if there was no value for input
         return where(target_tensor == 0, target_tensor, pred), target_tensor
 
-    def training_step(self, batch, batch_idx):
+    def _process_batch(self, batch):
         (c, f), target = batch
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor)
+        loss = self.criterion.forward(predictions, target_tensor) * self.evaluator.z_scale
+        loss /= c.shape[0]
+        return loss, predictions, target_tensor, c, f
+
+
+    def training_step(self, batch, batch_idx):
+        loss, _, _, _, _ = self._process_batch(batch)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        (c, f), target = batch
-        predictions = self.model([c, f])
-        batch_size = c[-1, -1] + 1
-        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor)
-        results_dict = {'val_loss': loss}
-        self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
-        return results_dict
+        loss, _, _, _, _ = self._process_batch(batch)
+        self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
     def test_step(self, batch, batch_idx):
-        (c, f), target = batch
-        predictions = self.model([c, f])
-        batch_size = c[-1, -1] + 1
-        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor)
+        loss, predictions, target_tensor, c, f = self._process_batch(batch)
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
            self.evaluator.logger = self.logger
