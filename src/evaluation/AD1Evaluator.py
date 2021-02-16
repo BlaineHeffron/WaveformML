@@ -38,17 +38,17 @@ class PhysCoordEvaluator(AD1Evaluator):
     """
     for physcoord definition:
     vs[0] = p.E / 12.;
-    vs[1] = (p.dt / 200.) + 0.5;
+    vs[1] = (p.dt / 30.) + 0.5;
     vs[2] = p.PE[0] / 5000.;
     vs[3] = p.PE[1] / 5000.;
     vs[4] = (p.z / 1200.0) + 0.5;
     vs[5] = p.PSD;
-    vs[6] = ((Float_t)(p.t - toffset)) / 600.;
+    vs[6] = ((Float_t)(p.t - toffset)) / 30.;
     """
     def __init__(self, calgroup=None, e_scale=None):
         super(PhysCoordEvaluator, self).__init__(calgroup, e_scale=e_scale)
-        self.dt_scale = 200.
-        self.toffset_scale = 600.
+        self.dt_scale = 30.
+        self.toffset_scale = 30.
         self.PE_scale = 5000. / self.E_adjust
         self.E_index = 0
         self.dt_index = 1
