@@ -1,5 +1,6 @@
 import os
 import re
+import gc
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import SimpleProfiler
@@ -204,6 +205,7 @@ class ModelOptimization:
             print("Caught error during trial {0}, moving to next trial. Error message below.".format(trial.number, trial))
             print(e)
             self.log.info("Trial {0} failed with error {1}".format(trial.number,e))
+            gc.collect()
             loss = None
         return loss
 
