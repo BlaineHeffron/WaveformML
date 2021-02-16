@@ -443,6 +443,13 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         if self.hascal:
             self.z_from_cal(c, f, targ)
+        self.logger.add_histogram("Energy", f[:, self.E_index])
+        self.logger.add_histogram("dt", f[:, self.dt_index])
+        self.logger.add_histogram("PE0", f[:, self.PE0_index])
+        self.logger.add_histogram("PE1", f[:, self.PE1_index])
+        self.logger.add_histogram("Z", f[:, self.z_index])
+        self.logger.add_histogram("PSD", f[:, self.PSD_index])
+        self.logger.add_histogram("t_offset", f[:, self.toffset_index])
 
 
 class ZEvaluatorWF(ZEvaluatorBase):
