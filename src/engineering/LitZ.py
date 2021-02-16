@@ -26,8 +26,8 @@ class LitZ(pl.LightningModule):
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.SE_only = False
-        if hasattr(self.net_config,"SELoss"):
-            self.SE_only = self.net_config.SELoss
+        if hasattr(self.config.net_config,"SELoss"):
+            self.SE_only = self.config.net_config.SELoss
         if config.net_config.algorithm == "features":
             self.evaluator = ZEvaluatorPhys(self.logger)
         else:
