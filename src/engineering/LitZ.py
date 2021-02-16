@@ -1,7 +1,7 @@
 import spconv
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
-from torch import where
+from torch import where, tensor, sum
 from src.evaluation.ZEvaluator import ZEvaluatorWF, ZEvaluatorPhys
 
 
@@ -25,6 +25,9 @@ class LitZ(pl.LightningModule):
         self.model = SingleEndedZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        self.SE_only = False
+        if hasattr(self.net_config,"SELoss"):
+            self.SE_only = self.net_config.SELoss
         if config.net_config.algorithm == "features":
             self.evaluator = ZEvaluatorPhys(self.logger)
         else:
@@ -32,6 +35,21 @@ class LitZ(pl.LightningModule):
                 self.evaluator = ZEvaluatorWF(self.logger, calgroup=self.config.dataset_config.calgroup)
             else:
                 self.evaluator = ZEvaluatorWF(self.logger)
+        if self.SE_only:
+            self._format_SE_mask()
+
+    def _format_SE_mask(self):
+        self.SE_mask = tensor(self.evaluator.seg_status)
+        for i in range(self.evaluator.nx):
+            for j in range(self.evaluator.ny):
+                if self.SE_mask[i,j] == 0.5:
+                    self.SE_mask[i,j] = 1.0
+                elif self.SE_mask[i, j] == 1.0:
+                    self.SE_mask[i,j] = 0.
+        self.SE_mask = self.SE_mask.unsqueeze(0)
+        self.SE_mask = self.SE_mask.unsqueeze(0)
+        self.SE_factor = (self.evaluator.nx*self.evaluator.ny) / sum(self.SE_mask)
+        print("Using single ended only loss.")
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -66,8 +84,11 @@ class LitZ(pl.LightningModule):
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss = self.criterion.forward(predictions, target_tensor)
-        loss *= (14*11*batch_size/c.shape[0])
+        if self.SE_only:
+            loss = self.criterion.forward(self.SE_mask*predictions, self.SE_mask*target_tensor) * self.SE_factor
+        else:
+            loss = self.criterion.forward(predictions, target_tensor)
+        loss *= (self.evaluator.nx*self.evaluator.ny*batch_size/c.shape[0])
         return loss, predictions, target_tensor, c, f
 
 
