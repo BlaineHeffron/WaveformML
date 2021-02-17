@@ -40,8 +40,6 @@ class LitEZ(pl.LightningModule):
         self.SE_only = False
         if hasattr(self.config.net_config, "SELoss"):
             self.SE_only = self.config.net_config.SELoss
-        if self.SE_only:
-            self._format_SE_mask()
         if config.net_config.algorithm == "features":
             self.phys_coord = True
             if hasattr(self.config.dataset_config, "calgroup"):
@@ -55,6 +53,8 @@ class LitEZ(pl.LightningModule):
                                                e_scale=self.e_adjust)
             else:
                 self.evaluator = EZEvaluatorWF(self.logger, e_scale=self.e_adjust)
+        if self.SE_only:
+            self._format_SE_mask()
 
     def _format_SE_mask(self):
         SE_mask = tensor(self.evaluator.EnergyEvaluator.seg_status)
@@ -119,6 +119,7 @@ class LitEZ(pl.LightningModule):
         else:
             ELoss = self.criterion.forward(p[:, 0, :, :], t[:, 0, :, :])
             ZLoss = self.criterion.forward(p[:, 1, :, :], t[:, 1, :, :])
+
         ZLoss *= (self.evaluator.EnergyEvaluator.nx * self.evaluator.EnergyEvaluator.ny * batch_size / c.shape[0])
         ELoss *= (self.evaluator.EnergyEvaluator.nx * self.evaluator.EnergyEvaluator.ny * batch_size / c.shape[0])
         return ELoss + ZLoss, self.escale * ELoss, self.zscale * ZLoss
