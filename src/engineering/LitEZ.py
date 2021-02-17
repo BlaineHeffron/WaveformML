@@ -3,7 +3,7 @@ import spconv
 from src.evaluation.EZEvaluator import EZEvaluatorWF, EZEvaluatorPhys
 from src.models.SingleEndedEZConv import SingleEndedEZConv
 from src.engineering.PSDDataModule import *
-from torch import where, tensor
+from torch import where, tensor, sum
 
 
 class LitEZ(pl.LightningModule):
