@@ -43,13 +43,15 @@ class EZEvaluatorPhys(EZEvaluatorBase):
             PE0 = f[:, self.EnergyEvaluator.PE0_index] * self.EnergyEvaluator.PE_scale
             PE1 = f[:, self.EnergyEvaluator.PE1_index] * self.EnergyEvaluator.PE_scale
             e = f[:, self.EnergyEvaluator.E_index] * self.EnergyEvaluator.E_scale
-            dense_E = self.EnergyEvaluator.get_dense_matrix(torch.cat((e.unsqueeze(1), PE0.unsqueeze(1), PE1.unsqueeze(1)), dim=1), c, to_numpy=True)
+            dense_E = self.EnergyEvaluator.get_dense_matrix(
+                torch.cat((e.unsqueeze(1), PE0.unsqueeze(1), PE1.unsqueeze(1)), dim=1), c, to_numpy=True)
             z_pred = (predictions[:, 1, :, :].detach().cpu().numpy() - 0.5) * self.EnergyEvaluator.z_scale
-            E_basic_prediction_dense(dense_E, z_pred, self.EnergyEvaluator.nx, self.EnergyEvaluator.ny, self.ZEvaluator.seg_status,
-                               self.EnergyEvaluator.calibrator.light_pos_curves,
-                               self.EnergyEvaluator.calibrator.light_sum_curves, cal_E_pred)
+            E_basic_prediction_dense(dense_E, z_pred, self.EnergyEvaluator.nx, self.EnergyEvaluator.ny,
+                                     self.ZEvaluator.seg_status,
+                                     self.EnergyEvaluator.calibrator.light_pos_curves,
+                                     self.EnergyEvaluator.calibrator.light_sum_curves, cal_E_pred)
             cal_E_pred = cal_E_pred / self.EnergyEvaluator.E_scale
-            self.EnergyFromCalEval.add(np.expand_dims(cal_E_pred,1), target[:, 0, :, :].unsqueeze(1), c, f, True)
+            self.EnergyFromCalEval.add(np.expand_dims(cal_E_pred, 1), target[:, 0, :, :].unsqueeze(1), c, f, True)
 
     def dump(self):
         self.EnergyEvaluator.dump()
@@ -61,7 +63,8 @@ class EZEvaluatorPhys(EZEvaluatorBase):
         self.logger = l
         self.EnergyEvaluator.logger = l
         self.ZEvaluator.logger = l
-        self.EnergyFromCalEval.logger = l
+        if hasattr(self, "EnergyFromCalEval"):
+            self.EnergyFromCalEval.logger = l
 
 
 class EZEvaluatorWF(EZEvaluatorBase):
