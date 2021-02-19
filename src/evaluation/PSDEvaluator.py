@@ -349,7 +349,7 @@ class PhysEvaluator(PSDEvaluator):
             self.logger.experiment.add_figure("evaluation/precision_recall", plot_pr(this_prc, self.class_names))
         """
 
-        confusion_accumulate_1d(predictions, labels, energy, self.results["confusion_energy"],
+        confusion_accumulate_1d(predictions, labels, feature_list[0], self.results["confusion_energy"],
                                 get_typed_list([0.0, self.emax]),
                                 self.n_confusion)
         metric_accumulate_1d(results, mult, *self.results["mult_acc"],
