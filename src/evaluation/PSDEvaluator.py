@@ -82,6 +82,13 @@ class PSDEvaluator:
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
             "confusion_energy": zeros((self.n_confusion, self.n_classes, self.n_classes), dtype=np.int32)
         }
+        for i in range(self.class_names):
+            self.results["ene_psd_prec_{}".format(self.class_names[i])] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
+                            zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
+            self.results["ene_prec_{}".format(self.class_names[i])] = \
+                (zeros((self.n_bins + 2,), dtype=np.float32), zeros((self.n_bins + 2,), dtype=np.int32))
+            self.results["mult_prec_{}".format(self.class_names[i])] = \
+                (zeros((self.n_mult + 2,), dtype=np.float32), zeros((self.n_mult + 2,), dtype=np.int32))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
