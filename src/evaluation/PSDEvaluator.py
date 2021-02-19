@@ -58,7 +58,7 @@ class PSDEvaluator:
             self.gain_factor = np.divide(np.full((14, 11, 2), MAX_RANGE), gains)
             self.calibrated = True
             self.emax = 10.0
-            self.ene_label = "Energy [MeVee]"
+            self.ene_label = "Visible Energy [MeV]"
         else:
             self.gain_factor = np.ones((14, 11, 2))
             self.calibrated = False
@@ -272,7 +272,7 @@ class PhysEvaluator(PSDEvaluator):
 
     def __init__(self, class_names, logger, device):
         super(PhysEvaluator, self).__init__(class_names, logger, device)
-        self.ene_label = "Energy [MeV]"
+        self.ene_label = "Visible Energy [MeV]"
         self.emax = 10.
 
     def add(self, batch, output, predictions):
@@ -281,9 +281,9 @@ class PhysEvaluator(PSDEvaluator):
         ene_bins = get_bins(self.emin, self.emax, self.n_bins)
         psd_bins = get_bins(self.psd_min, self.psd_max, self.n_bins)
         PE_bins = np.arange(0, 500, 10)
-        z_bins = np.arange(-1000, 1000, 10)
-        dt_bins = np.arange(-90., 90., 10)
-        t0_bins = np.arange(0., 500., 10)
+        z_bins = np.arange(-600, 600, 10)
+        dt_bins = np.arange(-15., 15., 10)
+        t0_bins = np.arange(0., 30., 10)
         energy = f[:, 0] * 12.
         dt = (f[:, 1] - 0.5) * 30.
         PEL = f[:, 2] * 5000.
