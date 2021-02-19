@@ -370,7 +370,7 @@ def weighted_average_quantities(coords, full_quantities, out_quantities, out_coo
         n_current += 1
         ene_current += full_quantities[0, quant_ind]
         out_coords[current_ind] += coord[0:2] * ene_current
-        for j in range(1, n - 1):
+        for j in range(1, n):
             out_quantities[j, current_ind] += full_quantities[j, quant_ind] * full_quantities[0, quant_ind]
         quant_ind += 1
     if ene_current > 0:

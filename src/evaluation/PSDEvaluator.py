@@ -299,7 +299,8 @@ class PhysEvaluator(PSDEvaluator):
         feature_list = zeros((full_feature_list.shape[0], predictions.shape[0]), dtype=np.float32)
         avg_coo, feature_list, mult = weighted_average_quantities(c, full_feature_list, feature_list,
                                                                   zeros((predictions.shape[0], 2)),
-                                                                  zeros((predictions.shape[0],)), 8)
+                                                                  zeros((predictions.shape[0],)),
+                                                                  full_feature_list.shape[0])
         feature_list = np.stack((feature_list[0], feature_list[1], feature_list[2], feature_list[3], feature_list[4],
                                  feature_list[5], feature_list[6], mult), axis=0)
         feature_names.append("multiplicity")
