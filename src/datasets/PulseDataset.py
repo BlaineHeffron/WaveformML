@@ -6,7 +6,7 @@ from os.path import basename, join, exists
 from torch.utils.data import get_worker_info
 from src.utils.util import config_equals, unique_path_combine, replace_file_pattern
 
-from numpy import asarray, concatenate, empty, array, int8, append as npappend
+from numpy import asarray, concatenate, empty, array, int8
 import h5py
 
 from src.datasets.HDF5Dataset import *
@@ -381,12 +381,12 @@ class PulseDataset(HDF5Dataset):
         for key in data_info.keys():
             if len(data_info[key]) > 0:
                 for data in data_info[key]:
-                    coord_len, feat_len, dtypecoord, dtypefeat, dtypelabel, label_len = self._get_coord_feat_len(data)
+                    coord_len, feat_len, dtypecoord, dtypefeat, label_len, dtypelabel = self._get_coord_feat_len(data)
                     break
                 break
         self.log.debug("Initializing a length {0} dataset for {1}".format(total_rows, data_info))
         if dtypelabel is not None:
-            return (empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat), \
+            return (empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat),
                    empty((total_rows, label_len), dtype=dtypelabel))
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
