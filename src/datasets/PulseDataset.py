@@ -450,7 +450,7 @@ class PulseDataset(HDF5Dataset):
                             tempdf[1]
                         current_row_index += tempdf[0].shape[0]
                         if self.info['label_name']:
-                            labels = tempdf[2]
+                            labels += tempdf[2]
                         elif self.label_file_pattern:
                             labels.append(self._get_label(tempdf[2], cat))
                         else:
