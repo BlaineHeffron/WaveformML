@@ -6,7 +6,7 @@ from os.path import basename, join, exists
 from torch.utils.data import get_worker_info
 from src.utils.util import config_equals, unique_path_combine, replace_file_pattern
 
-from numpy import asarray, concatenate, empty, array, int8
+from numpy import asarray, concatenate, empty, array, int8, append as npappend
 import h5py
 
 from src.datasets.HDF5Dataset import *
@@ -450,7 +450,7 @@ class PulseDataset(HDF5Dataset):
                             tempdf[1]
                         current_row_index += tempdf[0].shape[0]
                         if self.info['label_name']:
-                            labels += tempdf[2]
+                            labels = npappend(labels, tempdf[2])
                         elif self.label_file_pattern:
                             labels.append(self._get_label(tempdf[2], cat))
                         else:
