@@ -276,7 +276,19 @@ class PulseDataset(HDF5Dataset):
         else:
             coords, features = data
         with h5py.File(fname, mode='w') as h5f:
-            if dataset_name not in h5f.keys():
+            if len(columns) == 3:
+                label_size = 1
+                if len(labels.shape) == 2:
+                    label_size = labels.shape[1]
+
+                ndtype = self.construct_dtype(features.shape[1], features.dtype, coords.shape[1], coords.dtype,
+                                     label_size, labels.dtype)
+
+                dset = array([(coords[i], features[i], labels[i]) for i in range(coords.shape[0])], dtype=ndtype)
+                h5f.create_dataset(dataset_name, data=dset)
+                h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
+                h5f.flush()
+            elif dataset_name not in h5f.keys():
                 csize = self._select_chunk_size(coords.shape)
                 fsize = self._select_chunk_size(features.shape)
                 if len(columns) == 3:

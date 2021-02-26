@@ -5,9 +5,10 @@ from pathlib import Path
 from os.path import getmtime, normpath
 import torch
 from torch.utils import data
-from numpy import where
+from numpy import where, int32 as npint32, float32 as npfloat32
 from os.path import dirname, abspath
 from src.utils.util import read_object_from_file, save_object_to_file, json_load
+from src.datasets.H5CompoundTypes import H5CompoundType
 import logging
 
 FILENAME_SORT_REGEX = compile(r'_(\d+)')
@@ -439,3 +440,14 @@ class HDF5Dataset(data.Dataset):
 
     def read_info_from_file(self, fpath):
         self.info = read_object_from_file(fpath)
+
+    def construct_dtype(self, feat_size, feat_type, coord_size=3, coord_type=npint32, label_size=1,
+                        label_type=npfloat32):
+        names = [self.info["coord_name"], self.info["feature_name"]]
+        types = [coord_type, feat_type]
+        lengths = [coord_size, feat_size]
+        if self.info["label_name"]:
+            names.append(self.info["label_name"])
+            types.append(label_type)
+            lengths.append(label_size)
+        return H5CompoundType(types, lengths, names)
