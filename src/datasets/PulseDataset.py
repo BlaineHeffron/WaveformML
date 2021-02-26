@@ -274,8 +274,10 @@ class PulseDataset(HDF5Dataset):
             if dataset_name not in h5f.keys():
                 csize = self._select_chunk_size(coords.shape)
                 fsize = self._select_chunk_size(features.shape)
-                lsize = self._select_chunk_size([len(labels)])
-
+                if len(columns) == 3:
+                    lsize = self._select_chunk_size(labels.shape)
+                else:
+                    lsize = self._select_chunk_size([len(labels)])
                 dc = h5f.create_dataset(dataset_name + "/" + columns[0], compression="gzip", compression_opts=6,
                                         data=coords, chunks=(csize, coords.shape[1]))
                 dc.flush()
@@ -310,6 +312,8 @@ class PulseDataset(HDF5Dataset):
         inds = self._npwhere(data[0][:, self.batch_index] == idx + offset)
         if len(inds[0]) == 0:
             return None
+        if self.info["label_name"]:
+            return data[0][inds], data[1][inds], data[2][inds]
         if self.label_file_pattern:
             if len(data[2]) <= idx:
                 print("should never happen")
@@ -445,7 +449,9 @@ class PulseDataset(HDF5Dataset):
                         out_df[1][current_row_index:current_row_index + tempdf[0].shape[0]] = \
                             tempdf[1]
                         current_row_index += tempdf[0].shape[0]
-                        if self.label_file_pattern:
+                        if self.info['label_name']:
+                            labels = tempdf[2]
+                        elif self.label_file_pattern:
                             labels.append(self._get_label(tempdf[2], cat))
                         else:
                             labels.append(cat)
