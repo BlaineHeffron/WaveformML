@@ -443,7 +443,7 @@ class HDF5Dataset(data.Dataset):
 
     def construct_dtype(self, feat_size, feat_type, coord_size=3, coord_type=npint32, label_size=1,
                         label_type=npfloat32):
-        names = [self.info["coord_name"], self.info["feature_name"]]
+        names = [self.info["coord_name"], self.info["feat_name"]]
         types = [coord_type, feat_type]
         lengths = [coord_size, feat_size]
         if self.info["label_name"]:
