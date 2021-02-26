@@ -238,7 +238,7 @@ class PulseDataset(HDF5Dataset):
                     inds = self._npwhere(coords[:, self.batch_index] >= file_info[1][0])
                 else:
                     inds = None
-        if labels is not None and self.label_file_pattern:
+        if labels is None and self.label_file_pattern:
             fdir = dirname(file_info[0])
             fname = basename(file_info[0])
             label_file = replace_file_pattern(fname, self.info["file_pattern"], self.info["label_file_pattern"])
@@ -251,6 +251,8 @@ class PulseDataset(HDF5Dataset):
                 labels = ds["label"]
         if inds:
             if labels is not None:
+                if len(columns) == 3:
+                    return coords[inds], features[inds], labels[inds]
                 return coords[inds], features[inds], labels[file_info[1][0]:file_info[1][1] + 1]
             else:
                 return coords[inds], features[inds]
