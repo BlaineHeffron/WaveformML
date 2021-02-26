@@ -450,4 +450,4 @@ class HDF5Dataset(data.Dataset):
             names.append(self.info["label_name"])
             types.append(label_type)
             lengths.append(label_size)
-        return H5CompoundType(types, lengths, names)
+        return H5CompoundType(types, lengths, names).type
