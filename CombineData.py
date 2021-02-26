@@ -3,7 +3,7 @@ from src.utils.util import unique_path_combine, DictionaryUtility, check_config
 from os.path import isdir, join, abspath, normpath, expanduser
 import argparse
 
-TYPES = ['2d', '3d', 'pmt', 'det']
+TYPES = ['2d', '3d', 'pmt', 'det', 'detz', 'detez', '2dz','2dez']
 DEFAULT_CONFIG = {
     "dataset_config": {
         "data_prep": "shuffle",
@@ -80,6 +80,18 @@ def main():
     elif type == 'det':
         d = PulseDatasetDet(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
                             dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
+    elif type == 'detz':
+        d = PulseDatasetDetWithZ(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
+                            dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
+    elif type == 'detez':
+        d = PulseDatasetDetWithEZ(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
+                                 dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
+    elif type == '2dz':
+        d = PulseDataset2DWithZ(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
+                                  dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
+    elif type == '2dez':
+        d = PulseDataset2DWithEZ(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
+                                 dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
     else:
         raise IOError("Unknown dataset type {}".format(type))
     print("Writing combined files to {}".format(outdir))
