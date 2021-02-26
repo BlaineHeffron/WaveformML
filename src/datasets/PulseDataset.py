@@ -219,10 +219,13 @@ class PulseDataset(HDF5Dataset):
                         current_total[cat] = subrange[1] - subrange[0] + 1
 
     def _read_chunk(self, file_info, dataset, columns):
+        labels = None
         with h5py.File(file_info[0], 'r', ) as h5_file:
             ds = h5_file[dataset]
             coords = ds[columns[0]]
             features = ds[columns[1]]
+            if len(columns) == 3:
+                labels = columns[2]
             info = self.get_path_info(file_info[0])
             if info['n_events'] - 1 != file_info[1][1]:
                 if file_info[1][0] > 0:
@@ -235,8 +238,7 @@ class PulseDataset(HDF5Dataset):
                     inds = self._npwhere(coords[:, self.batch_index] >= file_info[1][0])
                 else:
                     inds = None
-        labels = None
-        if self.label_file_pattern:
+        if not labels and self.label_file_pattern:
             fdir = dirname(file_info[0])
             fname = basename(file_info[0])
             label_file = replace_file_pattern(fname, self.info["file_pattern"], self.info["label_file_pattern"])
@@ -280,7 +282,11 @@ class PulseDataset(HDF5Dataset):
                 df = h5f.create_dataset(dataset_name + "/" + columns[1], compression="gzip", compression_opts=6,
                                         data=features, chunks=(fsize, features.shape[1]))
                 df.flush()
-                dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
+                if len(columns) == 3:
+                    dl = h5f.create_dataset(dataset_name + "/" + columns[2], compression="gzip", compression_opts=6,
+                                        data=labels, chunks=(lsize,))
+                else:
+                    dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
                                         data=labels, chunks=(lsize,), dtype=int8)
                 dl.flush()
                 h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
@@ -291,6 +297,9 @@ class PulseDataset(HDF5Dataset):
                 h5f[dataset_name][columns[1]].resize((h5f[dataset_name][columns[1]].shape[0] + features.shape[0]),
                                                      axis=0)
                 h5f[dataset_name][columns[1]][-features.shape[0]:, :] = features
+                if len(columns) == 3:
+                    h5f[dataset_name][columns[2]].resize((h5f[dataset_name][columns[2]].shape[0] + labels.shape[0]), axis=0)
+                    h5f[dataset_name][columns[2]][-labels.shape[0]:, :] = labels
                 h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
                 h5f.flush()
         self.log.debug("File {} written".format(fname))
@@ -394,6 +403,8 @@ class PulseDataset(HDF5Dataset):
         current_file_indices = [0] * self.n_categories
         current_row_index = 0
         columns = [self.info['coord_name'], self.info['feat_name']]
+        if self.info['label_name']:
+            columns.append(self.info['label_name'])
         event_counter = -1
         ignore_cats = [False] * self.n_categories
         while _needs_ids(data_info, last_id_grabbed, current_file_indices):
