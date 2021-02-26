@@ -269,7 +269,10 @@ class PulseDataset(HDF5Dataset):
             return self.chunk_size
 
     def _to_hdf(self, data, labels, fname, dataset_name, columns, event_counter):
-        coords, features = data
+        if len(columns) == 3:
+            coords, features, labels = data
+        else:
+            coords, features = data
         with h5py.File(fname, mode='w') as h5f:
             if dataset_name not in h5f.keys():
                 csize = self._select_chunk_size(coords.shape)
@@ -338,7 +341,10 @@ class PulseDataset(HDF5Dataset):
         with h5py.File(file_info[0], 'r', ) as h5_file:
             coords = h5_file[self.info['data_name']][self.info['coord_name']]
             feats = h5_file[self.info['data_name']][self.info['feat_name']]
-            return coords.shape[1], feats.shape[1], coords.dtype, feats.dtype
+            if self.info['label_name']:
+                labels = h5_file[self.info['data_name']][self.info['label_name']]
+                return coords.shape[1], feats.shape[1], coords.dtype, feats.dtype, labels.shape[1], labels.dtype
+            return coords.shape[1], feats.shape[1], coords.dtype, feats.dtype, None, None
 
     def _npwhere(self, cond):
         return asarray(cond).nonzero()
@@ -368,16 +374,20 @@ class PulseDataset(HDF5Dataset):
     def _init_shuffled_dataset(self, data_info):
         total_rows = 0
         dtypecoord, dtypefeat, coord_len, feat_len = 0, 0, 0, 0
+        dtypelabel ,label_len = None, 0
         for key in data_info.keys():
             for data in data_info[key]:
                 total_rows += self._get_length(data)
         for key in data_info.keys():
             if len(data_info[key]) > 0:
                 for data in data_info[key]:
-                    coord_len, feat_len, dtypecoord, dtypefeat = self._get_coord_feat_len(data)
+                    coord_len, feat_len, dtypecoord, dtypefeat, dtypelabel, label_len = self._get_coord_feat_len(data)
                     break
                 break
         self.log.debug("Initializing a length {0} dataset for {1}".format(total_rows, data_info))
+        if dtypelabel is not None:
+            return (empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat), \
+                   empty((total_rows, label_len), dtype=dtypelabel))
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
     def _get_label(self, label, cat):
@@ -448,13 +458,14 @@ class PulseDataset(HDF5Dataset):
                             tempdf[0]
                         out_df[1][current_row_index:current_row_index + tempdf[0].shape[0]] = \
                             tempdf[1]
-                        current_row_index += tempdf[0].shape[0]
                         if self.info['label_name']:
-                            labels = npappend(labels, tempdf[2])
+                            out_df[2][current_row_index:current_row_index + tempdf[0].shape[0]] = \
+                                tempdf[2]
                         elif self.label_file_pattern:
                             labels.append(self._get_label(tempdf[2], cat))
                         else:
                             labels.append(cat)
+                        current_row_index += tempdf[0].shape[0]
                     else:
                         data_queue[cat] = []
                         data_queue_offsets[cat] = 0
