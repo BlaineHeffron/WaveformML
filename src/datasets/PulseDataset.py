@@ -488,7 +488,7 @@ class PulseDataset(HDF5Dataset):
                         if not ignore_cats[cat]:
                             all_chunks_have_data = False
         self._to_hdf(out_df, labels, fname, self.info['data_name'], columns, event_counter)
-        if event_counter != len(labels) - 1:
+        if event_counter != len(labels) - 1 and self.info['label_name'] is None:
             self.log.error("Labels length is not the same as event counter")
         # save metadata regarding the events in the combined file
         save_object_to_file(data_info, fname[0:-3] + ".json")
