@@ -32,6 +32,8 @@ class ZEvaluatorBase:
         self.error_high = 1000.
         self.E_high = 12.0
         self.E_low = 0.0
+        self.true_E_high = 9.0
+        self.has_true_E = False
         self.spatial_size = np.array([14, 11])
         self.permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
         self.zmin = -1. * self.z_scale / 2
@@ -39,7 +41,10 @@ class ZEvaluatorBase:
         self.z_err_edges = get_bins(self.error_low, self.error_high, self.n_err_bins)
         self.z_bin_edges = get_bins(self.zmin, self.zmax, self.n_bins)
         self.E_bin_edges = get_bins(self.E_low, self.E_high, self.n_bins)
+        self.true_E_bin_edges = get_bins(self.E_low, self.true_E_high, self.n_bins)
         self.E_bin_centers = get_bin_midpoints(self.E_low, self.E_high, self.n_bins)
+        self.true_E_bin_centers = get_bin_midpoints(self.E_low, self.true_E_high, self.n_bins)
+        self.E_label = "Visible Energy [MeV]"
         self.E_scale = 12.
         self.mult_bin_edges = get_bins(0.5, self.nmult + 0.5, self.nmult)
         self.colormap = plt.cm.viridis
@@ -60,6 +65,14 @@ class ZEvaluatorBase:
             x = seg % 14
             y = floor(seg / 14)
             self.seg_status[x, y] += 0.5
+
+    def set_true_E(self):
+        if not self.has_true_E:
+            self.has_true_E = True
+            self.E_label = "True Energy Deposited [MeV]"
+            self.E_high = self.true_E_high
+            self.E_bin_edges = self.true_E_bin_edges
+            self.E_bin_centers = self.true_E_bin_centers
 
     def _init_results(self):
         # metric_names = ["energy", "multiplicity", "true_z", "pred_z"]
@@ -104,7 +117,7 @@ class ZEvaluatorBase:
                                              dtype=np.int32)
         }
 
-    def add(self, predictions, target, c, f):
+    def add(self, predictions, target, c, f, E=None):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
@@ -115,7 +128,7 @@ class ZEvaluatorBase:
         z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         if self.hascal:
-            self.z_from_cal(c, f, targ)
+            self.z_from_cal(c, f, targ, E)
 
     def retrieve_error_metrics(self):
         single_err = np.sum(self.results["z_mult_mae_single"][0]) / np.sum(self.results["z_mult_mae_single"][1])
@@ -193,12 +206,12 @@ class ZEvaluatorBase:
             self.logger.experiment.add_figure("evaluation/z_error_summary_E_single",
                                               MultiLinePlot(self.E_bin_centers,
                                                             [single_err_E, single_err_E_cal],
-                                                            ["NN", "calibration"], "visible energy [MeV]", ylabel,
+                                                            ["NN", "calibration"], self.E_label, ylabel,
                                                             ylog=False, title="Single Ended"))
             self.logger.experiment.add_figure("evaluation/z_error_summary_E_dual",
                                               MultiLinePlot(self.E_bin_centers,
                                                             [dual_err_E, dual_err_E_cal],
-                                                            ["NN", "calibration"], "visible energy [MeV]", ylabel,
+                                                            ["NN", "calibration"], self.E_label, ylabel,
                                                             ylog=False, title="Dual Ended"))
         else:
             self.logger.experiment.add_figure("evaluation/error_summary_mult",
@@ -245,7 +258,8 @@ class ZEvaluatorBase:
                                                           self.results["z_mult_mae_dual"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
                                                       "MAE - double ended", "Z [mm]", "multiplicity",
-                                                      r'# mean absolute error [mm]', norm_to_bin_width=False, logz=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False,
+                                                      logz=False,
                                                       cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/z_mult_mae_single",
@@ -256,7 +270,8 @@ class ZEvaluatorBase:
                                                           self.results["z_mult_mae_single"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
                                                       "MAE - single ended", "Z [mm]", "multiplicity",
-                                                      r'# mean absolute error [mm]', norm_to_bin_width=False, logz=False,
+                                                      r'# mean absolute error [mm]', norm_to_bin_width=False,
+                                                      logz=False,
                                                       cm=self.colormap))
         if self.hascal:
             for i in range(self.nmult):
@@ -317,13 +332,13 @@ class ZEvaluatorBase:
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_dual"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - double ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "Total - double ended", self.E_label, "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$', cm=self.colormap))
         self.logger.experiment.add_figure("evaluation/E_mult_single",
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_single"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - single ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "Total - single ended", self.E_label, "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$]', cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/E_mult_mae_dual",
@@ -333,7 +348,7 @@ class ZEvaluatorBase:
                                                           0:self.nmult],
                                                           self.results["E_mult_mae_dual"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
-                                                      "MAE - double ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "MAE - double ended", self.E_label, "multiplicity",
                                                       r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
@@ -346,7 +361,7 @@ class ZEvaluatorBase:
                                                                      self.results["E_mult_mae_single"][1][
                                                                      1:self.n_bins + 1,
                                                                      0:self.nmult]) * self.z_scale,
-                                                      "MAE - single ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "MAE - single ended", self.E_label, "multiplicity",
                                                       r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
@@ -354,13 +369,13 @@ class ZEvaluatorBase:
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_dual"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - double ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "Total - double ended", self.E_label, "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$', cm=self.colormap))
         self.logger.experiment.add_figure("evaluation/cal_E_mult_single",
                                           plot_hist2d(self.E_bin_edges, self.mult_bin_edges,
                                                       self.results["E_mult_mae_single_cal"][1][1:self.n_bins + 1,
                                                       0:self.nmult],
-                                                      "Total - single ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "Total - single ended", self.E_label, "multiplicity",
                                                       r'# Pulses [$MeV^{-1}$]', cm=self.colormap))
 
         self.logger.experiment.add_figure("evaluation/cal_E_mult_mae_dual",
@@ -370,7 +385,7 @@ class ZEvaluatorBase:
                                                           0:self.nmult],
                                                           self.results["E_mult_mae_dual_cal"][1][1:self.n_bins + 1,
                                                           0:self.nmult]) * self.z_scale,
-                                                      "MAE - double ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "MAE - double ended", self.E_label, "multiplicity",
                                                       r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
@@ -383,13 +398,13 @@ class ZEvaluatorBase:
                                                                      self.results["E_mult_mae_single_cal"][1][
                                                                      1:self.n_bins + 1,
                                                                      0:self.nmult]) * self.z_scale,
-                                                      "MAE - single ended", "Visible Energy [MeV]", "multiplicity",
+                                                      "MAE - single ended", self.E_label, "multiplicity",
                                                       r'# mean absolute error [mm]', norm_to_bin_width=False,
                                                       logz=False,
                                                       cm=self.colormap))
         self._init_results()
 
-    def z_from_cal(self, c, f, targ):
+    def z_from_cal(self, c, f, targ, E=None):
         pass
 
     def get_dense_matrix(self, data: torch.tensor, c: torch.tensor):
@@ -407,13 +422,16 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
         PhysCoordEvaluator.__init__(self, e_scale=e_scale)
         self.hascal = True
 
-    def z_from_cal(self, c, f, targ):
+    def z_from_cal(self, c, f, targ, E=None):
         pred = np.zeros(f[:, 4].shape)
         coo = c.detach().cpu().numpy()
         z = f[:, 4].detach().cpu().numpy()
         z_basic_prediction(coo, z, pred)
-        E = f[:, 0] * self.E_scale
-        E = self.get_dense_matrix(E, c)
+        if E is None:
+            E = f[:, 0] * self.E_scale
+            E = self.get_dense_matrix(E, c)
+        else:
+            E = E.unsqueeze(1)
         pred = torch.tensor(pred)
         pred = self.get_dense_matrix(pred, c)
         z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
@@ -427,11 +445,16 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
                 self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
-    def add(self, predictions, target, c, f):
+    def add(self, predictions, target, c, f, E=None):
+        if E is not None:
+            self.set_true_E()
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
-        E = f[:, 0] * self.E_scale
-        E = self.get_dense_matrix(E, c)
+        if E is None:
+            E = f[:, 0] * self.E_scale
+            E = self.get_dense_matrix(E, c)
+        else:
+            E = E.unsqueeze(1)
         z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                            self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                            self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
@@ -442,7 +465,8 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
         z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         if self.hascal:
-            self.z_from_cal(c, f, targ)
+            self.z_from_cal(c, f, targ, E)
+        """
         self.logger.experiment.add_histogram("Energy", f[:, self.E_index])
         self.logger.experiment.add_histogram("dt", f[:, self.dt_index])
         self.logger.experiment.add_histogram("PE0", f[:, self.PE0_index])
@@ -450,6 +474,7 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
         self.logger.experiment.add_histogram("Z", f[:, self.z_index])
         self.logger.experiment.add_histogram("PSD", f[:, self.PSD_index])
         self.logger.experiment.add_histogram("t_offset", f[:, self.toffset_index])
+        """
 
 
 class ZEvaluatorWF(ZEvaluatorBase):
@@ -468,14 +493,17 @@ class ZEvaluatorWF(ZEvaluatorBase):
             self.t_center = np.arange(2, self.n_samples * self.sample_width - 1, self.sample_width)
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
 
-    def z_from_cal(self, c, f, targ):
+    def z_from_cal(self, c, f, targ, E=None):
         c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
-        E = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
-        calc_calib_z_E(c, f, pred, E, self.sample_width, self.calibrator.t_interp_curves, self.calibrator.sampletime,
+        cal_E = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
+        calc_calib_z_E(c, f, pred, cal_E, self.sample_width, self.calibrator.t_interp_curves,
+                       self.calibrator.sampletime,
                        self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
                        self.calibrator.time_pos_curves, self.calibrator.light_pos_curves,
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
+        if E is None:
+            E = cal_E
         z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                            self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                            self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
@@ -487,11 +515,24 @@ class ZEvaluatorWF(ZEvaluatorBase):
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         return E
 
-    def add(self, predictions, target, c, f):
+    def add(self, predictions, target, c, f, E=None):
+        """
+        @param predictions:
+        @param target:
+        @param c:
+        @param f:
+        @param E: true energy if available
+        @return:
+        """
+        if E is not None:
+            self.set_true_E()
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         if self.hascal:
-            E = self.z_from_cal(c, f, targ)
+            if E is None:
+                E = self.z_from_cal(c, f, targ, E)
+            else:
+                self.z_from_cal(c, f, targ, E)
             z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                                self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                                self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],

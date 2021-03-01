@@ -1,14 +1,14 @@
 import os
 
-from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.AD1Evaluator import AD1Evaluator
-from src.evaluation.Calibrator import Calibrator
-from src.utils.SQLUtils import CalibrationDB
-from src.utils.SQLiteUtils import get_gains
 import numpy as np
+from numpy.fft import rfft
+from torch import Tensor, arange, argmax, tensor
 
 from src.utils.SparseUtils import calc_calib_z_E
+from src.utils.WaveformUtils import align_wfs
 
+PULSE_ANALYSIS_SAMPLES = 20
 
 class WaveformEvaluator(AD1Evaluator):
     def __init__(self, calgroup=None, e_scale=None):
@@ -26,3 +26,16 @@ class WaveformEvaluator(AD1Evaluator):
                        self.calibrator.time_pos_curves, self.calibrator.light_pos_curves,
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
         return Z, E
+
+    def _align_wfs(self, f):
+        f = f.reshape((f.shape[0], 2, f.shape[1]/2))
+        wfs = np.zeros((f.shape[0], 2, PULSE_ANALYSIS_SAMPLES))
+        f = f.detach().cpu().numpy()
+        align_wfs(f, wfs)
+        return wfs
+
+    def fft_pulses(self, f: Tensor):
+        wfs = self._align_wfs(f)
+        return rfft(wfs)
+
+

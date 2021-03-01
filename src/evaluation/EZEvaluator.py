@@ -15,7 +15,8 @@ class EZEvaluatorBase:
 
     def add(self, predictions, target, c, f):
         self.EnergyEvaluator.add(predictions[:, 0, :, :].unsqueeze(1), target[:, 0, :, :].unsqueeze(1), c, f)
-        self.ZEvaluator.add(predictions[:, 1, :, :].unsqueeze(1), target[:, 1, :, :].unsqueeze(1), c, f)
+        self.ZEvaluator.add(predictions[:, 1, :, :].unsqueeze(1), target[:, 1, :, :].unsqueeze(1), c, f,
+                            target[:, 0, :, :])
 
     def dump(self):
         self.EnergyEvaluator.dump()
@@ -36,8 +37,7 @@ class EZEvaluatorPhys(EZEvaluatorBase):
             self.EnergyFromCalEval = EnergyEvaluatorPhys(logger, calgroup, e_scale, namespace="phys_z_pred")
 
     def add(self, predictions, target, c, f):
-        self.EnergyEvaluator.add(predictions[:, 0, :, :].unsqueeze(1), target[:, 0, :, :].unsqueeze(1), c, f)
-        self.ZEvaluator.add(predictions[:, 1, :, :].unsqueeze(1), target[:, 1, :, :].unsqueeze(1), c, f)
+        super().add(predictions, target, c, f)
         if hasattr(self.EnergyEvaluator, "calibrator"):
             cal_E_pred = np.zeros(predictions[:, 0, :, :].shape)
             PE0 = f[:, self.EnergyEvaluator.PE0_index] * self.EnergyEvaluator.PE_scale
