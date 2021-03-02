@@ -3,6 +3,7 @@ from math import ceil, floor, sqrt, log, exp
 from numba.typed import List
 from numpy import zeros, int32, float32
 from src.utils.NumbaFunctions import merge_sort_two, merge_sort_main_numba
+from src.datasets.HDF5Dataset import MAX_RANGE
 
 
 # TODO: implement this with pytorch + cython so it can stay on the gpu
@@ -734,6 +735,18 @@ def dt_to_z(wf, dt, x, y, gain_factors, eres, light_pos_curves, light_sum_curves
 
 
 @nb.jit(nopython=True)
+def cull_peaks(peaks, culled_peaks, wf, max_loc):
+    i = 0
+    for p in peaks:
+        if p == -1:
+            break
+        val = wf[p] * MAX_RANGE
+        if val > 30 or (wf[p] > 15 and p == max_loc):
+            culled_peaks[i] = p
+            i += 1
+
+
+@nb.jit(nopython=True)
 def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_curves, sample_times, rel_times,
                    gain_factors,
                    eres, time_pos_curves, light_pos_curves, light_sum_curves, z_scale, n_samples):
@@ -741,20 +754,27 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
     for coord, wf in zip(coordinates, waveforms):
         local_maxima0 = zeros((5,), dtype=int32)  # unlikely there would be more than 5
         local_maxima1 = zeros((5,), dtype=int32)
+        culled_maxima0 = zeros((5,), dtype=int32)
+        culled_maxima1 = zeros((5,), dtype=int32)
         for i in range(5):
             local_maxima0[i] = -1
             local_maxima1[i] = -1
-        find_peaks(wf[0:n_samples], local_maxima0, minsep)
-        find_peaks(wf[n_samples:], local_maxima1, minsep)
-        local_maxima0 = remove_end_zeros(local_maxima0, -1)
-        local_maxima1 = remove_end_zeros(local_maxima1, -1)
+            culled_maxima0[i] = -1
+            culled_maxima1[i] = -1
+        maxloc0 = find_peaks(wf[0:n_samples], local_maxima0, minsep)
+        maxloc1 = find_peaks(wf[n_samples:], local_maxima1, minsep)
+        cull_peaks(local_maxima0, culled_maxima0, wf[0:n_samples], maxloc0)
+        cull_peaks(local_maxima1, culled_maxima1, wf[n_samples:], maxloc1)
+        local_maxima0 = remove_end_zeros(culled_maxima0, -1)
+        local_maxima1 = remove_end_zeros(culled_maxima1, -1)
         if local_maxima0 is None or local_maxima1 is None:
             z_out[coord[2], coord[0], coord[1]] = 0.5
             L = [sum1d(wf[0:n_samples]) * gain_factors[coord[0], coord[1], 0],
                  sum1d(wf[n_samples:]) * gain_factors[coord[0], coord[1], 1]]
             PE = [L[0] * eres[coord[0], coord[1], 0], L[1] * eres[coord[0], coord[1], 1]]
             if PE[0] == 0 or PE[1] == 0:
-                E_out[coord[2], coord[0], coord[1]] = (L[0] + L[1]) # just output uncorrected energy if only 1 pmt fired
+                E_out[coord[2], coord[0], coord[1]] = (
+                            L[0] + L[1])  # just output uncorrected energy if only 1 pmt fired
             else:
                 E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]],
                                                                                    0.)
@@ -832,13 +852,15 @@ def E_basic_prediction_dense(E, z, nx, ny, seg_status, light_pos_curves, light_s
                         print("error: seg status is incongruent with PE0, PE1, for segment ")
                         print(x)
                         print(y)
-                    logR = lin_interp_inverse(light_pos_curves[x,y], z[batch, x, y])
+                    logR = lin_interp_inverse(light_pos_curves[x, y], z[batch, x, y])
                     if E[batch, 1, x, y] == 0:
-                        P0 = E[batch, 2, x, y]/exp(logR)
-                        pred[batch, x, y] = (P0 + E[batch, 2, x, y]) / lin_interp(light_sum_curves[x, y], z[batch, x, y])
+                        P0 = E[batch, 2, x, y] / exp(logR)
+                        pred[batch, x, y] = (P0 + E[batch, 2, x, y]) / lin_interp(light_sum_curves[x, y],
+                                                                                  z[batch, x, y])
                     else:
-                        P1 = E[batch, 1, x, y]*exp(logR)
-                        pred[batch, x, y] = (E[batch, 1, x, y] + P1) / lin_interp(light_sum_curves[x, y], z[batch, x, y])
+                        P1 = E[batch, 1, x, y] * exp(logR)
+                        pred[batch, x, y] = (E[batch, 1, x, y] + P1) / lin_interp(light_sum_curves[x, y],
+                                                                                  z[batch, x, y])
                 else:
                     pred[batch, x, y] = E[batch, 0, x, y]
 
@@ -847,19 +869,19 @@ def E_basic_prediction_dense(E, z, nx, ny, seg_status, light_pos_curves, light_s
 def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_sum_curves, pred):
     """assumes z contains some z prediction for single ended"""
     for batch in range(coo.shape[0]):
-        x = coo[batch,0]
-        y = coo[batch,1]
+        x = coo[batch, 0]
+        y = coo[batch, 1]
         if seg_status[x, y] > 0:
             if PE0[batch] == 0 and PE1[batch] == 0:
                 continue
             elif PE0[batch] != 0 and PE1[batch] != 0:
                 print("error: seg status is incongruent with PE0, PE1, for segment ")
-            logR = lin_interp_inverse(light_pos_curves[x,y], z[batch])
+            logR = lin_interp_inverse(light_pos_curves[x, y], z[batch])
             if PE0[batch] == 0:
-                P0 = PE1[batch]/exp(logR)
+                P0 = PE1[batch] / exp(logR)
                 pred[batch] = (P0 + PE1[batch]) / lin_interp(light_sum_curves[x, y], z[batch])
             else:
-                P1 = PE0[batch]*exp(logR)
+                P1 = PE0[batch] * exp(logR)
                 pred[batch] = (PE0[batch] + P1) / lin_interp(light_sum_curves[x, y], z[batch])
         else:
             pred[batch] = E[batch]
@@ -953,10 +975,10 @@ def E_deviation_with_z(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult
         for i in range(nx):
             for j in range(ny):
                 if targets[batch, i, j] > 0:
-                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j]) / targets[batch,i,j]
-                    true_E = targets[batch, i, j]*E_scale
+                    E_dev = abs(predictions[batch, i, j] - targets[batch, i, j]) / targets[batch, i, j]
+                    true_E = targets[batch, i, j] * E_scale
                     E_bin = get_bin_index(true_E, E_low, E_high, E_bin_width, nE)
-                    z_bin = get_bin_index((Z[batch, i, j] - 0.5)*zrange, -zrange/2., zrange/2., zrange/nE, nE)
+                    z_bin = get_bin_index((Z[batch, i, j] - 0.5) * zrange, -zrange / 2., zrange / 2., zrange / nE, nE)
                     if 0 < mult <= nmult:
                         dev[i, j, mult - 1] += E_dev
                         out_n[i, j, mult - 1] += 1
@@ -983,6 +1005,7 @@ def E_deviation_with_z(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult
                             E_mult_dual_out[E_bin, nmult] += 1
                             E_z_dual_dev[E_bin, z_bin] += E_dev
                             E_z_dual_out[E_bin, z_bin] += 1
+
 
 @nb.jit(nopython=True)
 def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
@@ -1014,9 +1037,9 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
 
 @nb.jit(nopython=True)
 def z_deviation_with_E(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
-                z_mult_single_out, seg_status, nx, ny, nmult, nz, zrange, E,
-                E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev, E_mult_single_out,
-                E_low, E_high):
+                       z_mult_single_out, seg_status, nx, ny, nmult, nz, zrange, E,
+                       E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev, E_mult_single_out,
+                       E_low, E_high):
     E_bin_width = (E_high - E_low) / nz
     for batch in range(predictions.shape[0]):
         mult = 0
