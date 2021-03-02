@@ -270,6 +270,17 @@ def calc_time(pulse, nsamp):
     else:
         return 0
 
+@nb.jit(nopyon=True)
+def find_max(v):
+    max = 0
+    i = 0
+    max_loc = 0
+    for val in v:
+        if val > max:
+            max = val
+            max_loc = i
+        i += 1
+    return max_loc
 
 @nb.jit(nopython=True)
 def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stats, multiplicity, psdl, psdr):
@@ -312,16 +323,23 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
         n_current += 1
         pulseleft = pulses[pulse_ind, 0:n_samples] * gains[coord[0], coord[1], 0]
         pulseright = pulses[pulse_ind, n_samples:2 * n_samples] * gains[coord[0], coord[1], 1]
+        #TODO find peaks
+        maxlocr = find_max(pulseright)
+        baselineright = find_baseline(pulseright, maxlocr, -30, -5)
+        ra_right = get_residual(baselineright)
+        maxlocl = find_max(pulseleft)
         pulses[pulse_ind, 0:n_samples] = pulseleft
+        baselineleft = find_baseline(pulseleft, maxlocl, -30, -5)
+        ra_left = get_residual(baselineleft)
         pulses[pulse_ind, n_samples:2 * n_samples] = pulseright
         tot_l = vec_sum(pulseleft)
         tot_r = vec_sum(pulseright)
         tot_l_current += tot_l
         tot_r_current += tot_r
         psdl[current_ind] += calc_psd(pulseleft, calc_arrival(pulseleft),
-                                      psd_window_lo, psd_window_hi, psd_divider) * tot_l
+                                      psd_window_lo, psd_window_hi, psd_divider, ra_left) * tot_l
         psdr[current_ind] += calc_psd(pulseright, calc_arrival(pulseright),
-                                      psd_window_lo, psd_window_hi, psd_divider) * tot_r
+                                      psd_window_lo, psd_window_hi, psd_divider, ra_right) * tot_r
         dt_current += (calc_time(pulseright, n_samples) - calc_time(pulseleft, n_samples)) * (tot_l + tot_r)
         E_current += tot_l + tot_r
         out_coords[current_ind] += coord[0:2] * (tot_l + tot_r)
@@ -418,9 +436,11 @@ def calc_arrival(fdat):
 
 
 @nb.jit(nopython=True)
-def calc_psd(fdat, arrival_samp, psd_window_lo, psd_window_hi, psd_divider):
-    fast = integrate_lininterp_range(fdat, arrival_samp + psd_window_lo, arrival_samp + psd_divider)
-    slow = integrate_lininterp_range(fdat, arrival_samp + psd_divider, arrival_samp + psd_window_hi)
+def calc_psd(fdat, arrival_samp, psd_window_lo, psd_window_hi, psd_divider, residual_adjust):
+    fast = integrate_lininterp_range(fdat, arrival_samp + psd_window_lo, arrival_samp + psd_divider) + \
+           (psd_divider - psd_window_lo + 1) * residual_adjust
+    slow = integrate_lininterp_range(fdat, arrival_samp + psd_divider, arrival_samp + psd_window_hi) + \
+           (psd_window_hi - psd_divider + 1) * residual_adjust
     if (slow + fast) == 0:
         return 0
     return slow / (slow + fast)
@@ -568,12 +588,50 @@ def find_peaks(v, maxloc, sep):
     """
     return global_maxpos
 
+@nb.jit(nopython=True)
+def get_residual(baseline):
+    return round(baseline) - baseline
 
 @nb.jit(nopython=True)
-def peak_area(data, peak_ind):
-    start = peak_ind - 10
+def calc_size(data, peak_ind):
+    start = peak_ind - 3
     stop = peak_ind + 25
-    return sum_range(data, start, stop)
+    n = start - stop + 1
+    baseline = find_baseline(data, peak_ind, -30, -5)
+    residual_adjust = get_residual(baseline)
+    return sum_range(data, start, stop) + n * residual_adjust
+
+
+@nb.jit(nopython=True)
+def find_baseline(data, peakloc, baseline_window_lo, baseline_window_hi):
+    r_start = peakloc + baseline_window_lo
+    r_end = peakloc + baseline_window_hi
+
+    r_start = 0 if r_start < 0 else r_start
+    r_end = data.shape[0] if r_end > data.shape[0] else r_end
+    if r_end - r_start < 10:
+        r_start = 0
+        r_end = 10 if 10 < data.shape[0] else data.shape[0]
+    return average_median(data[r_start:r_end])
+
+
+@nb.jit(nopython=True)
+def average_median(v, centerfrac=0.33):
+    assert v.shape[0] and centerfrac <= 1
+    if v.shape[0] == 0:
+        return 0
+    v = merge_sort_main_numba(v, sort="a")
+    res = centerfrac * v.shape[0]
+    if 1 > res:
+        ndiscard = v.shape[0] - 1
+    else:
+        ndiscard = v.shape[0] - int(centerfrac * v.shape[0])
+    istart = int(ndiscard / 2)
+    iend = v.shape[0] - istart
+    dsum = 0
+    for i in range(istart, iend):
+        dsum += v[i]
+    return dsum / (iend - istart)
 
 
 @nb.jit(nopython=True)
@@ -599,8 +657,8 @@ def peak_to_dt(wf, m0, m1, x, y, t_interp_curves, sample_times, rel_times, gain_
             continue
         t0 = sample_times[x, y, i] * floor(t[i] / sample_times[x, y, i])
         t[i] = t0 + lin_interp(t_interp_curves[x, y, i], t[i] - t0)
-    L = [peak_area(wf[0:n_samples], m0) * gain_factors[x, y, 0],
-         peak_area(wf[n_samples:], m1) * gain_factors[x, y, 1]]
+    L = [calc_size(wf[0:n_samples], m0) * gain_factors[x, y, 0],
+         calc_size(wf[n_samples:], m1) * gain_factors[x, y, 1]]
     return t[1] - t[0] - rel_times[x, y], L[0] + L[1]
 
 
@@ -634,8 +692,8 @@ def peak_to_z(wf, m0, m1, x, y, gain_factors, t_interp_curves, sample_times, rel
         t[i] = t0 + lin_interp(t_interp_curves[x, y, i], t[i] - t0)
     dt = t[1] - t[0] - rel_times[x, y]
     tpos = lin_interp(time_pos_curves[x, y], dt)
-    L = [peak_area(wf[0:n_samples], m0) * gain_factors[x, y, 0],
-         peak_area(wf[n_samples:], m1) * gain_factors[x, y, 1]]
+    L = [calc_size(wf[0:n_samples], m0) * gain_factors[x, y, 0],
+         calc_size(wf[n_samples:], m1) * gain_factors[x, y, 1]]
     if L[0] == 0 or L[1] == 0:
         return 0., (L[0] + L[1]) / lin_interp(light_sum_curves[x, y], 0.)
     PE = [L[0] * eres[x, y, 0], L[1] * eres[x, y, 1]]
@@ -774,7 +832,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
             PE = [L[0] * eres[coord[0], coord[1], 0], L[1] * eres[coord[0], coord[1], 1]]
             if PE[0] == 0 or PE[1] == 0:
                 E_out[coord[2], coord[0], coord[1]] = (
-                            L[0] + L[1])  # just output uncorrected energy if only 1 pmt fired
+                        L[0] + L[1])  # just output uncorrected energy if only 1 pmt fired
             else:
                 E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]],
                                                                                    0.)
