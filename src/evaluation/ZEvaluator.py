@@ -134,7 +134,7 @@ class ZEvaluatorBase:
         single_err = np.sum(self.results["z_mult_mae_single"][0]) / np.sum(self.results["z_mult_mae_single"][1])
         dual_err = np.sum(self.results["z_mult_mae_dual"][0]) / np.sum(self.results["z_mult_mae_dual"][1])
         plot_cal = False
-        if "z_mult_mae_single_cal" in self.results:
+        if self.hascal:
             single_cal_err = np.sum(self.results["z_mult_mae_single_cal"][0]) / np.sum(
                 self.results["z_mult_mae_single_cal"][1])
             dual_cal_err = np.sum(self.results["z_mult_mae_dual_cal"][0]) / np.sum(
