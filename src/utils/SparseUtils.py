@@ -325,11 +325,13 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
         pulseright = pulses[pulse_ind, n_samples:2 * n_samples] * gains[coord[0], coord[1], 1]
         #TODO find peaks
         maxlocr = find_max(pulseright)
-        baselineright = find_baseline(pulseright, maxlocr, -30, -5)
+        #baselineright = find_baseline(pulseright, maxlocr, -30, -5)
+        baselineright = 0
         ra_right = get_residual(baselineright)
         maxlocl = find_max(pulseleft)
         pulses[pulse_ind, 0:n_samples] = pulseleft
-        baselineleft = find_baseline(pulseleft, maxlocl, -30, -5)
+        #baselineleft = find_baseline(pulseleft, maxlocl, -30, -5)
+        baselineleft = 0
         ra_left = get_residual(baselineleft)
         pulses[pulse_ind, n_samples:2 * n_samples] = pulseright
         tot_l = vec_sum(pulseleft)
@@ -597,7 +599,8 @@ def calc_size(data, peak_ind):
     start = peak_ind - 3
     stop = peak_ind + 25
     n = start - stop + 1
-    baseline = find_baseline(data, peak_ind, -30, -5)
+    #baseline = find_baseline(data, peak_ind, -30, -5)
+    baseline = 0
     residual_adjust = get_residual(baseline)
     return sum_range(data, start, stop) + n * residual_adjust
 
