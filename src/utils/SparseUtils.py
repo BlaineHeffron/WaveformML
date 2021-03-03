@@ -862,7 +862,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                     z_dt_weighted += peak_z * peak_E
                     total_area += peak_E
                 z_dt = z_dt_weighted / total_area
-                #z, E = z_dt_to_z(wf, z_dt, coord[0], coord[1], gain_factors, eres, light_pos_curves, light_sum_curves,
+                # z, E = z_dt_to_z(wf, z_dt, coord[0], coord[1], gain_factors, eres, light_pos_curves, light_sum_curves,
                 #                 n_samples)
                 z_out[coord[2], coord[0], coord[1]] = z_dt / z_scale + 0.5
                 E_out[coord[2], coord[0], coord[1]] = total_area
@@ -953,6 +953,25 @@ def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_
                 pred[batch] = (PE0[batch] + P1) / lin_interp(light_sum_curves[x, y], z[batch])
         else:
             pred[batch] = E[batch]
+
+
+@nb.jit(nopython=True)
+def z_basic_prediction_dense(z_pred, z_truth):
+    for i in range(z_pred.shape[0]):
+        for x in range(z_pred.shape[1]):
+            for y in range(z_pred.shape[2]):
+                if z_truth[i, x, y] != 0 and z_pred[i, x, y] == 0.5:
+                    sum = 0.0
+                    n = 0
+                    for j in range(-1, 2):
+                        for k in range(-1, 2):
+                            if j == k == 0:
+                                continue
+                            if 0 <= x + j < z_pred.shape[1] and 0 <= y + k < z_pred.shape[2]:
+                                if z_pred[i, x + j, y + k] != 0 and z_pred[i, x, y] != 0.5:
+                                    sum += z_pred[i, x + j, y + k]
+                                    n += 1
+                    z_pred[i, x, y] = sum / n
 
 
 @nb.jit(nopython=True)
