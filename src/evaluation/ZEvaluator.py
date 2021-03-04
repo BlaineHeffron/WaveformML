@@ -430,8 +430,6 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
         if E is None:
             E = f[:, 0] * self.E_scale
             E = self.get_dense_matrix(E, c)
-        else:
-            E = E.unsqueeze(1)
         pred = torch.tensor(pred)
         pred = self.get_dense_matrix(pred, c)
         z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
