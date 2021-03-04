@@ -505,8 +505,6 @@ class ZEvaluatorWF(ZEvaluatorBase):
         z_basic_prediction_dense(pred, targ[:, 0, :, :])
         if E is None:
             E = cal_E
-        else:
-            E = E.detach().cpu().numpy()
         z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                            self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                            self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
@@ -529,6 +527,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
         """
         if E is not None:
             self.set_true_E()
+            E = E.detach().cpu().numpy()
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         if self.hascal:
