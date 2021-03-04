@@ -454,7 +454,7 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
             E = f[:, 0] * self.E_scale
             E = self.get_dense_matrix(E, c)
         else:
-            E = E.unsqueeze(1)
+            E = np.expand_dims(E, dim=1)
         z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                            self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                            self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
