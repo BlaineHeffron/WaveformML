@@ -494,7 +494,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
 
     def z_from_cal(self, c, f, targ, E=None):
-        c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
+        c, f, targ = c.detach().cpu().numpy(), f.detach().cpu().numpy(), targ.detach().cpu().numpy()
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         cal_E = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         calc_calib_z_E(c, f, pred, cal_E, self.sample_width, self.calibrator.t_interp_curves,
