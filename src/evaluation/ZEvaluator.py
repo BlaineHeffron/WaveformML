@@ -494,7 +494,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
 
     def z_from_cal(self, c, f, targ, E=None):
-        c, f, targ = c.detach().cpu().numpy(), f.detach().cpu().numpy(), targ.detach().cpu().numpy()
+        c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         cal_E = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         calc_calib_z_E(c, f, pred, cal_E, self.sample_width, self.calibrator.t_interp_curves,
@@ -505,6 +505,8 @@ class ZEvaluatorWF(ZEvaluatorBase):
         z_basic_prediction_dense(pred, targ[:, 0, :, :])
         if E is None:
             E = cal_E
+        else:
+            E = E.detach().cpu().numpy()
         z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                            self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                            self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
