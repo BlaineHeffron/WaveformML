@@ -448,7 +448,7 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
     def add(self, predictions, target, c, f, E=None):
         if E is not None:
             self.set_true_E()
-            E = E.detach().cpu().numpy()
+            E = E.detach().cpu().numpy() * self.E_scale
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         if E is None:
@@ -528,7 +528,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
         """
         if E is not None:
             self.set_true_E()
-            E = E.detach().cpu().numpy()
+            E = E.detach().cpu().numpy() * self.E_scale
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         if self.hascal:
