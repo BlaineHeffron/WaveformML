@@ -971,7 +971,8 @@ def z_basic_prediction_dense(z_pred, z_truth):
                                 if z_pred[i, x + j, y + k] != 0 and z_pred[i, x, y] != 0.5:
                                     sum += z_pred[i, x + j, y + k]
                                     n += 1
-                    z_pred[i, x, y] = sum / n
+                    if n > 0:
+                        z_pred[i, x, y] = sum / n
 
 
 @nb.jit(nopython=True)
