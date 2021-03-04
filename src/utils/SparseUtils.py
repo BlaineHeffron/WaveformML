@@ -270,6 +270,7 @@ def calc_time(pulse, nsamp):
     else:
         return 0
 
+
 @nb.jit(nopyon=True)
 def find_max(v):
     max = 0
@@ -281,6 +282,7 @@ def find_max(v):
             max_loc = i
         i += 1
     return max_loc
+
 
 @nb.jit(nopython=True)
 def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stats, multiplicity, psdl, psdr):
@@ -323,13 +325,15 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
         n_current += 1
         pulseleft = pulses[pulse_ind, 0:n_samples] * gains[coord[0], coord[1], 0]
         pulseright = pulses[pulse_ind, n_samples:2 * n_samples] * gains[coord[0], coord[1], 1]
-        #TODO find peaks
+        # TODO find peaks
         maxlocr = find_max(pulseright)
-        baselineright = find_baseline(pulseright, maxlocr, -30, -5)
+        # baselineright = find_baseline(pulseright, maxlocr, -30, -5)
+        baselineright = 0
         ra_right = get_residual(baselineright)
         maxlocl = find_max(pulseleft)
         pulses[pulse_ind, 0:n_samples] = pulseleft
-        baselineleft = find_baseline(pulseleft, maxlocl, -30, -5)
+        # baselineleft = find_baseline(pulseleft, maxlocl, -30, -5)
+        baselineleft = 0
         ra_left = get_residual(baselineleft)
         pulses[pulse_ind, n_samples:2 * n_samples] = pulseright
         tot_l = vec_sum(pulseleft)
@@ -588,16 +592,19 @@ def find_peaks(v, maxloc, sep):
     """
     return global_maxpos
 
+
 @nb.jit(nopython=True)
 def get_residual(baseline):
     return round(baseline) - baseline
+
 
 @nb.jit(nopython=True)
 def calc_size(data, peak_ind):
     start = peak_ind - 3
     stop = peak_ind + 25
     n = start - stop + 1
-    baseline = find_baseline(data, peak_ind, -30, -5)
+    # baseline = find_baseline(data, peak_ind, -30, -5)
+    baseline = 0
     residual_adjust = get_residual(baseline)
     return sum_range(data, start, stop) + n * residual_adjust
 
@@ -845,20 +852,20 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                 z_dt_weighted = 0.
                 total_area = 0.
                 for m0, m1 in zip(local_maxima0, local_maxima1):
-                    # peak_z, peak_E = peak_to_z(wf, m0, m1, coord[0], coord[1], gain_factors, t_interp_curves, sample_times,
-                    #                 rel_times, eres, light_pos_curves, time_pos_curves, light_sum_curves,
-                    #                 sample_width, n_samples)
+                    peak_z, peak_E = peak_to_z(wf, m0, m1, coord[0], coord[1], gain_factors, t_interp_curves,
+                                               sample_times,
+                                               rel_times, eres, light_pos_curves, time_pos_curves, light_sum_curves,
+                                               sample_width, n_samples)
 
-                    peak_dt, peak_area = peak_to_dt(wf, m0, m1, coord[0], coord[1], t_interp_curves, sample_times,
-                                                    rel_times, gain_factors, sample_width, n_samples)
-                    z_dt = lin_interp(time_pos_curves[coord[0], coord[1]], peak_dt)
-                    z_dt_weighted += z_dt * peak_area
-                    total_area += peak_area
+                    # peak_dt, peak_area = peak_to_dt(wf, m0, m1, coord[0], coord[1], t_interp_curves, sample_times,
+                    #                                rel_times, gain_factors, sample_width, n_samples)
+                    z_dt_weighted += peak_z * peak_E
+                    total_area += peak_E
                 z_dt = z_dt_weighted / total_area
-                z, E = z_dt_to_z(wf, z_dt, coord[0], coord[1], gain_factors, eres, light_pos_curves, light_sum_curves,
-                                 n_samples)
-                z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
-                E_out[coord[2], coord[0], coord[1]] = E
+                # z, E = z_dt_to_z(wf, z_dt, coord[0], coord[1], gain_factors, eres, light_pos_curves, light_sum_curves,
+                #                 n_samples)
+                z_out[coord[2], coord[0], coord[1]] = z_dt / z_scale + 0.5
+                E_out[coord[2], coord[0], coord[1]] = total_area
             else:
                 z_weighted = 0.
                 total_E = 0.
@@ -866,28 +873,31 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
                     inds = match_peaks(local_maxima0, local_maxima1)
                     no_matches = excluded_inds(inds, local_maxima1.shape[0])
                     for i in range(local_maxima0.shape[0]):
-                        peak_z, peak_E = peak_to_z(wf, local_maxima0[i], local_maxima1[inds[i]], coord[0], coord[1],
-                                                   gain_factors, t_interp_curves, sample_times, rel_times, eres,
-                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width,
-                                                   n_samples)
-                        z_weighted += peak_z * peak_E
-                        total_E += peak_E
+                        peak_dt, peak_area = peak_to_dt(wf, local_maxima0[i], local_maxima1[inds[i]], coord[0],
+                                                        coord[1], t_interp_curves, sample_times,
+                                                        rel_times, gain_factors, sample_width, n_samples)
+                        # peak_z, peak_E = peak_to_z(wf, local_maxima0[i], local_maxima1[inds[i]], coord[0], coord[1],
+                        #                           gain_factors, t_interp_curves, sample_times, rel_times, eres,
+                        #                           light_pos_curves, time_pos_curves, light_sum_curves, sample_width,
+                        #                           n_samples)
+                        z_weighted += peak_dt * peak_area
+                        total_E += peak_area
                 else:
                     inds = match_peaks(local_maxima1, local_maxima0)
                     no_matches = excluded_inds(inds, local_maxima0.shape[0])
                     for i in range(local_maxima1.shape[0]):
-                        peak_z, peak_E = peak_to_z(wf, local_maxima0[inds[i]], local_maxima1[i], coord[0], coord[1],
-                                                   gain_factors, t_interp_curves, sample_times, rel_times, eres,
-                                                   light_pos_curves, time_pos_curves, light_sum_curves, sample_width,
-                                                   n_samples)
-                        z_weighted += peak_z * peak_E
-                        total_E += peak_E
+                        peak_dt, peak_area = peak_to_dt(wf, local_maxima0[inds[i]], local_maxima1[i], coord[0],
+                                                        coord[1], t_interp_curves, sample_times,
+                                                        rel_times, gain_factors, sample_width, n_samples)
+                        # peak_z, peak_E = peak_to_z(wf, local_maxima0[inds[i]], local_maxima1[i], coord[0], coord[1],
+                        #                           gain_factors, t_interp_curves, sample_times, rel_times, eres,
+                        #                           light_pos_curves, time_pos_curves, light_sum_curves, sample_width,
+                        #                           n_samples)
+                        z_weighted += peak_dt * peak_area
+                        total_E += peak_area
                 z_dt = z_weighted / total_E
-                z_dt_weight = 1. / (60 * 60)
-                z_light, z_light_weight, E = z_from_total_light(wf, coord[0], coord[1], gain_factors, eres,
-                                                                light_pos_curves,
-                                                                light_sum_curves, n_samples)
-                z = (z_dt * z_dt_weight + z_light * z_light_weight) / (z_dt_weight + z_light_weight)
+                z, E = z_dt_to_z(wf, z_dt, coord[0], coord[1], gain_factors, eres, light_pos_curves, light_sum_curves,
+                                 n_samples)
                 z_out[coord[2], coord[0], coord[1]] = z / z_scale + 0.5
                 E_out[coord[2], coord[0], coord[1]] = E
 
@@ -943,6 +953,26 @@ def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_
                 pred[batch] = (PE0[batch] + P1) / lin_interp(light_sum_curves[x, y], z[batch])
         else:
             pred[batch] = E[batch]
+
+
+@nb.jit(nopython=True)
+def z_basic_prediction_dense(z_pred, z_truth):
+    for i in range(z_pred.shape[0]):
+        for x in range(z_pred.shape[1]):
+            for y in range(z_pred.shape[2]):
+                if z_truth[i, x, y] != 0 and z_pred[i, x, y] == 0.5:
+                    sum = 0.0
+                    n = 0
+                    for j in range(-1, 2):
+                        for k in range(-1, 2):
+                            if j == k == 0:
+                                continue
+                            if 0 <= x + j < z_pred.shape[1] and 0 <= y + k < z_pred.shape[2]:
+                                if z_pred[i, x + j, y + k] != 0 and z_pred[i, x, y] != 0.5:
+                                    sum += z_pred[i, x + j, y + k]
+                                    n += 1
+                    if n > 0:
+                        z_pred[i, x, y] = sum / n
 
 
 @nb.jit(nopython=True)

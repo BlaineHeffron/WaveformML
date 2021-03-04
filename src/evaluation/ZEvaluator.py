@@ -14,7 +14,7 @@ from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d, plot_hist1d, Mul
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction, z_error, \
-    z_deviation_with_E
+    z_deviation_with_E, z_basic_prediction_dense
 from src.utils.util import get_bins, get_bin_midpoints
 
 
@@ -448,6 +448,7 @@ class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
     def add(self, predictions, target, c, f, E=None):
         if E is not None:
             self.set_true_E()
+            E = E.detach().cpu().numpy() * self.E_scale
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         if E is None:
@@ -502,6 +503,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
                        self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
                        self.calibrator.time_pos_curves, self.calibrator.light_pos_curves,
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
+        z_basic_prediction_dense(pred, targ[:, 0, :, :])
         if E is None:
             E = cal_E
         z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
@@ -526,6 +528,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
         """
         if E is not None:
             self.set_true_E()
+            E = E.detach().cpu().numpy() * self.E_scale
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         if self.hascal:
