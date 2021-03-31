@@ -3,7 +3,7 @@ from src.utils.util import unique_path_combine, DictionaryUtility, check_config
 from os.path import isdir, join, abspath, normpath, expanduser
 import argparse
 
-TYPES = ['2d', '3d', 'pmt', 'det', 'detz', 'detez', '2dz','2dez']
+TYPES = ['2d', '3d', 'pmt', 'det', 'detz', 'detez', '2dz','2dez','wfpair']
 DEFAULT_CONFIG = {
     "dataset_config": {
         "data_prep": "shuffle",
@@ -91,6 +91,9 @@ def main():
                                   dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
     elif type == '2dez':
         d = PulseDataset2DWithEZ(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
+                                 dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
+    elif type == 'wfpair':
+        d = PulseDatasetWFPair(config, "train", 1000000000, "cpu0", model_dir="./model", data_dir=outdir,
                                  dataset_dir=outdir, **DictionaryUtility.to_dict(config.dataset_config.dataset_params))
     else:
         raise IOError("Unknown dataset type {}".format(type))
