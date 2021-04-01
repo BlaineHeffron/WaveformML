@@ -913,8 +913,7 @@ class PulseDatasetWFPair(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          use_half=use_half,
-                         label_name=label_name,
-                         normalize=False)
+                         label_name=label_name)
         self.label_index = label_index
 
     def __getitem__(self, idx):
