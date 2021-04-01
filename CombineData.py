@@ -55,6 +55,8 @@ def main():
         config['dataset_config']['dataset_params']['label_file_pattern'] = "*Waveform3DPairSimLabel.h5"
     elif type == 'det':
         config['dataset_config']['dataset_params']['label_file_pattern'] = "*DetCoordSimLabel.h5"
+    elif type == 'wfpair':
+        config['dataset_config']['dataset_params']['label_file_pattern'] = None
     if args.config:
         config = args.config
         config = check_config(config, CONFIG_DIR)
