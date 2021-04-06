@@ -406,11 +406,12 @@ def plot_pr(data, class_names):
 def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=False):
     lw = 2
     data *= (2 ** 14 - 1)
+    dlen = data.shape[1]
     fig, ax = plt.subplots()
-    x = np.arange(2, 600, 4)
+    x = np.arange(2, dlen*2, 4)
     for i in range(len(labels)):
         if data.shape[1] == 2 * x.shape[0]:
-            y = data[i, :150] + data[i, 150:]
+            y = data[i, :dlen/2] + data[i, dlen/2:]
         else:
             y = data[i]
         tot = n[i]

@@ -298,7 +298,7 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
     psd_window_lo = -3
     psd_divider = 11
     psd_window_hi = 50
-    n_samples = 150
+    n_samples = pulses.shape[1] / 2
     pulse_ind = 0
     for coord in coords:
         if coord[2] != last_id:

@@ -15,7 +15,8 @@ def moment_prod(x, counts):
 
 def calc_photon_moments(dist_vec, n):
     output = np.zeros((dist_vec.shape[0], n))
-    pulses = dist_vec[:, :150] + dist_vec[:, 150:]
+    n_samples = dist_vec.shape[1]/2
+    pulses = dist_vec[:, :n_samples] + dist_vec[:, n_samples:]
     for i in range(n):
         output[:, i] = stats.moment(pulses, moment=i + 2, axis=1)
     return output
@@ -24,9 +25,10 @@ def calc_photon_moments(dist_vec, n):
 def calc_time_moments(dist_vec, n):
     """dist_vec is the vector of distributions, batch index is given by the first index, 1-d distribution along second dimension"""
     output = np.zeros((dist_vec.shape[0], n))
-    pulses = dist_vec[:, :150] + dist_vec[:, 150:]
+    n_samples = dist_vec.shape[1]/2
+    pulses = dist_vec[:, :n_samples] + dist_vec[:, n_samples:]
     for i in range(n):
-        output[:, i] = moment_prod(np.arange(2, 150 * 4 + 2, 4) ** (i + 2), pulses)
+        output[:, i] = moment_prod(np.arange(2, n_samples * 4 + 2, 4) ** (i + 2), pulses)
     return output
 
 
