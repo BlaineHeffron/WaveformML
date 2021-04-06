@@ -198,19 +198,19 @@ class ExtractedFeatureConv(nn.Module):
 
 
 def _get_frame_expansion(initial_number, factor, n):
-    frames = []
+    frames = [initial_number]
     diff = float(int(round(factor*initial_number)) - initial_number) / n
     for i in range(n):
         frames += [int(floor(frames[-1] + diff))]
-    return frames
+    return frames[1:]
 
 
 def _get_frame_contraction(initial_number, nout, n):
-    frames = []
+    frames = [initial_number]
     diff = float(initial_number - nout) / n
     for i in range(n):
         frames += [int(floor(frames[-1] - diff))]
-    return frames
+    return frames[1:]
 
 
 class SparseConv2DBlock(Algorithm):
