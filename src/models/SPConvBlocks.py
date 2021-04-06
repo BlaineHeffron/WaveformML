@@ -198,7 +198,7 @@ class ExtractedFeatureConv(nn.Module):
 
 
 def _get_frame_expansion(initial_number, factor, n):
-    frames = [initial_number]
+    frames = []
     diff = float(int(round(factor*initial_number)) - initial_number) / n
     for i in range(n):
         frames += [int(floor(frames[-1] + diff))]
@@ -206,7 +206,7 @@ def _get_frame_expansion(initial_number, factor, n):
 
 
 def _get_frame_contraction(initial_number, nout, n):
-    frames = [initial_number]
+    frames = []
     diff = float(initial_number - nout) / n
     for i in range(n):
         frames += [int(floor(frames[-1] - diff))]
@@ -434,7 +434,7 @@ class SparseConv2DBlock(Algorithm):
             if st < 1:
                 st = 1
             dil = int(round(dil_factor ** i))
-            pd = int(round(pad_factor * (fs - 1) * dil_factor * decay_factor))
+            pd = int(round(pad_factor * ((fs - 1)/2.) * dil_factor * decay_factor))
             if i == 0 and pointwise_factor > 0:
                 pd, fs, dil, st = 0, 1, 1, 1
                 self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
