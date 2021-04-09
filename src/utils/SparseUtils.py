@@ -271,7 +271,7 @@ def calc_time(pulse, nsamp):
         return 0
 
 
-@nb.jit(nopyon=True)
+@nb.jit(nopython=True)
 def find_max(v):
     max = 0
     i = 0

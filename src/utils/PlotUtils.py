@@ -411,7 +411,7 @@ def plot_wfs(data, n, labels, plot_errors=False, normalize=False, write_pulses=F
     x = np.arange(2, dlen*2, 4)
     for i in range(len(labels)):
         if data.shape[1] == 2 * x.shape[0]:
-            y = data[i, :dlen/2] + data[i, dlen/2:]
+            y = data[i, :int(dlen/2)] + data[i, int(dlen/2):]
         else:
             y = data[i]
         tot = n[i]
