@@ -9,6 +9,9 @@ from src.evaluation.Calibrator import Calibrator
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
 
+E_NORMALIZATION_FACTOR = 12.
+Z_NORMALIZATION_FACTOR = 1200.
+
 
 class AD1Evaluator:
     def __init__(self, calgroup=None, e_scale=None):
@@ -16,8 +19,8 @@ class AD1Evaluator:
         self.ny = 11
         self.spatial_size = np.array([self.nx, self.ny])
         self.permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
-        self.z_scale = 1200.
-        self.E_scale = 12.
+        self.z_scale = Z_NORMALIZATION_FACTOR
+        self.E_scale = E_NORMALIZATION_FACTOR
         if e_scale:
             self.E_adjust = self.E_scale / e_scale
             self.E_scale = e_scale

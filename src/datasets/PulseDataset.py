@@ -4,6 +4,8 @@ from copy import copy
 from os.path import basename, join, exists
 
 from torch.utils.data import get_worker_info
+
+from src.evaluation.AD1Evaluator import Z_NORMALIZATION_FACTOR, E_NORMALIZATION_FACTOR
 from src.utils.util import config_equals, unique_path_combine, replace_file_pattern
 
 from numpy import asarray, concatenate, empty, array, int8
@@ -282,7 +284,7 @@ class PulseDataset(HDF5Dataset):
                     label_size = labels.shape[1]
 
                 ndtype = self.construct_dtype(features.shape[1], features.dtype, coords.shape[1], coords.dtype,
-                                     label_size, labels.dtype)
+                                              label_size, labels.dtype)
 
                 dset = array([(coords[i], features[i], labels[i]) for i in range(coords.shape[0])], dtype=ndtype)
                 h5f.create_dataset(dataset_name, data=dset)
@@ -303,10 +305,10 @@ class PulseDataset(HDF5Dataset):
                 df.flush()
                 if len(columns) == 3:
                     dl = h5f.create_dataset(dataset_name + "/" + columns[2], compression="gzip", compression_opts=6,
-                                        data=labels, chunks=(lsize,))
+                                            data=labels, chunks=(lsize,))
                 else:
                     dl = h5f.create_dataset(dataset_name + "/" + "labels", compression="gzip", compression_opts=6,
-                                        data=labels, chunks=(lsize,), dtype=int8)
+                                            data=labels, chunks=(lsize,), dtype=int8)
                 dl.flush()
                 h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
                 h5f.flush()
@@ -317,7 +319,8 @@ class PulseDataset(HDF5Dataset):
                                                      axis=0)
                 h5f[dataset_name][columns[1]][-features.shape[0]:, :] = features
                 if len(columns) == 3:
-                    h5f[dataset_name][columns[2]].resize((h5f[dataset_name][columns[2]].shape[0] + labels.shape[0]), axis=0)
+                    h5f[dataset_name][columns[2]].resize((h5f[dataset_name][columns[2]].shape[0] + labels.shape[0]),
+                                                         axis=0)
                     h5f[dataset_name][columns[2]][-labels.shape[0]:, :] = labels
                 h5f[dataset_name].attrs.create("nevents", array([event_counter + 1]))
                 h5f.flush()
@@ -388,7 +391,7 @@ class PulseDataset(HDF5Dataset):
     def _init_shuffled_dataset(self, data_info):
         total_rows = 0
         dtypecoord, dtypefeat, coord_len, feat_len = 0, 0, 0, 0
-        dtypelabel ,label_len = None, 0
+        dtypelabel, label_len = None, 0
         for key in data_info.keys():
             for data in data_info[key]:
                 total_rows += self._get_length(data)
@@ -401,7 +404,7 @@ class PulseDataset(HDF5Dataset):
         self.log.debug("Initializing a length {0} dataset for {1}".format(total_rows, data_info))
         if dtypelabel is not None:
             return (empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat),
-                   empty((total_rows, label_len), dtype=dtypelabel))
+                    empty((total_rows, label_len), dtype=dtypelabel))
         return empty((total_rows, coord_len), dtype=dtypecoord), empty((total_rows, feat_len), dtype=dtypefeat)
 
     def _get_label(self, label, cat):
@@ -876,6 +879,7 @@ class PulseDatasetDetWithEZ(PulseDataset):
         else:
             return super().__getitem__(idx)
 
+
 class PulseDatasetWFPair(PulseDataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2],
     where N is the number of PMTs fired for the M = batch size events
@@ -923,6 +927,7 @@ class PulseDatasetWFPair(PulseDataset):
         else:
             return super().__getitem__(idx)
 
+
 class PulseDatasetWFPairEZ(PulseDataset):
     """Pulse data in the form of ChannelData of size [N,nsamples*2],
     where N is the number of PMTs fired for the M = batch size events
@@ -967,5 +972,59 @@ class PulseDatasetWFPairEZ(PulseDataset):
         if self.label_index is not None:
             val, label = super().__getitem__(idx)
             return val, label[:, self.label_index]
+        else:
+            return super().__getitem__(idx)
+
+
+class PulseDatasetRealWFPair(PulseDataset):
+
+    @classmethod
+    def retrieve_config(cls, config_path, device, use_half=False):
+        return super().retrieve_config(config_path, device, use_half)
+
+    def __init__(self, config, dataset_type, n_per_dir, device,
+                 file_excludes=None,
+                 label_file_pattern=None,
+                 data_cache_size=3,
+                 model_dir=None,
+                 data_dir=None,
+                 dataset_dir=None,
+                 use_half=False,
+                 label_name="Z"):
+        """
+        Args:
+            config: configuration file object
+            n_per_dir: number of events to use per directory
+            file_excludes: list of file paths to exclude from dataset
+            data_cache_size: number of file to hold in memory
+        """
+        super().__init__(config, dataset_type,
+                         n_per_dir, device,
+                         "*WFCalSE.h5", "WaveformPairCal",
+                         "coord", "waveform",
+                         file_excludes=file_excludes,
+                         label_file_pattern=label_file_pattern,
+                         data_cache_size=data_cache_size,
+                         model_dir=model_dir,
+                         data_dir=data_dir,
+                         dataset_dir=dataset_dir,
+                         use_half=use_half,
+                         label_name=label_name)
+        if label_name is not None:
+            if label_name == "Z":
+                self.norm_factor = 1. / Z_NORMALIZATION_FACTOR
+            elif label_name == "E":
+                self.norm_factor = 1. / E_NORMALIZATION_FACTOR
+
+    def __getitem__(self, idx):
+        if self.info["label_name"]:
+            if self.info["label_name"] == "Z":
+                val, label = super().__getitem__(idx)
+                return val, label * self.norm_factor + 0.5
+            elif self.info["label_name"] == "E":
+                val, label = super().__getitem__(idx)
+                return val, label * self.norm_factor
+            else:
+                return super().__getitem__(idx)
         else:
             return super().__getitem__(idx)
