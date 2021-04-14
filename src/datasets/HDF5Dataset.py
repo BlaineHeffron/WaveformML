@@ -2,12 +2,12 @@ from re import compile
 
 from src.utils.HDF5Utils import H5FileHandler
 from pathlib import Path
-from os.path import getmtime, normpath
+from os.path import getmtime, normpath, basename, join, exists
 import torch
 from torch.utils import data
 from numpy import where, int32 as npint32, float32 as npfloat32
 from os.path import dirname, abspath
-from src.utils.util import read_object_from_file, save_object_to_file, json_load
+from src.utils.util import read_object_from_file, save_object_to_file, json_load, replace_file_pattern
 from src.datasets.H5CompoundTypes import H5CompoundType
 import logging
 
@@ -184,8 +184,12 @@ class HDF5Dataset(data.Dataset):
             vals = self.get_data(self.info['feat_name'], index)
         else:
             if self.info['label_name'] is not None:
-                coords, vals, y = self.get_data(self.info['data_name'], index)
-                coords, vals, y = self._concat_range(index, coords, vals, di, y)
+                if self.info["label_file_pattern"] is not None:
+                    coords, vals = self.get_data(self.info["data_name"], index)
+                    coords, vals, y = self._concat_range(index, coords, vals, di)
+                else:
+                    coords, vals, y = self.get_data(self.info['data_name'], index)
+                    coords, vals, y = self._concat_range(index, coords, vals, di, y)
             else:
                 coords, vals = self.get_data(self.info['data_name'], index)
         if self.group_mode or self.info['label_name'] is None:
@@ -258,12 +262,12 @@ class HDF5Dataset(data.Dataset):
         return coords, vals, y
 
     def _add_data_block(self, dataset, dataset_name, file_path, load_data, num_events, dir_index, n_file_events,
-                        modified):
+                        modified, label_file=False):
         # if data is not loaded its cache index is -1
         idx = -1
         if load_data:
             # add data to the data cache
-            idx = self._add_to_cache(dataset, file_path)
+            idx = self._add_to_cache(dataset, file_path, label_file)
 
         if self.group_mode:
             if not file_path in self.data_cache_map:
@@ -286,7 +290,6 @@ class HDF5Dataset(data.Dataset):
         # return h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1
 
     def _add_data_infos(self, file_path, dir_index, load_data):
-        n_file_events = 0
         with H5FileHandler(file_path, 'r') as h5_file:
             modified = getmtime(file_path)
             n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
@@ -308,7 +311,6 @@ class HDF5Dataset(data.Dataset):
                 else:
                     self.group_mode = False
                     self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
-        """
         if self.info["label_file_pattern"]:
             fdir = dirname(file_path)
             fname = basename(file_path)
@@ -318,20 +320,21 @@ class HDF5Dataset(data.Dataset):
                 raise RuntimeError(
                     "No corresponding label file found for file {0}, tried {1}".format(file_path, label_file))
             with H5FileHandler(label_file, 'r') as h5_file:
-                modified = getmtime(file_path)
+                n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[
+                    0]  # the number of events in the file
                 n = n_file_events
                 if self.info['events_per_dir'] - self.n_events[dir_index] < n:
                     n = self.info['events_per_dir'] - self.n_events[dir_index]
-
+                modified = getmtime(file_path)
                 # Walk through all groups, extracting datasets
                 for gname, group in h5_file.items():
-                    self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
-        """
+                    self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified,
+                                         label_file=True)
 
     def _get_dir_index(self, file_path):
         return self.file_paths.index(file_path)
 
-    def _load_data(self, file_path):
+    def _load_data(self, file_path, label_file=False):
         """Load data to the cache given the file
         path and update the cache index in the
         data_info structure.
@@ -345,7 +348,7 @@ class HDF5Dataset(data.Dataset):
                         # self.log.debug("adding {0} to cache from file {1}".format(dname,file_path))
                         # if ds:
                         #    self.log.debug("size of dataset: {}".format(ds.size))
-                        idx = self._add_to_cache(ds, file_path)
+                        idx = self._add_to_cache(ds, file_path, label_file)
 
                         # find the beginning index of the hdf5 file we are looking for
                         file_idx = next(i for i, v in enumerate(self.info['data_info'])
@@ -357,7 +360,7 @@ class HDF5Dataset(data.Dataset):
                         else:
                             self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']][dname] = idx
                 else:
-                    idx = self._add_to_cache(group, file_path)
+                    idx = self._add_to_cache(group, file_path, label_file)
                     # find the beginning index of the hdf5 file we are looking for
                     file_idx = next(i for i, v in enumerate(self.info['data_info'])
                                     if v['file_path'] == file_path)
@@ -377,12 +380,16 @@ class HDF5Dataset(data.Dataset):
             else:
                 self.data_cache_map[removal_keys[0]] = -1
 
-    def _add_to_cache(self, data, file_path):
+    def _add_to_cache(self, data, file_path, label_file=False):
         """Adds data to the cache and returns its index. There is one cache
         list for every file_path, containing all datasets in that file.
         """
         if file_path not in self.data_cache:
-            if self.group_mode:
+            if label_file:
+                if not self.info['label_name']:
+                    raise ValueError("if label file pattern used, must also specify label name")
+                self.data_cache[file_path] = [data[self.info['label_name']]]
+            elif self.group_mode:
                 self.data_cache[file_path] = [data[()]]
             else:
                 if self.info['label_name'] is not None:
@@ -391,7 +398,11 @@ class HDF5Dataset(data.Dataset):
                 else:
                     self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
         else:
-            if self.group_mode:
+            if label_file:
+                if not self.info['label_name']:
+                    raise ValueError("if label file pattern used, must also specify label name")
+                self.data_cache[file_path].append(data[self.info['label_name']])
+            elif self.group_mode:
                 self.data_cache[file_path].append(data[()])
             else:
                 if self.info['label_name'] is not None:
@@ -417,10 +428,14 @@ class HDF5Dataset(data.Dataset):
             dataset. This will make sure that the data is loaded in case it is
             not part of the data cache.
         """
+        if(data_type == self.info["label_name"] and self.info["label_file_pattern"] is not None):
+            label_file = True
+        else:
+            label_file = False
         fp = self.get_data_infos(data_type)[i]['file_path']
         # self.log.debug("file path is {}".format(fp))
         if fp not in self.data_cache:
-            self._load_data(fp)
+            self._load_data(fp, label_file)
 
         # get new cache_idx assigned by _load_data_info
         if self.group_mode:
