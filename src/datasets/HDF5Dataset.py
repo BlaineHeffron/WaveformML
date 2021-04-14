@@ -388,7 +388,7 @@ class HDF5Dataset(data.Dataset):
             if label_file:
                 if not self.info['label_name']:
                     raise ValueError("if label file pattern used, must also specify label name")
-                self.data_cache[file_path] = [data[self.info['label_name']]]
+                self.data_cache[file_path] = [data[data.dtype.names[0]]]
             elif self.group_mode:
                 self.data_cache[file_path] = [data[()]]
             else:
@@ -401,7 +401,7 @@ class HDF5Dataset(data.Dataset):
             if label_file:
                 if not self.info['label_name']:
                     raise ValueError("if label file pattern used, must also specify label name")
-                self.data_cache[file_path].append(data[self.info['label_name']])
+                self.data_cache[file_path].append(data[data.dtype.names[0]])
             elif self.group_mode:
                 self.data_cache[file_path].append(data[()])
             else:
