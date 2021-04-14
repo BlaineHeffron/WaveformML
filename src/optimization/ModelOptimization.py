@@ -21,14 +21,14 @@ INDEX_PATTERN = re.compile(r'\[([0-9]+)\]')
 class PruningCallback(Callback):
     def __init__(self):
         super(PruningCallback, self).__init__()
-        self.log = logging.getLogger(__name__)
+        self.pylog = logging.getLogger(__name__)
 
     def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule):
         if trainer.callback_metrics:
             val = trainer.callback_metrics["val_loss"].detach().item()
             if not hasattr(pl_module, "trial"):
                 raise Exception("No Trial found in lightning module {}".format(pl_module))
-            self.log.debug("val loss of {0} reported for epoch {1}.".format(val, trainer.current_epoch))
+            self.pylog.debug("val loss of {0} reported for epoch {1}.".format(val, trainer.current_epoch))
             pl_module.trial.report(val, trainer.current_epoch)
             prune = False
             try:
@@ -36,7 +36,7 @@ class PruningCallback(Callback):
             except Exception as e:
                 print(e)
             if prune:
-                self.log.info("Pruning trial {}".format(pl_module.trial))
+                self.pylog.info("Pruning trial {}".format(pl_module.trial))
                 raise optuna.TrialPruned()
 
 
