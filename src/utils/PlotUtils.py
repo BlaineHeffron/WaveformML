@@ -451,7 +451,8 @@ def GetMPLStyles():
 def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
-                  vertlines=None, vlinelabel=None, xlog=False, title=None):
+                  vertlines=None, vlinelabel=None, xlog=False, title=None,
+                  width_factor=0.9, legend_xoff=0.4, legend_yoff=0.75):
     if colors is None:
         colors = []
     if styles is None:
@@ -526,9 +527,9 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
     else:
         if(title):
             ax1.set_title(title)
-        ax1.set_position([box.x0,box.y0,box.width*0.75,box.height])
+        ax1.set_position([box.x0,box.y0,box.width*width_factor,box.height])
         ax1.legend(line_labels,loc='center left',\
-                bbox_to_anchor=(0.4,0.75),ncol=1)
+                bbox_to_anchor=(legend_xoff,legend_yoff),ncol=1)
         rcParams.update({'font.size':14})
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)

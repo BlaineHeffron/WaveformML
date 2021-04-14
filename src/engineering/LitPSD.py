@@ -1,5 +1,5 @@
 from pytorch_lightning.metrics.classification import Accuracy
-from pytorch_lightning.metrics.functional.classification import confusion_matrix
+from torchmetrics import ConfusionMatrix
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
 from torch import argmax, sum
@@ -40,7 +40,7 @@ class LitPSD(pl.LightningModule):
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.softmax = LogSoftmax(dim=1)
         self.accuracy = Accuracy()
-        self.confusion = confusion_matrix
+        self.confusion = ConfusionMatrix(num_classes=self.n_type)
         if self.config.dataset_config.dataset_class == "PulseDatasetDet":
             self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
         else:
@@ -122,9 +122,9 @@ class LitPSD(pl.LightningModule):
         self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
         if self.pylog.level <= logging.INFO:
             if not hasattr(self, "confusion_matrix"):
-                self.confusion_matrix = self.confusion(pred, target, num_classes=self.n_type)
+                self.confusion_matrix = self.confusion(pred, target)
             else:
-                self.confusion_matrix += self.confusion(pred, target, num_classes=self.n_type)
+                self.confusion_matrix += self.confusion(pred, target)
 
         """
         if self.trial:
@@ -145,9 +145,9 @@ class LitPSD(pl.LightningModule):
         acc = self.accuracy(pred, target)
         results_dict = {'test_loss': loss, 'test_acc': acc}
         if not hasattr(self, "test_confusion_matrix"):
-            self.test_confusion_matrix = self.confusion(pred, target, num_classes=self.n_type)
+            self.test_confusion_matrix = self.confusion(pred, target)
         else:
-            self.test_confusion_matrix += self.confusion(pred, target, num_classes=self.n_type)
+            self.test_confusion_matrix += self.confusion(pred, target)
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
         self.evaluator.add(batch, predictions, pred)
