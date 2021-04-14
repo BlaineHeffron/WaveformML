@@ -325,10 +325,10 @@ class HDF5Dataset(data.Dataset):
                 n = n_file_events
                 if self.info['events_per_dir'] - self.n_events[dir_index] < n:
                     n = self.info['events_per_dir'] - self.n_events[dir_index]
-                modified = getmtime(file_path)
+                modified = getmtime(label_file)
                 # Walk through all groups, extracting datasets
                 for gname, group in h5_file.items():
-                    self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified,
+                    self._add_data_block(group, gname, label_file, load_data, n, dir_index, n_file_events, modified,
                                          label_file=True)
 
     def _get_dir_index(self, file_path):
@@ -428,7 +428,7 @@ class HDF5Dataset(data.Dataset):
             dataset. This will make sure that the data is loaded in case it is
             not part of the data cache.
         """
-        if(data_type == self.info["label_name"] and self.info["label_file_pattern"] is not None):
+        if data_type == self.info["label_name"] and self.info["label_file_pattern"] is not None:
             label_file = True
         else:
             label_file = False
