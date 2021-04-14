@@ -320,7 +320,7 @@ class HDF5Dataset(data.Dataset):
                 raise RuntimeError(
                     "No corresponding label file found for file {0}, tried {1}".format(file_path, label_file))
             with H5FileHandler(label_file, 'r') as h5_file:
-                n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[
+                n_file_events = h5_file[self.info['label_name']].attrs.get('nevents')[
                     0]  # the number of events in the file
                 n = n_file_events
                 if self.info['events_per_dir'] - self.n_events[dir_index] < n:
