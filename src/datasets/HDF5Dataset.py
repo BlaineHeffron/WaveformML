@@ -392,7 +392,7 @@ class HDF5Dataset(data.Dataset):
             elif self.group_mode:
                 self.data_cache[file_path] = [data[()]]
             else:
-                if self.info['label_name'] is not None:
+                if self.info['label_name'] is not None and self.info['label_file_pattern'] is None:
                     self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']],
                                                    data[self.info['label_name']])]
                 else:
@@ -405,7 +405,7 @@ class HDF5Dataset(data.Dataset):
             elif self.group_mode:
                 self.data_cache[file_path].append(data[()])
             else:
-                if self.info['label_name'] is not None:
+                if self.info['label_name'] is not None and self.info['label_file_pattern'] is None:
                     self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']],
                                                        data[self.info['label_name']]))
                 else:
