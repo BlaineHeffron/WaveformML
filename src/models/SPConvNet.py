@@ -102,8 +102,7 @@ class SPConvNet(nn.Module):
                 try:
                     self.create_algorithm(self.net_config.hparams, self.ntype)
                 except AssertionError as e:
-                    print("Parameters {0} \nlead to error : {1}".format(self.net_config.hparams, e))
-                    raise AssertionError
+                    raise AssertionError("Parameters {0} \nlead to error : {1}".format(DictionaryUtility.to_dict(self.net_config.hparams), e))
             else:
                 raise IOError("net_config must contain one of either 'algorithm' or 'hparams'")
         else:
