@@ -99,7 +99,11 @@ class SPConvNet(nn.Module):
         has_wf = False
         if not hasattr(self.net_config, "algorithm"):
             if hasattr(self.net_config, "hparams"):
-                self.create_algorithm(self.net_config.hparams, self.ntype)
+                try:
+                    self.create_algorithm(self.net_config.hparams, self.ntype)
+                except AssertionError as e:
+                    print("Parameters {0} \nlead to error : {1}".format(self.net_config.hparams, e))
+                    raise AssertionError
             else:
                 raise IOError("net_config must contain one of either 'algorithm' or 'hparams'")
         else:
