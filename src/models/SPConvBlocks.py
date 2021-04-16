@@ -1,4 +1,4 @@
-from math import floor
+from math import floor, ceil
 from copy import copy
 
 import spconv
@@ -245,6 +245,13 @@ class SparseConv2DBlock(Algorithm):
                            pointwise_factor=pointwise_factor, dropout=dropout,
                            trainable_weights=trainable_weights)
 
+        elif version == 3:
+            self._version3(nin, nout, n, size, to_dense,
+                           size_factor=size_factor, pad_factor=pad_factor, stride_factor=stride_factor,
+                           dil_factor=dil_factor, expansion_factor=expansion_factor, n_expansion=n_expansion,
+                           pointwise_factor=pointwise_factor, dropout=dropout,
+                           trainable_weights=trainable_weights)
+
     def _version0(self, nin, nout, n, size, to_dense,
                   size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
                   pointwise_factor=0, depth_factor=0, dropout=0, trainable_weights=False):
@@ -390,6 +397,7 @@ class SparseConv2DBlock(Algorithm):
             self.alg.append(spconv.ToDense())
         self.func = spconv.SparseSequential(*self.alg)
 
+
     def _version2(self, nin, nout, n, size, to_dense,
                   size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
                   expansion_factor=0, n_expansion=0,
@@ -453,6 +461,72 @@ class SparseConv2DBlock(Algorithm):
             self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
             self.log.debug("Loop {0}, output size is {1}".format(i, self.out_size))
 
+        if to_dense:
+            self.alg.append(spconv.ToDense())
+        self.func = spconv.SparseSequential(*self.alg)
+
+    def _version3(self, nin, nout, n, size, to_dense,
+                  size_factor=3, pad_factor=0.0, stride_factor=1, dil_factor=1,
+                  expansion_factor=0, n_expansion=0,
+                  pointwise_factor=0, dropout=0, trainable_weights=False):
+        self.alg = []
+        self.out_size = size
+        self.dropout = dropout
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing convolution block with nin {0}, nout {1}, size {2}".format(nin, nout, size))
+        self.ndim = len(size) - 1
+        if pointwise_factor > 0:
+            n_contraction = n - 1 - n_expansion
+            if n_contraction < 1:
+                raise ValueError("n_contraction too large, must be < n - 1")
+
+        else:
+            n_contraction = n - n_expansion
+            if n_contraction < 1:
+                raise ValueError("n_contraction too large, must be < n")
+        nframes = [nin]
+        if pointwise_factor > 0:
+            nframes.append(nin - int(floor((nin - nout) * pointwise_factor)))
+        if n_expansion > 0:
+            nframes += _get_frame_expansion(nframes[-1],expansion_factor,n_expansion)
+        if n_contraction > 0:
+            nframes += _get_frame_contraction(nframes[-1], nout, n_contraction)
+        for i in range(n):
+            if pointwise_factor > 0:
+                if n > 1:
+                    decay_factor = 1. - (i - 1) / (n - 1)
+                else:
+                    decay_factor = 1.
+            else:
+                if n > 1:
+                    decay_factor = 1. - i / (n - 1)
+                else:
+                    decay_factor = 1.
+            fs = int(ceil(size_factor*decay_factor))
+            if fs < 2:
+                fs = 2
+            st = int(round(stride_factor * i / (n - 1)))
+            if st < 1:
+                st = 1
+            dil = int(round(dil_factor ** i))
+            pd = int(round(pad_factor * ((fs - 1)/2.) * dil_factor * decay_factor))
+            if i == 0 and pointwise_factor > 0:
+                pd, fs, dil, st = 0, 1, 1, 1
+                self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                # self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                self.log.debug("added pointwise convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
+            else:
+                self.alg.append(spconv.SparseConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                self.log.debug("added regular convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
+            self.log.debug("filter size: {0}, stride: {1}, pad: {2}, dil: {3}".format(fs, st, pd, dil))
+            self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
+            self.alg.append(nn.ReLU())
+            if self.dropout:
+                self.alg.append(nn.Dropout(self.dropout))
+            arg_dict = {DIM: self.ndim, NIN: nframes[i], NOUT: nframes[i + 1], FS: [fs] * 4, STR: [st] * 4,
+                        PAD: [pd] * 4, DIL: [dil] * 4}
+            self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
+            self.log.debug("Loop {0}, output size is {1}".format(i, self.out_size))
         if to_dense:
             self.alg.append(spconv.ToDense())
         self.func = spconv.SparseSequential(*self.alg)
