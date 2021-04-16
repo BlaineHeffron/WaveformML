@@ -183,7 +183,11 @@ def main():
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         if "auto_lr_find" in  trainer_args.keys():
             if trainer_args["auto_lr_find"]:
-                trainer.tune(runner, datamodule=data_module)
+                lr_finder = trainer.tuner.lr_find(runner, datamodule=data_module)
+                new_lr = lr_finder.suggestion()
+                print("Setting learning rate to suggested learning rate: {}".format(new_lr))
+                runner.lr = new_lr
+                #trainer.tune(runner, datamodule=data_module)
         trainer.fit(runner, datamodule=data_module)
         if run_test:
             trainer.test()
