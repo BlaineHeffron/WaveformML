@@ -990,7 +990,7 @@ class PulseDatasetRealWFPair(PulseDataset):
                  data_dir=None,
                  dataset_dir=None,
                  use_half=False,
-                 label_name="Z"):
+                 label_name="z"):
         """
         Args:
             config: configuration file object
@@ -1011,18 +1011,22 @@ class PulseDatasetRealWFPair(PulseDataset):
                          use_half=use_half,
                          label_name=label_name)
         if label_name is not None:
-            if label_name == "Z":
+            if label_name == "z":
                 self.norm_factor = 1. / Z_NORMALIZATION_FACTOR
             elif label_name == "E":
                 self.norm_factor = 1. / E_NORMALIZATION_FACTOR
 
     def __getitem__(self, idx):
         if self.info["label_name"]:
-            if self.info["label_name"] == "Z":
+            if self.info["label_name"] == "z":
                 val, label = super().__getitem__(idx)
+                label[label < 0] = 0
+                label[label > 1] = 1
                 return val, label * self.norm_factor + 0.5
             elif self.info["label_name"] == "E":
                 val, label = super().__getitem__(idx)
+                label[label < 0] = 0
+                label[label > 1] = 1
                 return val, label * self.norm_factor
             else:
                 return super().__getitem__(idx)
