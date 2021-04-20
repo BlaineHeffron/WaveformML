@@ -983,6 +983,7 @@ class PulseDatasetRealWFPair(PulseDataset):
         return super().retrieve_config(config_path, device, use_half)
 
     def __init__(self, config, dataset_type, n_per_dir, device,
+                 file_pattern="*WFCalFilteredSE.h5",
                  file_excludes=None,
                  label_file_pattern=None,
                  data_cache_size=3,
@@ -1000,7 +1001,7 @@ class PulseDatasetRealWFPair(PulseDataset):
         """
         super().__init__(config, dataset_type,
                          n_per_dir, device,
-                         "*WFCalSE.h5", "WaveformPairCal",
+                         file_pattern, "WaveformPairCal",
                          "coord", "waveform",
                          file_excludes=file_excludes,
                          label_file_pattern=label_file_pattern,
@@ -1020,13 +1021,9 @@ class PulseDatasetRealWFPair(PulseDataset):
         if self.info["label_name"]:
             if self.info["label_name"] == "z":
                 val, label = super().__getitem__(idx)
-                label[label < 0] = 0
-                label[label > 1] = 1
                 return val, label * self.norm_factor + 0.5
             elif self.info["label_name"] == "E":
                 val, label = super().__getitem__(idx)
-                label[label < 0] = 0
-                label[label > 1] = 1
                 return val, label * self.norm_factor
             else:
                 return super().__getitem__(idx)
