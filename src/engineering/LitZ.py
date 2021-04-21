@@ -37,6 +37,10 @@ class LitZ(pl.LightningModule):
                 self.evaluator = ZEvaluatorWF(self.logger)
         if self.SE_only:
             self._format_SE_mask()
+        if self.config.dataset_config.dataset_class == "PulseDatasetRealWFPair":
+            self.target_is_cal = True
+        else:
+            self.target_is_cal = False
 
     def _format_SE_mask(self):
         SE_mask = tensor(self.evaluator.seg_status)
@@ -107,6 +111,6 @@ class LitZ(pl.LightningModule):
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
-        self.evaluator.add(predictions, target_tensor, c, f)
+        self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict

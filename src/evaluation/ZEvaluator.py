@@ -492,7 +492,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
             self.t_center = np.arange(2, self.n_samples * self.sample_width - 1, self.sample_width)
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
 
-    def z_from_cal(self, c, f, targ, E=None):
+    def z_from_cal(self, c, f, targ, E=None, target_is_cal=False):
         c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         cal_E = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
@@ -501,7 +501,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
                        self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
                        self.calibrator.time_pos_curves, self.calibrator.light_pos_curves,
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
-        z_basic_prediction_dense(pred, targ[:, 0, :, :])
+        z_basic_prediction_dense(pred, targ[:, 0, :, :], target_is_cal)
         if E is None:
             E = cal_E
         z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
@@ -515,7 +515,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         return E
 
-    def add(self, predictions, target, c, f, E=None):
+    def add(self, predictions, target, c, f, E=None, target_is_cal=False):
         """
         @param predictions:
         @param target:
@@ -531,9 +531,9 @@ class ZEvaluatorWF(ZEvaluatorBase):
         targ = target.detach().cpu().numpy()
         if self.hascal:
             if E is None:
-                E = self.z_from_cal(c, f, targ, E)
+                E = self.z_from_cal(c, f, targ, E, target_is_cal)
             else:
-                self.z_from_cal(c, f, targ, E)
+                self.z_from_cal(c, f, targ, E, target_is_cal)
             z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                                self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                                self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],

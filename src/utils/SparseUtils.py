@@ -956,7 +956,7 @@ def E_basic_prediction(coo, E, PE0, PE1, z, seg_status, light_pos_curves, light_
 
 
 @nb.jit(nopython=True)
-def z_basic_prediction_dense(z_pred, z_truth):
+def z_basic_prediction_dense(z_pred, z_truth, truth_is_cal=False):
     for i in range(z_pred.shape[0]):
         for x in range(z_pred.shape[1]):
             for y in range(z_pred.shape[2]):
@@ -969,7 +969,11 @@ def z_basic_prediction_dense(z_pred, z_truth):
                                 continue
                             if 0 <= x + j < z_pred.shape[1] and 0 <= y + k < z_pred.shape[2]:
                                 if z_pred[i, x + j, y + k] != 0 and z_pred[i, x, y] != 0.5:
-                                    sum += z_pred[i, x + j, y + k]
+                                    if truth_is_cal:
+                                        sum += z_truth[i, x + j, y + k]
+                                        z_pred[i, x + j, y + k] = z_truth[i, x + j, y + k]
+                                    else:
+                                        sum += z_pred[i, x + j, y + k]
                                     n += 1
                     if n > 0:
                         z_pred[i, x, y] = sum / n
