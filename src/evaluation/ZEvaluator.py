@@ -22,7 +22,7 @@ class ZEvaluatorBase:
     def __init__(self, logger):
         self.hascal = False
         self.logger = logger
-        self.nmult = 10
+        self.nmult = 6
         self.nx = 14
         self.ny = 11
         self.z_scale = 1200.
