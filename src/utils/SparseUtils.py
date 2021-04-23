@@ -833,16 +833,16 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
         local_maxima0 = remove_end_zeros(culled_maxima0, -1)
         local_maxima1 = remove_end_zeros(culled_maxima1, -1)
         if local_maxima0 is None or local_maxima1 is None:
-            z_out[coord[2], coord[0], coord[1]] = 0.5
-            L = [sum1d(wf[0:n_samples]) * gain_factors[coord[0], coord[1], 0],
-                 sum1d(wf[n_samples:]) * gain_factors[coord[0], coord[1], 1]]
-            PE = [L[0] * eres[coord[0], coord[1], 0], L[1] * eres[coord[0], coord[1], 1]]
-            if PE[0] == 0 or PE[1] == 0:
-                E_out[coord[2], coord[0], coord[1]] = (
-                        L[0] + L[1])  # just output uncorrected energy if only 1 pmt fired
+            if local_maxima0 is None and local_maxima1 is None:
+                continue
+            elif local_maxima0 is None:
+                r = 1
             else:
-                E_out[coord[2], coord[0], coord[1]] = (PE[0] + PE[1]) / lin_interp(light_sum_curves[coord[0], coord[1]],
-                                                                                   0.)
+                r = 0
+            z_out[coord[2], coord[0], coord[1]] = 0.5
+            L = sum1d(wf[n_samples*r:n_samples + n_samples*r]) * gain_factors[coord[0], coord[1], r]
+            PE = L * eres[coord[0], coord[1], r]
+            E_out[coord[2], coord[0], coord[1]] = PE / lin_interp(light_sum_curves[coord[0], coord[1]], 0)
         else:
             if local_maxima0.shape[0] > 1:
                 local_maxima0 = merge_sort_main_numba(local_maxima0)
