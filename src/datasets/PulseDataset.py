@@ -1059,7 +1059,7 @@ class PulseDatasetWFPairNorm(PulseDataset):
         """
         super().__init__(config, dataset_type,
                          n_per_dir, device,
-                         "*WFPairNorm.h5", "WaveformPairNorm",
+                         "*WFNorm.h5", "WaveformPairNorm",
                          "coord", data_name,
                          file_excludes=file_excludes,
                          label_file_pattern=label_file_pattern,
