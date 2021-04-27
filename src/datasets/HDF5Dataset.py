@@ -310,6 +310,8 @@ class HDF5Dataset(data.Dataset):
                         self._add_data_block(ds, dname, file_path, load_data, n, dir_index, n_file_events, modified)
                 else:
                     self.group_mode = False
+                    if gname != self.info["data_name"]:
+                        continue
                     self._add_data_block(group, gname, file_path, load_data, n, dir_index, n_file_events, modified)
         if self.info["label_file_pattern"]:
             fdir = dirname(file_path)
@@ -360,6 +362,8 @@ class HDF5Dataset(data.Dataset):
                         else:
                             self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']][dname] = idx
                 else:
+                    if gname != self.info["data_name"]:
+                        continue
                     idx = self._add_to_cache(group, file_path, label_file)
                     # find the beginning index of the hdf5 file we are looking for
                     file_idx = next(i for i, v in enumerate(self.info['data_info'])
