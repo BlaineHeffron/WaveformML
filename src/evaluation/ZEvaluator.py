@@ -568,7 +568,7 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
         self.n_z = 20
         self.z_bounds = [-600., 600.]
         self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
-        self.Z_mult_names = ["Z_mult_single", "Z_mult_single_cal", "Z_mult_dual", "Z_mult_dual_cal"]
+        self.Z_mult_names = ["z_mult_single", "z_mult_single_cal", "z_mult_dual", "z_mult_dual_cal"]
         self.E_mult_titles = ["Single Ended", "Single Ended", "Double Ended", "Double Ended"]
         self.z_E_names = ["z_E_single", "z_E_single_cal", "z_E_dual", "z_E_dual_cal"]
         self.seg_mult_names = ["seg_mult_zmae", "seg_mult_zmae_cal"]
