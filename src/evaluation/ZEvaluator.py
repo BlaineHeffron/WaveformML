@@ -504,7 +504,12 @@ class ZEvaluatorWF(ZEvaluatorBase):
                        self.calibrator.rel_times, self.gain_factor, self.calibrator.eres,
                        self.calibrator.time_pos_curves, self.calibrator.light_pos_curves,
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
-        z_basic_prediction_dense(pred, targ[:, 0, :, :], target_is_cal)
+
+        if target_is_cal:
+            pred = targ[:, 0, :, :].copy()
+            pred[:, self.seg_status == 0.5] = 0.5
+            pred[targ[:, 0, :, :] == 0] = 0
+            z_basic_prediction_dense(pred, targ[:, 0, :, :], target_is_cal)
         if E is None:
             E = cal_E
         z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
