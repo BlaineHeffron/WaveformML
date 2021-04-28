@@ -105,10 +105,18 @@ class LitZ(pl.LightningModule):
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size,
                                                                         target_has_phys)
-        if self.SE_only:
-            loss = self.criterion.forward(self.SE_mask * predictions, self.SE_mask * target_tensor) * self.SE_factor
+        if target_has_phys:
+            if self.SE_only:
+                loss = self.criterion.forward(self.SE_mask * predictions[:, 0, :, :],
+                                              self.SE_mask * target_tensor[:, self.evaluator.z_index, :,
+                                                             :]) * self.SE_factor
+            else:
+                loss = self.criterion.forward(predictions[:, 0, :, :], target_tensor[:, self.evaluator.z_index, :, :])
         else:
-            loss = self.criterion.forward(predictions, target_tensor)
+            if self.SE_only:
+                loss = self.criterion.forward(self.SE_mask * predictions, self.SE_mask * target_tensor) * self.SE_factor
+            else:
+                loss = self.criterion.forward(predictions, target_tensor)
         loss *= (self.evaluator.nx * self.evaluator.ny * batch_size / c.shape[0])
         return loss, predictions, target_tensor, c, f
 
