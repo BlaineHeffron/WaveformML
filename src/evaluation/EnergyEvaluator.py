@@ -1,6 +1,6 @@
 import torch
 
-from src.evaluation.AD1Evaluator import PhysCoordEvaluator
+from src.evaluation.AD1Evaluator import AD1Evaluator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
 from src.utils.PlotUtils import MultiLinePlot
@@ -146,10 +146,10 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
                         self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale)
 
 
-class EnergyEvaluatorPhys(EnergyEvaluatorBase, PhysCoordEvaluator):
+class EnergyEvaluatorPhys(EnergyEvaluatorBase, AD1Evaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
         EnergyEvaluatorBase.__init__(self, logger, e_scale=e_scale, namespace=namespace)
-        PhysCoordEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
+        AD1Evaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
 
     def add(self, predictions, target, c, f, pred_numpy=False):
         if not pred_numpy:

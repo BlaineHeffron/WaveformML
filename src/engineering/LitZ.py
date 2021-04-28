@@ -2,7 +2,7 @@ import spconv
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
 from torch import where, tensor, sum
-from src.evaluation.ZEvaluator import ZEvaluatorWF, ZEvaluatorPhys
+from src.evaluation.ZEvaluator import ZEvaluatorWF, ZEvaluatorPhys, ZEvaluatorRealWFNorm
 
 
 class LitZ(pl.LightningModule):
@@ -25,10 +25,17 @@ class LitZ(pl.LightningModule):
         self.model = SingleEndedZConv(self.config)
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        self.test_has_phys = False
+        if hasattr(self.config.dataset_config, "test_dataset_params"):
+            if self.config.dataset_config.test_dataset_params.label_name == "phys" and not hasattr(
+                    self.config.dataset_config.test_dataset_params, "label_index"):
+                self.test_has_phys = True
         self.SE_only = False
         if hasattr(self.config.net_config, "SELoss"):
             self.SE_only = self.config.net_config.SELoss
-        if config.net_config.algorithm == "features":
+        if self.test_has_phys:
+            self.evaluator = ZEvaluatorRealWFNorm(self.logger)
+        elif config.net_config.algorithm == "features":
             self.evaluator = ZEvaluatorPhys(self.logger)
         else:
             if hasattr(self.config.dataset_config, "calgroup"):
@@ -77,18 +84,27 @@ class LitZ(pl.LightningModule):
                 return [optimizer], [scheduler]
         return optimizer
 
-    def _format_target_and_prediction(self, pred, coords, target, batch_size):
-        target_tensor = spconv.SparseConvTensor(target.unsqueeze(1), coords[:, self.model.permute_tensor],
-                                                self.model.spatial_size, batch_size)
+    def _format_target_and_prediction(self, pred, coords, target, batch_size, target_has_phys=False):
+        if target_has_phys:
+            target_tensor = spconv.SparseConvTensor(target, coords[:, self.model.permute_tensor],
+                                                    self.model.spatial_size, batch_size)
+        else:
+            target_tensor = spconv.SparseConvTensor(target.unsqueeze(1), coords[:, self.model.permute_tensor],
+                                                    self.model.spatial_size, batch_size)
         target_tensor = target_tensor.dense()
         # set output to 0 if there was no value for input
-        return where(target_tensor == 0, target_tensor, pred), target_tensor
+        if target_has_phys:
+            return where(target_tensor[:, self.evaluator.z_index, :, :] == 0,
+                         target_tensor[:, self.evaluator.z_index, :, :], pred[:, 0, :, :]).unsqueeze(1), target_tensor
+        else:
+            return where(target_tensor == 0, target_tensor, pred), target_tensor
 
-    def _process_batch(self, batch):
+    def _process_batch(self, batch, target_has_phys=False):
         (c, f), target = batch
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
-        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
+        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size,
+                                                                        target_has_phys)
         if self.SE_only:
             loss = self.criterion.forward(self.SE_mask * predictions, self.SE_mask * target_tensor) * self.SE_factor
         else:
@@ -107,10 +123,13 @@ class LitZ(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        loss, predictions, target_tensor, c, f = self._process_batch(batch)
+        loss, predictions, target_tensor, c, f = self._process_batch(batch, self.test_has_phys)
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
-        self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
+        if self.test_has_phys:
+            self.evaluator.add(predictions, target_tensor)
+        else:
+            self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict

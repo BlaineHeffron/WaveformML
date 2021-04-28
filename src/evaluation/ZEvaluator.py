@@ -7,14 +7,17 @@ import spconv
 import torch
 
 from src.datasets.HDF5Dataset import MAX_RANGE
-from src.evaluation.AD1Evaluator import PhysCoordEvaluator
+from src.evaluation.AD1Evaluator import AD1Evaluator
 from src.evaluation.Calibrator import Calibrator
 # from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
+from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
+from src.evaluation.WaveformEvaluator import WaveformEvaluator
 from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d, plot_hist1d, MultiLinePlot
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction, z_error, \
-    z_deviation_with_E, z_basic_prediction_dense
+    z_deviation_with_E, z_basic_prediction_dense, z_deviation_with_E_full_correlation
+from src.utils.StatsUtils import StatsAggregator
 from src.utils.util import get_bins, get_bin_midpoints
 
 
@@ -416,10 +419,10 @@ class ZEvaluatorBase:
         return data
 
 
-class ZEvaluatorPhys(ZEvaluatorBase, PhysCoordEvaluator):
+class ZEvaluatorPhys(ZEvaluatorBase, AD1Evaluator):
     def __init__(self, logger, e_scale=None):
         ZEvaluatorBase.__init__(self, logger)
-        PhysCoordEvaluator.__init__(self, e_scale=e_scale)
+        AD1Evaluator.__init__(self, e_scale=e_scale)
         self.hascal = True
 
     def z_from_cal(self, c, f, targ, E=None):
@@ -549,3 +552,138 @@ class ZEvaluatorWF(ZEvaluatorBase):
                         self.nmult, self.n_bins, self.z_scale)
         z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
+
+
+class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvaluator):
+
+    def __init__(self, logger, calgroup=None, namespace=None, e_scale=None):
+        StatsAggregator.__init__(self, logger)
+        SingleEndedEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
+        WaveformEvaluator.__init__(self, calgroup, e_scale=e_scale)
+        self.E_bounds = [0., 10.]
+        self.mult_bounds = [0.5, 6.5]
+        self.n_mult = 6
+        self.n_E = 20
+        self.E_bin_centers = get_bin_midpoints(self.E_bounds[0], self.E_bounds[1], self.n_E)
+        self.n_z = 20
+        self.z_bounds = [-600., 600.]
+        self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
+        self.Z_mult_names = ["Z_mult_single", "Z_mult_single_cal", "Z_mult_dual", "Z_mult_dual_cal"]
+        self.E_mult_titles = ["Single Ended", "Single Ended", "Double Ended", "Double Ended"]
+        self.z_E_names = ["z_E_single", "z_E_single_cal", "z_E_dual", "z_E_dual_cal"]
+        self.seg_mult_names = ["seg_mult_zmae", "seg_mult_zmae_cal"]
+        if namespace:
+            self.namespace = "evaluation/{}_".format(namespace)
+        else:
+            self.namespace = "evaluation/"
+        self.initialize()
+
+    def initialize(self):
+        self.register_duplicates(self.E_mult_names,
+                                 [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
+                                 [self.E_bounds[1], self.mult_bounds[1]], 2, ["Visible Energy", "Multiplicity"],
+                                 ["MeVee", ""],
+                                 "Z Mean Absolute Error", "mm", underflow=(1, 0))
+        self.register_duplicates(self.Z_mult_names,
+                                 [self.n_z, self.n_mult], [self.z_bounds[0], self.mult_bounds[0]],
+                                 [self.z_bounds[1], self.mult_bounds[1]], 2, ["Z", "Multiplicity"],
+                                 ["mm", ""],
+                                 "Z Mean Absolute Error", "mm", underflow=(1, 0))
+        self.register_duplicates(self.z_E_names, [self.n_z, self.n_E],
+                                 [self.z_bounds[0], self.E_bounds[0]],
+                                 [self.z_bounds[1], self.E_bounds[1]], 2,
+                                 ["Z", "Visible Energy"], ["mm", "MeVee"],
+                                 "Z Mean Absolute Error", "mm")
+        self.register_duplicates(self.seg_mult_names, [self.nx, self.ny, self.n_mult],
+                                 [0.5, 0.5, 0.5],
+                                 [self.nx + 0.5, self.ny + 0.5, self.n_mult + 0.5], 3,
+                                 ["x segment", "y segment", "Multiplicity"], [""] * 3,
+                                 "Z Mean Absolute Error", "mm",
+                                 underflow=False, overflow=(0, 0, 1), scale=100.)
+
+    def add(self, predictions, target):
+        """
+        @param predictions: tensor of dimension 4: (batch, predictions, x, y)  here predictions is length 1
+        @param target: tensor of dimension 4 (batch, phys quantities, x, y) here phys quantities is length 7 of normalized phys quantities
+        """
+        pred = predictions.detach().cpu().numpy()
+        targ = target.detach().cpu().numpy()
+        z_deviation_with_E_full_correlation(pred[:, 0, :, :], targ[:, self.z_index, :, :],
+                                            self.results["seg_mult_zmae"][0],
+                                            self.results["seg_mult_zmae"][1],
+                                            self.results["z_mult_dual"][0], self.results["z_mult_dual"][1],
+                                            self.results["z_mult_single"][0], self.results["z_mult_single"][1],
+                                            self.results["z_E_single"][0], self.results["z_E_single"][1],
+                                            self.results["z_E_dual"][0], self.results["z_E_dual"][1],
+                                            self.results["E_mult_single"][0], self.results["E_mult_single"][1],
+                                            self.results["E_mult_dual"][0], self.results["E_mult_dual"][1],
+                                            self.seg_status, self.nx, self.ny, self.n_mult,
+                                            self.n_z, self.z_scale, targ[:, self.E_index, :, :],
+                                            self.E_bounds[0] / self.E_scale, self.E_bounds[1] / self.E_scale, self.n_E)
+
+        cal_pred = targ[:,self.z_index,:,:].copy()
+        cal_pred[:, self.seg_status == 0.5] = 0.5
+        cal_pred[targ[:,self.z_index,:,:] == 0] = 0
+        z_basic_prediction_dense(cal_pred, targ[:, self.z_index, :, :], truth_is_cal=True)
+        z_deviation_with_E_full_correlation(pred[:, 0, :, :], targ[:, self.z_index, :, :],
+                                            self.results["seg_mult_zmae_cal"][0],
+                                            self.results["seg_mult_zmae_cal"][1],
+                                            self.results["z_mult_dual_cal"][0], self.results["z_mult_dual_cal"][1],
+                                            self.results["z_mult_single_cal"][0], self.results["z_mult_single_cal"][1],
+                                            self.results["z_E_single_cal"][0], self.results["z_E_single_cal"][1],
+                                            self.results["z_E_dual_cal"][0], self.results["z_E_dual_cal"][1],
+                                            self.results["E_mult_single_cal"][0], self.results["E_mult_single_cal"][1],
+                                            self.results["E_mult_dual_cal"][0], self.results["E_mult_dual_cal"][1],
+                                            self.seg_status, self.nx, self.ny, self.n_mult,
+                                            self.n_z, self.z_scale, targ[:, self.E_index, :, :],
+                                            self.E_bounds[0] / self.E_scale, self.E_bounds[1] / self.E_scale, self.n_E)
+
+    def dump(self):
+        self.retrieve_error_metrics()
+        for name, title in zip(self.E_mult_names, self.E_mult_titles):
+            self.log_total(name, "{0}{1}".format(self.namespace, name), title)
+            self.log_metric(name, "{0}{1}_{2}".format(self.namespace, name, "MAE"), title)
+        for name, title in zip(self.z_E_names, self.E_mult_titles):
+            self.log_total(name, "{0}{1}".format(self.namespace, name), title)
+            self.log_metric(name, "{0}{1}_{2}".format(self.namespace, name, "MAE"), title)
+        for name, title in zip(self.Z_mult_names, self.E_mult_titles):
+            self.log_total(name, "{0}{1}".format(self.namespace, name), title)
+            self.log_metric(name, "{0}{1}_{2}".format(self.namespace, name, "MAE"), title)
+        for name in self.seg_mult_names:
+            self.log_segment_metric(name, "{0}{1}".format(self.namespace, name))
+
+    def retrieve_error_metrics(self):
+        single_err_E = []
+        dual_err_E = []
+        single_err_E_cal = []
+        dual_err_E_cal = []
+        for i in range(1, self.n_E + 1):
+            single_err_E.append(
+                np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
+                    self.results["E_mult_single"][1][i, :]))
+            self.logger.experiment.add_scalar("{}single_z_MAE_vs_E".format(self.namespace), single_err_E[-1],
+                                              global_step=i)
+            dual_err_E.append(
+                np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
+                    self.results["E_mult_dual"][1][i, :]))
+            self.logger.experiment.add_scalar("{}dual_z_MAE_vs_E".format(self.namespace), dual_err_E[-1], global_step=i)
+            if not self.hascal:
+                continue
+            single_err_E_cal.append(
+                np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
+                    self.results["E_mult_single_cal"][1][i, :]))
+            self.logger.experiment.add_scalar("{}single_z_MAE_cal_vs_E".format(self.namespace), single_err_E_cal[-1],
+                                              global_step=i)
+            dual_err_E_cal.append(
+                np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
+                    self.results["E_mult_dual_cal"][1][i, :]))
+            self.logger.experiment.add_scalar("{}dual_z_MAE_cal_vs_E".format(self.namespace), dual_err_E_cal[-1],
+                                              global_step=i)
+        labels = ["single NN", "dual NN", "single cal", "dual cal"]
+        xlabel = "Visible Energy [MeVee]"
+        ylabel = "Z Mean Absolute Error [mm]"
+        self.logger.experiment.add_figure("{}E_error_summary_mult".format(self.namespace),
+                                          MultiLinePlot(self.E_bin_centers,
+                                                        [single_err_E, dual_err_E, single_err_E_cal,
+                                                         dual_err_E_cal],
+                                                        labels, xlabel, ylabel, ylog=False))

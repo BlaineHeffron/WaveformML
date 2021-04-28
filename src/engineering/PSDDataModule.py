@@ -101,12 +101,20 @@ class PSDDataModule(pl.LightningDataModule):
                     else:
                         par = {"file_excludes": self.val_dataset.get_file_list()}
 
-                    self.test_dataset = self.dataset_class(self.config, "test",
-                                                           self.config.dataset_config.n_test,
-                                                           self.device,
-                                                           **par,
-                                                           **DictionaryUtility.to_dict(
-                                                               self.config.dataset_config.dataset_params))
+                    if hasattr(self.config.dataset_config,"test_dataset_params"):
+                        self.test_dataset = self.dataset_class(self.config, "test",
+                                                               self.config.dataset_config.n_test,
+                                                               self.device,
+                                                               **par,
+                                                               **DictionaryUtility.to_dict(
+                                                                   self.config.dataset_config.test_dataset_params))
+                    else:
+                        self.test_dataset = self.dataset_class(self.config, "test",
+                                                               self.config.dataset_config.n_test,
+                                                               self.device,
+                                                               **par,
+                                                               **DictionaryUtility.to_dict(
+                                                                   self.config.dataset_config.dataset_params))
                     self.log.info("Test dataset generated.")
 
     def train_dataloader(self):

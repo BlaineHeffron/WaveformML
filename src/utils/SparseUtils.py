@@ -1036,6 +1036,16 @@ def increment_metric_mult_SE(dev, bin_number, i, j, mult, nmult, out_dev, out_n,
 
 
 @nb.jit(nopython=True)
+def increment_metric_SE_2d(dev, bin_x, bin_y, i, j, single_dev, single_n, dual_dev,
+                             dual_n, seg_status):
+    if seg_status[i, j] > 0:
+        single_dev[bin_x, bin_y] += dev
+        single_n[bin_x, bin_y] += 1
+    else:
+        dual_dev[bin_x, bin_y] += dev
+        dual_n[bin_x, bin_y] += 1
+
+@nb.jit(nopython=True)
 def E_deviation(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev,
                 E_mult_single_out, seg_status, nx, ny, nmult, nE, E_low, E_high, E_scale):
     bin_width = (E_high - E_low) / nE
@@ -1128,6 +1138,46 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
                     increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
                                              z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
 
+
+@nb.jit(nopython=True)
+def z_deviation_with_E_full_correlation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
+                z_mult_single_out, z_E_single_dev, z_E_single_out, z_E_dual_dev, z_E_dual_out, E_mult_single_dev,
+                                        E_mult_single_out, E_mult_dual_dev, E_mult_dual_out, seg_status, nx, ny, nmult,
+                                        nz, zrange, E, E_low, E_high, nE):
+    E_bin_width = (E_high - E_low) / nE
+    for batch in range(predictions.shape[0]):
+        mult = 0
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    mult += 1
+        for i in range(nx):
+            for j in range(ny):
+                if targets[batch, i, j] > 0:
+                    z_dev = abs(predictions[batch, i, j] - targets[batch, i, j])
+                    true_z = (targets[batch, i, j] - 0.5) * zrange
+                    z_bin = 0
+                    E_bin = get_bin_index(E[batch, i, j], E_low, E_high, E_bin_width, nE)
+                    if true_z < (-zrange / 2.):
+                        z_bin = 0
+                    elif true_z >= (zrange / 2.):
+                        z_bin = nz + 1
+                    else:
+                        for k in range(1, nz + 1):
+                            if k * (zrange / nz) - zrange / 2. > true_z:
+                                z_bin = k
+                                break
+
+                    increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
+                                             z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
+                    increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
+                                           z_E_dual_out, seg_status)
+                    if(mult > nmult):
+                        mult_bin = nmult
+                    else:
+                        mult_bin = mult-1
+                    increment_metric_SE_2d(z_dev, E_bin, mult_bin, i, j, E_mult_single_dev, E_mult_single_out, E_mult_dual_dev,
+                                           E_mult_dual_out, seg_status)
 
 @nb.jit(nopython=True)
 def z_deviation_with_E(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
