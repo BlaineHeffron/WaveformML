@@ -667,8 +667,6 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
                 np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
                     self.results["E_mult_dual"][1][i, :]))
             self.logger.experiment.add_scalar("{}dual_z_MAE_vs_E".format(self.namespace), dual_err_E[-1], global_step=i)
-            if not self.hascal:
-                continue
             single_err_E_cal.append(
                 np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_single_cal"][1][i, :]))
