@@ -583,23 +583,23 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
                                  [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
                                  [self.E_bounds[1], self.mult_bounds[1]], 2, ["Visible Energy", "Multiplicity"],
                                  ["MeVee", ""],
-                                 "Z Mean Absolute Error", "mm", underflow=(1, 0))
+                                 "Z Mean Absolute Error", "mm", underflow=(1, 0), scale=self.z_scale)
         self.register_duplicates(self.Z_mult_names,
                                  [self.n_z, self.n_mult], [self.z_bounds[0], self.mult_bounds[0]],
                                  [self.z_bounds[1], self.mult_bounds[1]], 2, ["Z", "Multiplicity"],
                                  ["mm", ""],
-                                 "Z Mean Absolute Error", "mm", underflow=(1, 0))
+                                 "Z Mean Absolute Error", "mm", underflow=(1, 0), scale=self.z_scale)
         self.register_duplicates(self.z_E_names, [self.n_z, self.n_E],
                                  [self.z_bounds[0], self.E_bounds[0]],
                                  [self.z_bounds[1], self.E_bounds[1]], 2,
                                  ["Z", "Visible Energy"], ["mm", "MeVee"],
-                                 "Z Mean Absolute Error", "mm")
+                                 "Z Mean Absolute Error", "mm", scale=self.z_scale)
         self.register_duplicates(self.seg_mult_names, [self.nx, self.ny, self.n_mult],
                                  [0.5, 0.5, 0.5],
                                  [self.nx + 0.5, self.ny + 0.5, self.n_mult + 0.5], 3,
                                  ["x segment", "y segment", "Multiplicity"], [""] * 3,
                                  "Z Mean Absolute Error", "mm",
-                                 underflow=False, overflow=(0, 0, 1), scale=100.)
+                                 underflow=False, overflow=(0, 0, 1), scale=self.z_scale)
 
     def add(self, predictions, target):
         """
@@ -621,11 +621,11 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
                                             self.n_z, self.z_scale, targ[:, self.E_index, :, :],
                                             self.E_bounds[0] / self.E_scale, self.E_bounds[1] / self.E_scale, self.n_E)
 
-        cal_pred = targ[:,self.z_index,:,:].copy()
+        cal_pred = targ[:, self.z_index, :, :].copy()
         cal_pred[:, self.seg_status == 0.5] = 0.5
-        cal_pred[targ[:,self.z_index,:,:] == 0] = 0
+        cal_pred[targ[:, self.z_index, :, :] == 0] = 0
         z_basic_prediction_dense(cal_pred, targ[:, self.z_index, :, :], truth_is_cal=True)
-        z_deviation_with_E_full_correlation(pred[:, 0, :, :], targ[:, self.z_index, :, :],
+        z_deviation_with_E_full_correlation(cal_pred[:, 0, :, :], targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae_cal"][0],
                                             self.results["seg_mult_zmae_cal"][1],
                                             self.results["z_mult_dual_cal"][0], self.results["z_mult_dual_cal"][1],
@@ -659,21 +659,21 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
         dual_err_E_cal = []
         for i in range(1, self.n_E + 1):
             single_err_E.append(
-                np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
+                self.z_scale * np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
                     self.results["E_mult_single"][1][i, :]))
             self.logger.experiment.add_scalar("{}single_z_MAE_vs_E".format(self.namespace), single_err_E[-1],
                                               global_step=i)
             dual_err_E.append(
-                np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
+                self.z_scale * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
                     self.results["E_mult_dual"][1][i, :]))
             self.logger.experiment.add_scalar("{}dual_z_MAE_vs_E".format(self.namespace), dual_err_E[-1], global_step=i)
             single_err_E_cal.append(
-                np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
+                self.z_scale * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_single_cal"][1][i, :]))
             self.logger.experiment.add_scalar("{}single_z_MAE_cal_vs_E".format(self.namespace), single_err_E_cal[-1],
                                               global_step=i)
             dual_err_E_cal.append(
-                np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
+                self.z_scale * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_dual_cal"][1][i, :]))
             self.logger.experiment.add_scalar("{}dual_z_MAE_cal_vs_E".format(self.namespace), dual_err_E_cal[-1],
                                               global_step=i)
