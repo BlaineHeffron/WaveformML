@@ -625,7 +625,7 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
         cal_pred[:, self.seg_status == 0.5] = 0.5
         cal_pred[targ[:, self.z_index, :, :] == 0] = 0
         z_basic_prediction_dense(cal_pred, targ[:, self.z_index, :, :], truth_is_cal=True)
-        z_deviation_with_E_full_correlation(cal_pred[:, 0, :, :], targ[:, self.z_index, :, :],
+        z_deviation_with_E_full_correlation(cal_pred, targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae_cal"][0],
                                             self.results["seg_mult_zmae_cal"][1],
                                             self.results["z_mult_dual_cal"][0], self.results["z_mult_dual_cal"][1],
