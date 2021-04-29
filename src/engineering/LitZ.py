@@ -136,7 +136,7 @@ class LitZ(pl.LightningModule):
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
         if self.test_has_phys:
-            self.evaluator.add(predictions, target_tensor)
+            self.evaluator.add(predictions, target_tensor, c)
         else:
             self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
         self.log_dict(results_dict, on_epoch=True, logger=True)

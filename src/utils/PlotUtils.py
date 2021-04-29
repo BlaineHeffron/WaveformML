@@ -19,6 +19,9 @@ TITLE_SIZE = 16
 cmaps = OrderedDict()
 tab_colors = ['tab:blue', 'tab:red', 'tab:brown', 'tab:purple', 'black', 'tab:green', 'tab:grey', 'tab:olive',
               'tab:cyan', 'tab:pink', 'tab:orange']
+tab_colors = ['#377eb8', '#ff7f00', '#4daf4a','#a65628', '#984ea3',
+                  '#f781bf',
+                  '#999999', '#e41a1c', '#dede00']
 # see markers list here https://matplotlib.org/3.2.1/api/markers_api.html
 category_markers = ['.', '^', 'o', 'v', 's', 'P', 'x', '*', 'd', 'h', '8', 'D', '|', '1', 'p', '<', 'H', '4']
 category_styles = ['-', '--', '--', '-', ':']

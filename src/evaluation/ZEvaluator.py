@@ -10,13 +10,14 @@ from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.AD1Evaluator import AD1Evaluator
 from src.evaluation.Calibrator import Calibrator
 # from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
+from src.evaluation.EnergyEvaluator import EnergyEvaluatorPhys
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
 from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d, plot_hist1d, MultiLinePlot
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction, z_error, \
-    z_deviation_with_E, z_basic_prediction_dense, z_deviation_with_E_full_correlation
+    z_deviation_with_E, z_basic_prediction_dense, z_deviation_with_E_full_correlation, E_basic_prediction_dense
 from src.utils.StatsUtils import StatsAggregator
 from src.utils.util import get_bins, get_bin_midpoints
 
@@ -565,6 +566,8 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
         StatsAggregator.__init__(self, logger)
         SingleEndedEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
         WaveformEvaluator.__init__(self, calgroup, e_scale=e_scale)
+        if calgroup is not None:
+            self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup=None, e_scale=e_scale, namespace=namespace)
         self.E_bounds = [0., 10.]
         self.mult_bounds = [0.5, 6.5]
         self.n_mult = 6
@@ -606,7 +609,7 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
                                  "Z Mean Absolute Error", "mm",
                                  underflow=False, overflow=(0, 0, 1), scale=self.z_scale)
 
-    def add(self, predictions, target):
+    def add(self, predictions, target, c):
         """
         @param predictions: tensor of dimension 4: (batch, predictions, x, y)  here predictions is length 1
         @param target: tensor of dimension 4 (batch, phys quantities, x, y) here phys quantities is length 7 of normalized phys quantities
@@ -642,6 +645,21 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
                                             self.seg_status, self.nx, self.ny, self.n_mult,
                                             self.n_z, self.z_scale, targ[:, self.E_index, :, :],
                                             self.E_bounds[0] / self.E_scale, self.E_bounds[1] / self.E_scale, self.n_E)
+
+        if hasattr(self, "calibrator"):
+            cal_E_pred = np.zeros(predictions[:, 0, :, :].shape)
+            PE0 = targ[:, self.PE0_index, :, :] * self.PE_scale
+            PE1 = targ[:, self.PE1_index, :, :] * self.PE_scale
+            e = targ[:, self.E_index, :, :] * self.E_scale
+            dense_E = np.cat((e, PE0, PE1), dim=1)
+            z_pred = (pred[:, 0, :, :] - 0.5) * self.z_scale
+            E_basic_prediction_dense(dense_E, z_pred, self.nx, self.ny,
+                                     self.seg_status,
+                                     self.calibrator.light_pos_curves,
+                                     self.calibrator.light_sum_curves, cal_E_pred)
+            cal_E_pred = cal_E_pred / self.E_scale
+            self.EnergyEvaluator.add(np.expand_dims(cal_E_pred, 1), target[:, self.E_index, :, :].unsqueeze(1), c,
+                                     target, True)
 
     def dump(self):
         self.retrieve_error_metrics()
