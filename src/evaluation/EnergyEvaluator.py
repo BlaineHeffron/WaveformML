@@ -97,7 +97,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                 100. * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
                     self.results["E_mult_dual"][1][i, :]))
             self.logger.experiment.add_scalar("{}dual_E_MAPE".format(self.namespace), dual_err_E[-1], global_step=i)
-            if not self.hascal:
+            if not hasattr(self,"hascal") or not self.hascal:
                 continue
             single_err_E_cal.append(
                 100. * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
