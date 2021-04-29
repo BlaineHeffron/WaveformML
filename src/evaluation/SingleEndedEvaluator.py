@@ -13,6 +13,8 @@ class SingleEndedEvaluator(AD1Evaluator):
                         139, 141, 147, 158, 166, 173, 175, 188, 195, 215, 230, 243, 244, 245, 252, 255, 256, 261,
                         273, 279, 282]
         self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
+        self.blind_detl = np.zeros((self.nx, self.ny), dtype=np.int8)  # 1 for blind , 0 for good
+        self.blind_detr = np.zeros((self.nx, self.ny), dtype=np.int8)
         self.set_SE_segs(SE_dead_pmts)
 
     def set_SE_segs(self, SE_dead_pmts):
@@ -22,3 +24,7 @@ class SingleEndedEvaluator(AD1Evaluator):
             x = seg % 14
             y = floor(seg / 14)
             self.seg_status[x, y] += 0.5
+            if r == 0:
+                self.blind_detl[x, y] = 1
+            else:
+                self.blind_detr[x, y] = 1

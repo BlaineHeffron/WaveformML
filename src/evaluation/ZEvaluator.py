@@ -658,6 +658,8 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
             cal_E_pred = np.zeros(predictions[:, 0, :, :].shape)
             PE0 = targ[:, self.PE0_index, :, :] * self.PE_scale
             PE1 = targ[:, self.PE1_index, :, :] * self.PE_scale
+            PE0[:, self.blind_detl == 1] = 0
+            PE1[:, self.blind_detr == 1] = 0
             e = targ[:, self.E_index, :, :] * self.E_scale
             dense_E = np.cat((e, PE0, PE1), dim=1)
             z_pred = (pred[:, 0, :, :] - 0.5) * self.z_scale
