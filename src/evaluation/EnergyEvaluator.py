@@ -111,7 +111,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
         labels = ["single NN", "dual NN", "single cal", "dual cal"]
         xlabel = "True Energy Deposited [MeV]"
         ylabel = "Mean Absolute Percentage Error"
-        if self.hascal:
+        if hasattr(self,"hascal") and self.hascal:
             self.logger.experiment.add_figure("{}E_error_summary_mult".format(self.namespace),
                                               MultiLinePlot(self.E_bin_centers,
                                                             [single_err_E, dual_err_E, single_err_E_cal,
