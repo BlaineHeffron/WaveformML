@@ -162,7 +162,7 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, AD1Evaluator):
         e = f[:, self.E_index].detach().cpu().numpy() * self.E_scale
         PE0 = f[:, self.PE0_index].detach().cpu().numpy() * self.PE_scale
         PE1 = f[:, self.PE1_index].detach().cpu().numpy() * self.PE_scale
-        if Z_pred:
+        if Z_pred is not None:
             Z = Z_pred
             E = pred
         else:
