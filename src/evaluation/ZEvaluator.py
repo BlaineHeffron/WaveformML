@@ -62,6 +62,9 @@ class ZEvaluatorBase:
         # self.metrics = []
         self._init_results()
 
+    def set_logger(self, logger):
+        self.logger = logger
+
     def set_SE_segs(self, SE_dead_pmts):
         for pmt in SE_dead_pmts:
             r = pmt % 2
@@ -586,6 +589,11 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
             self.namespace = "evaluation/"
         self.initialize()
 
+    def set_logger(self, logger):
+        self.logger = logger
+        if hasattr(self, "EnergyEvaluator"):
+            self.EnergyEvaluator.logger = logger
+
     def initialize(self):
         self.register_duplicates(self.E_mult_names,
                                  [self.n_E, self.n_mult], [self.E_bounds[0], self.mult_bounds[0]],
@@ -674,6 +682,8 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
             self.log_metric(name, "{0}{1}_{2}".format(self.namespace, name, "MAE"), title)
         for name in self.seg_mult_names:
             self.log_segment_metric(name, "{0}{1}".format(self.namespace, name))
+        if hasattr(self, "EnergyEvaluator"):
+            self.EnergyEvaluator.dump()
 
     def retrieve_error_metrics(self):
         single_err_E = []

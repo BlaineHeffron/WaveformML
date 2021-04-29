@@ -134,7 +134,7 @@ class LitZ(pl.LightningModule):
         loss, predictions, target_tensor, c, f = self._process_batch(batch, self.test_has_phys)
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
-            self.evaluator.logger = self.logger
+            self.evaluator.set_logger(self.logger)
         if self.test_has_phys:
             self.evaluator.add(predictions, target_tensor, c)
         else:
