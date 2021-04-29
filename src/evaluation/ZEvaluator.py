@@ -661,7 +661,7 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
             PE0[:, self.blind_detl == 1] = 0
             PE1[:, self.blind_detr == 1] = 0
             e = targ[:, self.E_index, :, :] * self.E_scale
-            dense_E = np.cat((e, PE0, PE1), dim=1)
+            dense_E = np.concatenate((np.expand_dims(e,1), np.expand_dims(PE0,1), np.expand_dims(PE1,1)), axis=1)
             z_pred = (pred[:, 0, :, :] - 0.5) * self.z_scale
             E_basic_prediction_dense(dense_E, z_pred, self.nx, self.ny,
                                      self.seg_status,
