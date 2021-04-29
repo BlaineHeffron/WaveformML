@@ -34,7 +34,10 @@ class LitZ(pl.LightningModule):
         if hasattr(self.config.net_config, "SELoss"):
             self.SE_only = self.config.net_config.SELoss
         if self.test_has_phys:
-            self.evaluator = ZEvaluatorRealWFNorm(self.logger)
+            if hasattr(self.config.dataset_config, "calgroup"):
+                self.evaluator = ZEvaluatorRealWFNorm(self.logger, calgroup=self.config.dataset_config.calgroup)
+            else:
+                self.evaluator = ZEvaluatorRealWFNorm(self.logger)
         elif config.net_config.algorithm == "features":
             self.evaluator = ZEvaluatorPhys(self.logger)
         else:
