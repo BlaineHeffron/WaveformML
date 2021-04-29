@@ -151,7 +151,7 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, AD1Evaluator):
         EnergyEvaluatorBase.__init__(self, logger, e_scale=e_scale, namespace=namespace)
         AD1Evaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
 
-    def add(self, predictions, target, c, f, pred_numpy=False):
+    def add(self, predictions, target, c, f, pred_numpy=False, Z_pred=None):
         if not pred_numpy:
             pred = predictions.detach().cpu().numpy()
         else:
@@ -162,17 +162,21 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase, AD1Evaluator):
         e = f[:, self.E_index].detach().cpu().numpy() * self.E_scale
         PE0 = f[:, self.PE0_index].detach().cpu().numpy() * self.PE_scale
         PE1 = f[:, self.PE1_index].detach().cpu().numpy() * self.PE_scale
-        cal_z_pred = np.zeros(f[:, self.z_index].shape)
-        z_basic_prediction(coo, z, cal_z_pred)
-        cal_z_pred = (cal_z_pred - 0.5) * self.z_scale
-        if hasattr(self, "calibrator"):
-            cal_E_pred = np.zeros(f[:, self.E_index].shape)
-            E_basic_prediction(coo, e, PE0, PE1, cal_z_pred, self.seg_status, self.calibrator.light_pos_curves,
-                               self.calibrator.light_sum_curves, cal_E_pred)
+        if Z_pred:
+            Z = Z_pred
+            E = pred
         else:
-            cal_E_pred = e
-        cal_z_pred = cal_z_pred / self.z_scale + 0.5
-        cal_E_pred = cal_E_pred / self.E_scale
-        Z = self.get_dense_matrix(torch.tensor(cal_z_pred), c)
-        E = self.get_dense_matrix(torch.tensor(cal_E_pred), c)
+            cal_z_pred = np.zeros(f[:, self.z_index].shape)
+            z_basic_prediction(coo, z, cal_z_pred)
+            cal_z_pred = (cal_z_pred - 0.5) * self.z_scale
+            if hasattr(self, "calibrator"):
+                cal_E_pred = np.zeros(f[:, self.E_index].shape)
+                E_basic_prediction(coo, e, PE0, PE1, cal_z_pred, self.seg_status, self.calibrator.light_pos_curves,
+                                   self.calibrator.light_sum_curves, cal_E_pred)
+            else:
+                cal_E_pred = e
+            cal_z_pred = cal_z_pred / self.z_scale + 0.5
+            cal_E_pred = cal_E_pred / self.E_scale
+            Z = self.get_dense_matrix(torch.tensor(cal_z_pred), c)
+            E = self.get_dense_matrix(torch.tensor(cal_E_pred), c)
         self.calc_deviation_with_z(pred, targ, E[:, 0, :, :], Z[:, 0, :, :])
