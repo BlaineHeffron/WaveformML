@@ -574,10 +574,10 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
         self.E_bounds = [0., 10.]
         self.mult_bounds = [0.5, 6.5]
         self.n_mult = 6
-        self.n_E = 20
+        self.n_E = 40
         self.E_bin_centers = get_bin_midpoints(self.E_bounds[0], self.E_bounds[1], self.n_E)
-        self.n_z = 20
-        self.z_bounds = [-600., 600.]
+        self.n_z = 40
+        self.z_bounds = [0., 1200.]
         self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
         self.Z_mult_names = ["z_mult_single", "z_mult_single_cal", "z_mult_dual", "z_mult_dual_cal"]
         self.E_mult_titles = ["Single Ended", "Single Ended", "Double Ended", "Double Ended"]
@@ -602,13 +602,13 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
                                  "Z Mean Absolute Error", "mm", underflow=(1, 0), scale=self.z_scale)
         self.register_duplicates(self.Z_mult_names,
                                  [self.n_z, self.n_mult], [self.z_bounds[0], self.mult_bounds[0]],
-                                 [self.z_bounds[1], self.mult_bounds[1]], 2, ["Z", "Multiplicity"],
+                                 [self.z_bounds[1], self.mult_bounds[1]], 2, ["Distance from PMT", "Multiplicity"],
                                  ["mm", ""],
                                  "Z Mean Absolute Error", "mm", underflow=(1, 0), scale=self.z_scale)
         self.register_duplicates(self.z_E_names, [self.n_z, self.n_E],
                                  [self.z_bounds[0], self.E_bounds[0]],
                                  [self.z_bounds[1], self.E_bounds[1]], 2,
-                                 ["Z", "Visible Energy"], ["mm", "MeVee"],
+                                 ["Distance from PMT", "Visible Energy"], ["mm", "MeVee"],
                                  "Z Mean Absolute Error", "mm", scale=self.z_scale)
         self.register_duplicates(self.seg_mult_names, [self.nx, self.ny, self.n_mult],
                                  [0.5, 0.5, 0.5],
@@ -650,7 +650,7 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
                                             self.results["z_E_dual_cal"][0], self.results["z_E_dual_cal"][1],
                                             self.results["E_mult_single_cal"][0], self.results["E_mult_single_cal"][1],
                                             self.results["E_mult_dual_cal"][0], self.results["E_mult_dual_cal"][1],
-                                            self.seg_status, self.nx, self.ny, self.n_mult,
+                                            self.seg_status, self.blind_detl, self.nx, self.ny, self.n_mult,
                                             self.n_z, self.z_scale, targ[:, self.E_index, :, :],
                                             self.E_bounds[0] / self.E_scale, self.E_bounds[1] / self.E_scale, self.n_E)
 

@@ -1142,9 +1142,11 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
 @nb.jit(nopython=True)
 def z_deviation_with_E_full_correlation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
                 z_mult_single_out, z_E_single_dev, z_E_single_out, z_E_dual_dev, z_E_dual_out, E_mult_single_dev,
-                                        E_mult_single_out, E_mult_dual_dev, E_mult_dual_out, seg_status, nx, ny, nmult,
+                                        E_mult_single_out, E_mult_dual_dev, E_mult_dual_out, seg_status, blindl, nx, ny, nmult,
                                         nz, zrange, E, E_low, E_high, nE):
     E_bin_width = (E_high - E_low) / nE
+    z_bin_width = zrange / nz
+    half_cell_length = 588.
     for batch in range(predictions.shape[0]):
         mult = 0
         for i in range(nx):
@@ -1158,20 +1160,29 @@ def z_deviation_with_E_full_correlation(predictions, targets, dev, out_n, z_mult
                     true_z = (targets[batch, i, j] - 0.5) * zrange
                     z_bin = 0
                     E_bin = get_bin_index(E[batch, i, j], E_low, E_high, E_bin_width, nE)
-                    if true_z < (-zrange / 2.):
-                        z_bin = 0
-                    elif true_z >= (zrange / 2.):
-                        z_bin = nz + 1
-                    else:
-                        for k in range(1, nz + 1):
-                            if k * (zrange / nz) - zrange / 2. > true_z:
-                                z_bin = k
-                                break
-
-                    increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
-                                             z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
-                    increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
-                                           z_E_dual_out, seg_status)
+                    if seg_status[i, j] == 0.5:
+                        if blindl[i, j] == 1:
+                            dist_pmt = half_cell_length - true_z
+                        else:
+                            dist_pmt = half_cell_length + true_z
+                        z_bin = get_bin_index(dist_pmt, 0., zrange, z_bin_width, nz)
+                        increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
+                                                 z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
+                        increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
+                                               z_E_dual_out, seg_status)
+                    elif seg_status[i, j] == 0:
+                        dist_pmt = half_cell_length + true_z
+                        z_bin = get_bin_index(dist_pmt, 0., zrange, z_bin_width, nz)
+                        increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
+                                                 z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
+                        increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
+                                               z_E_dual_out, seg_status)
+                        dist_pmt = half_cell_length - true_z
+                        z_bin = get_bin_index(dist_pmt, 0., zrange, z_bin_width, nz)
+                        increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
+                                                 z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
+                        increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
+                                               z_E_dual_out, seg_status)
                     if(mult > nmult):
                         mult_bin = nmult
                     else:
