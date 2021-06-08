@@ -12,7 +12,6 @@ class RecurrentBlock(nn.Module):
                           bidirectional=bidirectional, batch_first=True)
 
     def forward(self, x):
-        print(x.shape)
         batch_size = x.size(0)
         hidden = self.init_hidden(batch_size)
         return self.rnn(x, hidden)

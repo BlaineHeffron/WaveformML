@@ -14,21 +14,21 @@ class LitWaveform(LitBase):
 
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
-        predictions = self.model(f.unsqueeze(self.squeeze_index))
+        predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         loss = self.criterion.forward(predictions, target)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
-        predictions = self.model(f.unsqueeze(self.squeeze_index))
+        predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         loss = self.criterion.forward(predictions, target)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
-        predictions = self.model(f.unsqueeze(self.squeeze_index))
+        predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         loss = self.criterion.forward(predictions, target)
         self.log('test_loss', loss, on_epoch=True, logger=True)
         if hasattr(self, "evaluator"):
