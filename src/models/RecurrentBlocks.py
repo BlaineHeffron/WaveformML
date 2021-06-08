@@ -13,8 +13,8 @@ class RecurrentBlock(nn.Module):
 
     def forward(self, x):
         batch_size = x.size(0)
-        hidden = self.init_hidden(batch_size)
-        return self.rnn(x, hidden)
+        #hidden = self.init_hidden(batch_size)
+        return self.rnn(x)
 
     def init_hidden(self, batch_size):
         hidden = zeros(self.n_layers, batch_size, self.hidden_size)
