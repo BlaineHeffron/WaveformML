@@ -15,8 +15,6 @@ class LitWaveform(LitBase):
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
         predictions = self.model(f.unsqueeze(self.squeeze_index))
-        print(predictions.shape)
-        print(target.shape)
         loss = self.criterion.forward(predictions, target)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
