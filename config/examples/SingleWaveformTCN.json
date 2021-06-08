@@ -1,0 +1,76 @@
+{
+  "run_config": {
+    "exp_name": "WaveformTCN_Z_Test",
+    "imports": [
+      "src.engineering.LitWaveform"
+    ],
+    "run_class": "LitWaveform"
+  },
+  "system_config": {
+    "model_name": "SingleWaveformTCN_Z",
+    "n_samples": 59,
+    "gpu_enabled": false,
+    "half_precision": 0,
+    "model_base_path": "./model"
+  },
+  "net_config": {
+    "criterion_class": "L1Loss",
+    "criterion_params": [],
+    "imports": [
+      "torch.nn", "src.models.WaveformModels"
+    ],
+    "net_class": "WaveformModels.TemporalWaveformNet",
+    "net_type": "TemporalConvolution",
+    "hparams": {
+      "n_conv": 4,
+      "n_lin": 4,
+      "conv_params": { "kernel_size": 3,"dropout": 0.0 }
+    }
+  },
+  "optimize_config": {
+    "imports": [
+      "torch.optim",
+      "torch.optim.lr_scheduler"
+    ],
+    "total_epoch": 30,
+    "lr": 0.002,
+    "optimizer_class": "optim.SGD",
+    "optimizer_params": {
+      "momentum": 0.98,
+      "weight_decay": 0,
+      "dampening": 0,
+      "nesterov": true
+    },
+    "scheduler_class": "lr_scheduler.ExponentialLR",
+    "scheduler_params": {
+      "gamma": 0.9
+    },
+    "validation_freq": 1
+  },
+  "dataset_config": {
+    "mode": "path",
+    "imports": [
+      "src.datasets.PulseDataset"
+    ],
+    "name": "GEP",
+    "base_path": "/home/bheffron/src/WaveformML/data/pulses/",
+    "paths": [
+      "RealData_s015"
+    ],
+    "dataset_class": "PulseDatasetWaveformNorm",
+    "dataset_params": {
+      "data_cache_size": 1,
+      "label_name": "phys",
+      "label_index": 7,
+      "use_half": false
+    },
+    "dataloader_params": {
+      "pin_memory": false,
+      "num_workers": 4,
+      "batch_size": 1
+    },
+    "n_train": 1000,
+    "n_validate": 1000,
+    "n_test": 1000
+  }
+}

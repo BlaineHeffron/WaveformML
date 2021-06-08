@@ -1,0 +1,62 @@
+from src.models.ConvBlocks import *
+from src.models.RecurrentBlocks import RecurrentNet
+from src.utils.util import DictionaryUtility
+
+
+class TemporalWaveformNet(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.log = logging.getLogger(__name__)
+        self.system_config = config.system_config
+        self.net_config = config.net_config
+        self.nsamples = self.system_config.n_samples
+        self.flattened_size = self.nsamples
+        if config.net_config.net_type == "TemporalConvolution":
+            self.model = TemporalConvNet(1, [1]*config.net_config.hparams.n_conv,
+                                         **DictionaryUtility.to_dict(config.net_config.hparams.conv_params))
+        if config.net_config.hparams.n_lin > 0:
+            self.linear = LinearBlock(self.flattened_size, 1, config.net_config.hparams.n_lin).func
+            self.flatten = nn.Flatten()
+
+    def forward(self, x):
+        x = self.model(x)
+        if hasattr(self, "linear"):
+            x = self.flatten(x)
+            x = self.linear(x)
+        return x
+
+
+class LinearWaveformNet(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.log = logging.getLogger(__name__)
+        self.system_config = config.system_config
+        self.net_config = config.net_config
+        self.nsamples = self.system_config.n_samples
+        self.flattened_size = self.nsamples
+        if config.net_config.hparams.n_lin > 0:
+            self.linear = LinearBlock(self.flattened_size, 1, config.net_config.hparams.n_lin).func
+        else:
+            raise IOError("config.net_config.hparams.n_lin must be >= 1")
+
+    def forward(self, x):
+        x = self.model(x)
+        return x
+
+class RecurrentWaveformNet(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.log = logging.getLogger(__name__)
+        self.system_config = config.system_config
+        self.net_config = config.net_config
+        self.nsamples = self.system_config.n_samples
+        if config.net_config.net_type == "RNN":
+            self.model = RecurrentNet(self.nsamples, 1, self.net_config.hparams.n_hidden, self.net_config.hparams.n_layers,
+                                      self.net_config.hparams.n_lin, self.net_config.hparams.out_size,
+                                      **DictionaryUtility.to_dict(self.net_config.hparams.rnn_params))
+        else:
+            raise IOError("{} not supported net type".format(config.net_config.net_type))
+
+    def forward(self, x):
+        x = self.model(x)
+        return x

@@ -121,6 +121,7 @@ class HDF5Dataset(data.Dataset):
         self.info["label_file_pattern"] = label_file_pattern
         self.info["file_pattern"] = file_pattern
         self.info["events_per_dir"] = events_per_dir
+        self.coord_index = None
         # self.log.debug("file excludes is {}".format(file_excludes))
         self.group_mode = False
         self.ordered_file_set = []
@@ -216,19 +217,42 @@ class HDF5Dataset(data.Dataset):
         valtype = torch.int16 if self.half_precision else torch.float32
         second_ind = 0
         first_ind = 0
+        if self.coord_index is None:
+            if len(coords.shape) == 1:
+                self.coord_index = -1
+            else:
+                self.coord_index = 2
+
         if di['event_range'][1] + 1 < di['n_events']:
-            second_ind = where(coords[:, 2] == di['event_range'][1] + 1)[0][0]
+            if self.coord_index == -1:
+                second_ind = where(coords == di['event_range'][1] + 1)[0][0]
+            else:
+                second_ind = where(coords[:, self.coord_index] == di['event_range'][1] + 1)[0][0]
         if di['event_range'][0] > 0:
-            first_ind = where(coords[:, 2] == di['event_range'][0])[0][0]
-        if second_ind > 0:
-            coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
-            vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
-        elif first_ind > 0:
-            coords = torch.tensor(coords[first_ind:, :], dtype=torch.int32, device=self.device)
-            vals = torch.tensor(vals[first_ind:, :], dtype=valtype, device=self.device)
+            if self.coord_index == -1:
+                first_ind = where(coords == di['event_range'][0])[0][0]
+            else:
+                first_ind = where(coords[:, 2] == di['event_range'][0])[0][0]
+        if self.coord_index == -1:
+            if second_ind > 0:
+                coords = torch.tensor(coords[first_ind:second_ind], dtype=torch.int32, device=self.device)
+                vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
+            elif first_ind > 0:
+                coords = torch.tensor(coords[first_ind:], dtype=torch.int32, device=self.device)
+                vals = torch.tensor(vals[first_ind:], dtype=valtype, device=self.device)
+            else:
+                coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
+                vals = torch.tensor(vals, dtype=valtype, device=self.device)
         else:
-            coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
-            vals = torch.tensor(vals, dtype=valtype, device=self.device)
+            if second_ind > 0:
+                coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
+                vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
+            elif first_ind > 0:
+                coords = torch.tensor(coords[first_ind:, :], dtype=torch.int32, device=self.device)
+                vals = torch.tensor(vals[first_ind:, :], dtype=valtype, device=self.device)
+            else:
+                coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
+                vals = torch.tensor(vals, dtype=valtype, device=self.device)
 
         if y is None:
             if self.info['label_name'] is None:
