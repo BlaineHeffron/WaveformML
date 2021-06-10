@@ -26,7 +26,7 @@ class LitWaveform(LitBase):
                                                                                      lr=(self.lr or self.learning_rate),
                                                                                      **DictionaryUtility.to_dict(
                                                                                          self.config.optimize_config.optimizer_params),
-                                                                                                       reduction='none')
+                                                                                                       reduce=False)
     def forward(self, x, *args, **kwargs):
         return self.model(x)
 
