@@ -13,14 +13,14 @@ class TemporalWaveformNet(nn.Module):
         self.flattened_size = self.nsamples
         expand_factor = float(config.net_config.hparams.expansion_factor / config.net_config.hparams.n_expand)
         planes = [int(round(expand_factor*(i+1))) for i in range(config.net_config.hparams.n_expand)]
-        contract_factor = float(config.net_config.hparams.expansion_factor / config.net_config.hparams.n_contract)
+        contract_factor = float((config.net_config.hparams.expansion_factor - config.net_config.hparams.out_planes) / config.net_config.hparams.n_contract)
         planes += [int(round(contract_factor*(config.net_config.hparams.n_contract-i-1))) for i in range(config.net_config.hparams.n_contract)]
-        planes[-1] = 1
+        planes[-1] = config.net_config.hparams.out_planes
         if config.net_config.net_type == "TemporalConvolution":
             self.model = TemporalConvNet(1, planes,
                                          **DictionaryUtility.to_dict(config.net_config.hparams.conv_params))
         if config.net_config.hparams.n_lin > 0:
-            self.linear = LinearBlock(self.flattened_size, 1, config.net_config.hparams.n_lin).func
+            self.linear = LinearBlock(self.flattened_size*planes[-1], 1, config.net_config.hparams.n_lin).func
             self.flatten = nn.Flatten()
 
     def forward(self, x):

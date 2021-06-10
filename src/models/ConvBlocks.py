@@ -116,6 +116,7 @@ class TemporalBlock(nn.Module):
 class TemporalConvNet(nn.Module):
     def __init__(self, num_inputs, num_channels, kernel_size=3, dropout=0.2):
         super(TemporalConvNet, self).__init__()
+        self.log = logging.getLogger(__name__)
         layers = []
         num_levels = len(num_channels)
         for i in range(num_levels):
@@ -124,6 +125,7 @@ class TemporalConvNet(nn.Module):
             out_channels = num_channels[i]
             layers += [TemporalBlock(in_channels, out_channels, kernel_size, stride=1, dilation=dilation_size,
                                      padding=(kernel_size-1) * dilation_size, dropout=dropout)]
+            self.log.debug("Adding temporal block block {0} -> {1}, kernel {2}, dilation {3}\n".format(in_channels, out_channels, kernel_size, dilation_size))
 
         self.network = nn.Sequential(*layers)
 
