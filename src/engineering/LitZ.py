@@ -32,6 +32,7 @@ class LitZ(pl.LightningModule):
                     self.config.dataset_config.test_dataset_params, "label_index"):
                 self.test_has_phys = True
         if hasattr(self.config.net_config, "UseFFT"):
+            print("Using FFT")
             self.use_fft = True
         else:
             self.use_fft = False

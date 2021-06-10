@@ -11,6 +11,7 @@ from src.utils.SQLiteUtils import get_gains
 
 E_NORMALIZATION_FACTOR = 12.
 Z_NORMALIZATION_FACTOR = 1200.
+CELL_LENGTH = 1176.
 
 
 class AD1Evaluator:
@@ -40,6 +41,7 @@ class AD1Evaluator:
         self.dt_scale = 30.
         self.toffset_scale = 30.
         self.PE_scale = 5000. / self.E_adjust
+        self.dp_scale = CELL_LENGTH
         self.E_index = 0
         self.dt_index = 1
         self.PE0_index = 2
@@ -47,6 +49,11 @@ class AD1Evaluator:
         self.z_index = 4
         self.PSD_index = 5
         self.toffset_index = 6
+        self.dp_index = 7
+        self.phys_names = ["Energy", "dt", "PE0", "PE1", "z", "PSD", "t offset", "distance to PMT"]
+        self.phys_units = ["MeV", "ns", "", "", "mm", "", "ns", "mm"]
+        self.default_bins = [[0.0, self.E_scale, 40], [-self.dt_scale/2., self.dt_scale/2., 40], [0.0, self.PE_scale, 40],
+                             [0.0, self.PE_scale, 40], [-self.z_scale/2., self.z_scale/2., 40], [0.0, 1.0, 40], [0.0, self.toffset_scale, 40], [0.0, CELL_LENGTH, 40]]
         if calgroup is not None:
             self.hascal = True
             if "PROSPECT_CALDB" not in os.environ.keys():
@@ -69,3 +76,22 @@ class AD1Evaluator:
         if to_numpy:
             data = data.detach().cpu().numpy()
         return data
+
+    def scale_factor(self, index):
+        if index == self.E_index:
+            return self.E_scale
+        elif index == self.dt_index:
+            return self.dt_scale
+        elif index == self.PE0_index:
+            return self.PE_scale
+        elif index == self.PE1_index:
+            return self.PE_scale
+        elif index == self.z_index:
+            return self.z_scale
+        elif index == self.PSD_index:
+            return 1.0
+        elif index == self.toffset_index:
+            return self.toffset_scale
+        elif index == self.dp_index:
+            return self.dp_scale
+

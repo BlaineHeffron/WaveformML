@@ -143,23 +143,11 @@ def get_bin_index(val, low, high, bin_width, nbins):
 
 
 @nb.jit(nopython=True)
-def metric_accumulate_1d(results, metric, output, out_n, xrange, nbins):
+def metric_accumulate_1d(results, parameter, output, out_n, xrange, nbins):
     # expects output to be of size nbins+2, 1 for overflow and underflow
-    xlen = xrange[1] - xrange[0]
-    bin_width = xlen / nbins
+    bin_width = (xrange[1] - xrange[0]) / nbins
     for i in range(results.shape[0]):
-        bin_index = 0
-        find_bin = True
-        if metric[i] < xrange[0]:
-            find_bin = False
-        elif metric[i] >= xrange[1]:
-            bin_index = nbins + 1
-            find_bin = False
-        if find_bin:
-            for j in range(1, nbins + 1):
-                if j * bin_width + xrange[0] > metric[i]:
-                    bin_index = j
-                    break
+        bin_index = get_bin_index(parameter[i], xrange[0], xrange[1], bin_width, nbins)
         output[bin_index] += results[i]
         out_n[bin_index] += 1
 

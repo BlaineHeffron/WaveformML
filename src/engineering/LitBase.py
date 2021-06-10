@@ -2,6 +2,7 @@ from src.engineering.PSDDataModule import *
 import logging
 
 
+
 class LitBase(pl.LightningModule):
 
     def __init__(self, config, trial=None):
@@ -67,6 +68,6 @@ class LitBase(pl.LightningModule):
         loss = self.criterion.forward(predictions, target)
         self.log('test_loss', loss, on_epoch=True, logger=True)
         if hasattr(self, "evaluator"):
-            self.evaluator.add(batch, predictions)
+            self.evaluator.add(batch, predictions, )
         return loss
 
