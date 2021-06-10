@@ -118,7 +118,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
 
 def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None, cm=plt.cm.cividis):
     n_categories = len(title)
-    nrows = ceil((n_categories - 1) / 3)
+    nrows = ceil(n_categories / 3)
     fig_height = 4.0
     if (n_categories < 3):
         fig, axes = plt.subplots(ceil(n_categories / 3), n_categories, figsize=(fig_height * 3.9, fig_height * nrows))
@@ -186,7 +186,7 @@ def plot_bar(X, Y, xlabel, ylabel):
 
 def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logy=True):
     n_categories = len(title)
-    nrows = ceil((n_categories - 1) / 3)
+    nrows = ceil(n_categories / 3)
     fig_height = 4.0
     if (n_categories < 3):
         fig, axes = plt.subplots(ceil(n_categories / 3), n_categories, figsize=(fig_height * 3.9, fig_height * nrows))
@@ -240,7 +240,7 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
 def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logz=True,
                   cm=plt.cm.cividis):
     n_categories = len(title)
-    nrows = ceil((n_categories - 1) / 3)
+    nrows = ceil(n_categories / 3)
     fig_height = 4.0
     if n_categories < 3:
         fig, axes = plt.subplots(ceil(n_categories / 3), n_categories, figsize=(fig_height * 3.9, fig_height * nrows))
