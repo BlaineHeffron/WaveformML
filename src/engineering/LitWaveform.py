@@ -22,11 +22,8 @@ class LitWaveform(LitBase):
         self.target_index = self.config.dataset_config.dataset_params.label_index
         self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
                                          target_has_phys=self.test_has_phys, target_index=self.target_index)
-        self.loss_no_reduce = self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
-                                                                                     lr=(self.lr or self.learning_rate),
-                                                                                     **DictionaryUtility.to_dict(
-                                                                                         self.config.optimize_config.optimizer_params),
-                                                                                                       reduce=False)
+        self.loss_no_reduce = self.criterion_class(*config.net_config.criterion_params, reduction="none")
+
     def forward(self, x, *args, **kwargs):
         return self.model(x)
 
