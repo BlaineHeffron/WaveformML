@@ -2,6 +2,7 @@ import spconv
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
 from torch import where, tensor, sum
+from torch.fft import rfft
 from src.evaluation.ZEvaluator import ZEvaluatorWF, ZEvaluatorPhys, ZEvaluatorRealWFNorm
 
 
@@ -30,6 +31,10 @@ class LitZ(pl.LightningModule):
             if self.config.dataset_config.test_dataset_params.label_name == "phys" and not hasattr(
                     self.config.dataset_config.test_dataset_params, "label_index"):
                 self.test_has_phys = True
+        if hasattr(self.config.net_config, "UseFFT"):
+            self.use_fft = True
+        else:
+            self.use_fft = False
         self.SE_only = False
         if hasattr(self.config.net_config, "SELoss"):
             self.SE_only = self.config.net_config.SELoss
@@ -104,6 +109,8 @@ class LitZ(pl.LightningModule):
 
     def _process_batch(self, batch, target_has_phys=False):
         (c, f), target = batch
+        if self.use_fft:
+            f = rfft(f)
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size,

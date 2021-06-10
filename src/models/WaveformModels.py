@@ -11,8 +11,13 @@ class TemporalWaveformNet(nn.Module):
         self.net_config = config.net_config
         self.nsamples = self.system_config.n_samples
         self.flattened_size = self.nsamples
+        expand_factor = float(config.net_config.hparams.expansion_factor / config.net_config.hparams.n_expand)
+        planes = [int(round(expand_factor*(i+1))) for i in range(config.net_config.hparams.n_expand)]
+        contract_factor = float(config.net_config.hparams.expansion_factor / config.net_config.hparams.n_contract)
+        planes += [int(round(contract_factor*(config.net_config.hparams.n_contract-i-1))) for i in range(config.net_config.hparams.n_contract)]
+        planes[-1] = 1
         if config.net_config.net_type == "TemporalConvolution":
-            self.model = TemporalConvNet(1, [1]*config.net_config.hparams.n_conv,
+            self.model = TemporalConvNet(1, planes,
                                          **DictionaryUtility.to_dict(config.net_config.hparams.conv_params))
         if config.net_config.hparams.n_lin > 0:
             self.linear = LinearBlock(self.flattened_size, 1, config.net_config.hparams.n_lin).func
@@ -40,7 +45,7 @@ class LinearWaveformNet(nn.Module):
             raise IOError("config.net_config.hparams.n_lin must be >= 1")
 
     def forward(self, x):
-        x = self.model(x)
+        x = self.linear(x)
         return x
 
 class RecurrentWaveformNet(nn.Module):
