@@ -61,7 +61,7 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
                                          scale_factor=scale_factor, parameter_unit=unit))
 
     def add(self, target, results):
-        results = results.permute(1, 0)
+        target = target.permute(1, 0)
         target = target.detach().cpu().numpy()
         results = results.detach().cpu().numpy()
         if self.target_has_phys:
