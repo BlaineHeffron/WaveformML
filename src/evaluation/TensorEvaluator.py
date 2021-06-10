@@ -21,10 +21,12 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
             self.class_names = ["Single"]
         self.metrics = []
         if self.target_index is not None:
+            if self.metric_name is None:
+                self.metric_name = "mean absolute error"
             if self.metric_unit is None:
                 self.metric_unit = self.phys_units[self.target_index]
-            if self.metric_name is None:
-                self.metric_name = self.phys_units[self.target_index]
+                if "squared" in self.metric_name:
+                    self.metric_unit += "^2"
         self._init_results()
 
     def _init_results(self):

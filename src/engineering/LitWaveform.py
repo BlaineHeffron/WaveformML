@@ -19,8 +19,15 @@ class LitWaveform(LitBase):
         else:
             calgroup = None
         self.target_index = self.config.dataset_config.dataset_params.label_index
+        if config.net_config.criterion_class == "L1Loss":
+            metric_name = "mean absolute error"
+        elif config.net_config.criterion_class == "MSELoss":
+            metric_name = "mean squared error"
+        else:
+            metric_name = "?"
         self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
-                                         target_has_phys=self.test_has_phys, target_index=self.target_index)
+                                         target_has_phys=self.test_has_phys, target_index=self.target_index,
+                                         metric_name=metric_name)
         self.loss_no_reduce = self.criterion_class(*config.net_config.criterion_params, reduction="none")
 
     def forward(self, x, *args, **kwargs):
