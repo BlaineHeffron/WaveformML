@@ -214,7 +214,7 @@ class HDF5Dataset(data.Dataset):
 
     def _concat_range(self, index, coords, vals, di, y=None):
         # this is only meant to be called in __getitem__ because it accesses file here
-        valtype = torch.int16 if self.half_precision else torch.float32
+        valtype = torch.float16 if self.half_precision else torch.float32
         second_ind = 0
         first_ind = 0
         if self.coord_index is None:
@@ -281,7 +281,7 @@ class HDF5Dataset(data.Dataset):
         #    y[y > 1] = self.num_dirs #set neutron captures to the last class
         #    y[y <= 1] = di["dir_index"] #set others to the directory index
 
-        if self.normalize and not self.half_precision:
+        if self.normalize:
             vals *= MAX_RANGE_INV
         return coords, vals, y
 
