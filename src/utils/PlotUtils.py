@@ -346,7 +346,7 @@ def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin
     return fig
 
 
-def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
+def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True, logy=True):
     fig, ax = plt.subplots()
     xwidth = xedges[1] - xedges[0]
     if norm_to_bin_width:
@@ -362,6 +362,8 @@ def plot_hist1d(xedges, vals, title, xlabel, ylabel, norm_to_bin_width=True):
     h = plt.hist(xs, bins=xedges, weights=vals)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    if logy:
+        ax.set_yscale('log')
     ax.set_title(title, fontsize=TITLE_SIZE)
     return fig
 

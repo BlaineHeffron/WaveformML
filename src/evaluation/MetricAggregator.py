@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.utils.PlotUtils import plot_n_hist1d, plot_n_hist2d, plot_n_contour
+from src.utils.PlotUtils import plot_n_hist1d, plot_n_hist2d, plot_n_contour, plot_hist1d, plot_hist2d, plot_contour
 from src.utils.SparseUtils import metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list
 from src.utils.util import safe_divide, get_bins, get_bin_midpoints
@@ -66,16 +66,33 @@ class MetricAggregator:
             return self.name
 
     def plot(self, logger):
-        logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
-                                     plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
-                                                   if self.is_discreet else self.bin_edges,
-                                                   [safe_divide(
-                                                       self.scale_factor*self.results_dict[self.class_names[i]][0][1:self.n_bins + 1],
-                                                       self.results_dict[self.class_names[i]][1][1:self.n_bins + 1]
-                                                   ) for i in range(len(self.class_names))],
-                                                   self.class_names, self.retrieve_parameter_label(), self.retrieve_metric_label(),
-                                                   norm_to_bin_width=False, logy=False))
-        logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+        if len(self.class_names) == 1:
+            logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
+                                         plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
+                                                       if self.is_discreet else self.bin_edges,
+                                                       safe_divide(
+                                                           self.scale_factor*self.results_dict[self.class_names[0]][0][1:self.n_bins + 1],
+                                                           self.results_dict[self.class_names[0]][1][1:self.n_bins + 1]
+                                                       ),
+                                                       self.class_names[0], self.retrieve_parameter_label(),
+                                                     self.retrieve_metric_label(),
+                                                       norm_to_bin_width=False, logy=False))
+            logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+                                         plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
+                                                       if self.is_discreet else self.bin_edges,
+                                                       self.results_dict[self.class_names[0]][1][1:self.n_bins + 1],
+                                                       self.class_names[0], self.retrieve_parameter_label(), "total"))
+        else:
+            logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
+                                         plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
+                                                       if self.is_discreet else self.bin_edges,
+                                                       [safe_divide(
+                                                           self.scale_factor*self.results_dict[self.class_names[i]][0][1:self.n_bins + 1],
+                                                           self.results_dict[self.class_names[i]][1][1:self.n_bins + 1]
+                                                       ) for i in range(len(self.class_names))],
+                                                       self.class_names, self.retrieve_parameter_label(), self.retrieve_metric_label(),
+                                                       norm_to_bin_width=False, logy=False))
+            logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
                                      plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                    if self.is_discreet else self.bin_edges,
                                                    [self.results_dict[self.class_names[i]][1][1:self.n_bins + 1]
@@ -118,16 +135,36 @@ class Metric2DAggregator:
                              self.metric1.n_bins, self.metric2.n_bins)
 
     def plot(self, logger):
-        logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
-                                     plot_n_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
-                                                   [self.results_dict[self.metric1.class_names[i]][
-                                                        1][1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1]
-                                                    for i in
-                                                    range(len(self.metric1.class_names))],
-                                                   self.metric1.class_names,
-                                                   self.metric1.retrieve_parameter_label(), self.metric2.retrieve_parameter_label()))
+        if len(self.metric1.class_names) == 1:
+            logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+                                         plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
+                                                       self.results_dict[self.metric1.class_names[0]][
+                                                            1][1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1],
+                                                       self.metric1.class_names[0],
+                                                       self.metric1.retrieve_parameter_label(), self.metric2.retrieve_parameter_label(),
+                                                     zlabel=self.metric1.retrieve_parameter_label()))
 
-        logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
+            logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
+                                         plot_contour(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
+                                                        safe_divide(self.metric1.scale_factor*self.results_dict[self.metric1.class_names[0]][0][
+                                                                                               1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1],
+                                                                     self.results_dict[self.metric1.class_names[0]][1][
+                                                                     1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1]),
+                                                        self.metric1.retrieve_parameter_label(),
+                                                        self.metric2.retrieve_parameter_label(), self.metric1.class_names[0]))
+
+
+        else:
+            logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+                                         plot_n_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
+                                                       [self.results_dict[self.metric1.class_names[i]][
+                                                            1][1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1]
+                                                        for i in
+                                                        range(len(self.metric1.class_names))],
+                                                       self.metric1.class_names,
+                                                       self.metric1.retrieve_parameter_label(), self.metric2.retrieve_parameter_label()))
+
+            logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
                                      plot_n_contour(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
                                                     [safe_divide(self.metric1.scale_factor*self.results_dict[self.metric1.class_names[i]][0][
                                                                  1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1],
