@@ -19,9 +19,9 @@ class LitWaveform(LitBase):
             calgroup = self.config.dataset_config.calgroup
         else:
             calgroup = None
-        self.target_index = self.config.dataset_config.label_index
+        self.target_index = self.config.dataset_config.dataset_params.label_index
         self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
-                                         target_has_phys=self.test_has_phys, target_index=target_index)
+                                         target_has_phys=self.test_has_phys, target_index=self.target_index)
         self.loss_no_reduce = self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),
                                                                                      lr=(self.lr or self.learning_rate),
                                                                                      **DictionaryUtility.to_dict(
