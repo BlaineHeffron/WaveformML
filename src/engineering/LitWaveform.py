@@ -49,6 +49,8 @@ class LitWaveform(LitBase):
             loss = self.criterion.forward(predictions, target)
         self.log('test_loss', loss, on_epoch=True, logger=True)
         if hasattr(self, "evaluator"):
+            if not self.evaluator.logger:
+                self.evaluator.logger = self.logger
             if self.test_has_phys:
                 results = self.loss_no_reduce(predictions, target[:, self.target_index])
             else:
