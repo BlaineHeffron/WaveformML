@@ -1,6 +1,5 @@
 from src.engineering.LitBase import LitBase
 from src.evaluation.TensorEvaluator import TensorEvaluator
-from src.utils.util import DictionaryUtility
 
 
 class LitWaveform(LitBase):
@@ -45,12 +44,14 @@ class LitWaveform(LitBase):
         (c, f), target = batch
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if self.test_has_phys:
-            loss = self.criterion.forward(predictions, target[:,self.target_index])
+            loss = self.criterion.forward(predictions, target[:, self.target_index])
         else:
             loss = self.criterion.forward(predictions, target)
         self.log('test_loss', loss, on_epoch=True, logger=True)
         if hasattr(self, "evaluator"):
-            results = self.loss_no_reduce(predictions, target)
+            if self.test_has_phys:
+                results = self.loss_no_reduce(predictions, target[:, self.target_index])
+            else:
+                results = self.loss_no_reduce(predictions, target)
             self.evaluator.add(target, results)
         return loss
-
