@@ -6,6 +6,8 @@ from torch import argmax, sum
 from src.evaluation.PSDEvaluator import PSDEvaluator, PhysEvaluator
 import logging
 
+from src.evaluation.TensorEvaluator import TensorEvaluator
+
 N_CHANNELS = 14
 
 
@@ -41,8 +43,16 @@ class LitPSD(pl.LightningModule):
         self.softmax = LogSoftmax(dim=1)
         self.accuracy = Accuracy()
         self.confusion = ConfusionMatrix(num_classes=self.n_type)
+        if hasattr(self.config.dataset_config, "calgroup"):
+            calgroup = self.config.dataset_config.calgroup
+        else:
+            calgroup = None
         if self.config.dataset_config.dataset_class == "PulseDatasetDet":
             self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
+        elif self.config.dataset_config.dataset_class == "PulseDatasetWaveformNorm":
+            self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
+                                             target_has_phys=False, target_index=None,
+                                             metric_name="accuracy", metric_unit="")
         else:
             if hasattr(self.config.dataset_config, "calgroup"):
                 self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device,

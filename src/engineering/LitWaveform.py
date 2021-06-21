@@ -23,6 +23,8 @@ class LitWaveform(LitBase):
             metric_name = "mean absolute error"
         elif config.net_config.criterion_class == "MSELoss":
             metric_name = "mean squared error"
+        elif config.net_config.criterion_class.startswith("BCE") or config.net_config.criterion_class.startswith("CrossEntropy"):
+            metric_name = "Accuracy"
         else:
             metric_name = "?"
         self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
