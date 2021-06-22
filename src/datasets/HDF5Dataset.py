@@ -217,20 +217,22 @@ class HDF5Dataset(data.Dataset):
         valtype = torch.float16 if self.half_precision else torch.float32
         second_ind = 0
         first_ind = 0
+        use_length = False # use the length of the vector instead of event number to retrieve data range
         if self.coord_index is None:
             if len(coords.shape) == 1:
                 self.coord_index = -1
+                use_length = True
             else:
                 self.coord_index = 2
 
         if di['event_range'][1] + 1 < di['n_events']:
-            if self.coord_index == -1:
-                second_ind = where(coords == di['event_range'][1] + 1)[0][0]
+            if use_length:
+                second_ind = di['event_range'][1] + 1
             else:
                 second_ind = where(coords[:, self.coord_index] == di['event_range'][1] + 1)[0][0]
         if di['event_range'][0] > 0:
-            if self.coord_index == -1:
-                first_ind = where(coords == di['event_range'][0])[0][0]
+            if use_length:
+                first_ind = di['event_range'][0]
             else:
                 first_ind = where(coords[:, 2] == di['event_range'][0])[0][0]
         if self.coord_index == -1:
@@ -386,7 +388,7 @@ class HDF5Dataset(data.Dataset):
                         else:
                             self.data_cache_map[self.info['data_info'][file_idx + idx]['file_path']][dname] = idx
                 else:
-                    if gname != self.info["data_name"]:
+                    if not label_file and gname != self.info["data_name"]:
                         continue
                     idx = self._add_to_cache(group, file_path, label_file)
                     # find the beginning index of the hdf5 file we are looking for
@@ -464,7 +466,6 @@ class HDF5Dataset(data.Dataset):
         # self.log.debug("file path is {}".format(fp))
         if fp not in self.data_cache:
             self._load_data(fp, label_file)
-
         # get new cache_idx assigned by _load_data_info
         if self.group_mode:
             cache_idx = self.data_cache_map[self.get_data_infos(data_type)[i]['file_path']][data_type]

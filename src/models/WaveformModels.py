@@ -11,6 +11,10 @@ class TemporalWaveformNet(nn.Module):
         self.net_config = config.net_config
         self.nsamples = self.system_config.n_samples
         self.flattened_size = self.nsamples
+        if hasattr(config.net_config.hparams, "out_size"):
+            self.output_size = config.net_config.hparams.out_size
+        else:
+            self.output_size = 1
         expand_factor = float(config.net_config.hparams.expansion_factor / config.net_config.hparams.n_expand)
         planes = [int(round(expand_factor*(i+1))) for i in range(config.net_config.hparams.n_expand)]
         contract_factor = float((config.net_config.hparams.expansion_factor - config.net_config.hparams.out_planes) / config.net_config.hparams.n_contract)
@@ -20,7 +24,7 @@ class TemporalWaveformNet(nn.Module):
             self.model = TemporalConvNet(1, planes,
                                          **DictionaryUtility.to_dict(config.net_config.hparams.conv_params))
         if config.net_config.hparams.n_lin > 0:
-            self.linear = LinearBlock(self.flattened_size*planes[-1], 1, config.net_config.hparams.n_lin).func
+            self.linear = LinearBlock(self.flattened_size*planes[-1], self.output_size, config.net_config.hparams.n_lin).func
             self.flatten = nn.Flatten()
 
     def forward(self, x):
