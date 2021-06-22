@@ -10,6 +10,7 @@ class LitWaveform(LitBase):
             self.squeeze_index = 2
         else:
             self.squeeze_index = 1
+        self.test_has_phys = False
         if hasattr(self.config.dataset_config, "test_dataset_params"):
             if self.config.dataset_config.test_dataset_params.label_name == "phys" and not hasattr(
                     self.config.dataset_config.test_dataset_params, "label_index"):
