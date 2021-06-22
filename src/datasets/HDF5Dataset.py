@@ -77,7 +77,8 @@ class HDF5Dataset(data.Dataset):
                     "data_cache_size": conf["data_cache_size"], "data_name": conf["data_name"],
                     "coord_name": conf["coord_name"], "feat_name": conf["feat_name"],
                     "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"],
-                    "label_file_pattern": conf["label_file_pattern"], "file_pattern": conf["file_pattern"]}
+                    "label_file_pattern": conf["label_file_pattern"], "file_pattern": conf["file_pattern"],
+                    "event_based": conf["event_based"]}
         cls.group_mode = False
         cls.ordered_file_set = [fp["file_path"] for fp in cls.info["data_info"]]
         cls.half_precision = use_half
@@ -97,7 +98,8 @@ class HDF5Dataset(data.Dataset):
                  label_file_pattern=None,
                  data_cache_size=1,
                  normalize=False,
-                 use_half=False):
+                 use_half=False,
+                 event_based=True):
         super().__init__()
         self.info = {}
         self.log = logging.getLogger(__name__)
@@ -121,6 +123,7 @@ class HDF5Dataset(data.Dataset):
         self.info["label_file_pattern"] = label_file_pattern
         self.info["file_pattern"] = file_pattern
         self.info["events_per_dir"] = events_per_dir
+        self.info["event_based"] = event_based
         self.coord_index = None
         # self.log.debug("file excludes is {}".format(file_excludes))
         self.group_mode = False
@@ -217,17 +220,18 @@ class HDF5Dataset(data.Dataset):
         valtype = torch.float16 if self.half_precision else torch.float32
         second_ind = 0
         first_ind = 0
-        use_length = False # use the length of the vector instead of event number to retrieve data range
+        use_length = not self.info["event_based"] # use the length of the vector instead of event number to retrieve data range
         if self.coord_index is None:
             if len(coords.shape) == 1:
                 self.coord_index = -1
-                use_length = True
             else:
                 self.coord_index = 2
 
         if di['event_range'][1] + 1 < di['n_events']:
             if use_length:
                 second_ind = di['event_range'][1] + 1
+            elif self.coord_index == -1:
+                second_ind = where(coords[:, self.coord_index] == di['event_range'][1] + 1)[0][0]
             else:
                 second_ind = where(coords[:, self.coord_index] == di['event_range'][1] + 1)[0][0]
         if di['event_range'][0] > 0:
@@ -318,7 +322,10 @@ class HDF5Dataset(data.Dataset):
     def _add_data_infos(self, file_path, dir_index, load_data):
         with H5FileHandler(file_path, 'r') as h5_file:
             modified = getmtime(file_path)
-            n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+            if self.info["event_based"]:
+                n_file_events = h5_file[self.info['data_name']].attrs.get('nevents')[0]  # the number of events in the file
+            else:
+                n_file_events = h5_file[self.info['data_name']].shape[0]
             # n = h5_file[self.info['data_name']][self.info['coord_name']][-1][2] + 1  # the number of events in the file
             # a = len(unique(h5_file[self.info['data_name']][self.info['coord_name']][:,2]))
             # print("nevents is {0}, length of dataset is {1} for file "
@@ -348,8 +355,11 @@ class HDF5Dataset(data.Dataset):
                 raise RuntimeError(
                     "No corresponding label file found for file {0}, tried {1}".format(file_path, label_file))
             with H5FileHandler(label_file, 'r') as h5_file:
-                n_file_events = h5_file[self.info['label_name']].attrs.get('nevents')[
-                    0]  # the number of events in the file
+                if self.info["event_based"]:
+                    n_file_events = h5_file[self.info['label_name']].attrs.get('nevents')[
+                        0]  # the number of events in the file
+                else:
+                    n_file_events = h5_file[self.info['label_name']].shape[0]
                 n = n_file_events
                 if self.info['events_per_dir'] - self.n_events[dir_index] < n:
                     n = self.info['events_per_dir'] - self.n_events[dir_index]

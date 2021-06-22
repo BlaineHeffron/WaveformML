@@ -79,7 +79,8 @@ class PulseDataset(HDF5Dataset):
                  label_name=None,
                  label_file_pattern=None,
                  data_cache_size=3,
-                 batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True, use_half=False):
+                 batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True, use_half=False,
+                 event_based=True):
         """
         Args:
             config: configuration file object
@@ -110,7 +111,8 @@ class PulseDataset(HDF5Dataset):
                          label_file_pattern=label_file_pattern,
                          data_cache_size=data_cache_size,
                          normalize=normalize,
-                         use_half=use_half)
+                         use_half=use_half,
+                         event_based=event_based)
 
         self.use_half = use_half
         self.label_file_pattern = label_file_pattern
@@ -1118,7 +1120,8 @@ class PulseDatasetWaveformNorm(PulseDataset):
                          dataset_dir=dataset_dir,
                          use_half=use_half,
                          label_name=label_name,
-                         normalize=False)
+                         normalize=False,
+                         event_based=False)
         self.label_index = label_index
 
     def __getitem__(self, idx):
