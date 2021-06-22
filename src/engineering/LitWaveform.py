@@ -18,7 +18,10 @@ class LitWaveform(LitBase):
             calgroup = self.config.dataset_config.calgroup
         else:
             calgroup = None
-        self.target_index = self.config.dataset_config.dataset_params.label_index
+        if hasattr(self.config.dataset_config.dataset_params, "label_index"):
+            self.target_index = self.config.dataset_config.dataset_params.label_index
+        else:
+            self.target_index = None
         if config.net_config.criterion_class == "L1Loss":
             metric_name = "mean absolute error"
         elif config.net_config.criterion_class == "MSELoss":
