@@ -43,14 +43,19 @@ class LinearWaveformNet(nn.Module):
         self.net_config = config.net_config
         self.nsamples = self.system_config.n_samples
         self.flattened_size = self.nsamples
+        if hasattr(self.net_config.hparams, "out_size"):
+            out_size = self.net_config.hparams.out_size
+        else:
+            out_size = 1
         if config.net_config.hparams.n_lin > 0:
-            self.linear = LinearBlock(self.flattened_size, 1, config.net_config.hparams.n_lin).func
+            self.linear = LinearBlock(self.flattened_size, out_size, config.net_config.hparams.n_lin).func
         else:
             raise IOError("config.net_config.hparams.n_lin must be >= 1")
 
     def forward(self, x):
         x = self.linear(x)
         return x
+
 
 class RecurrentWaveformNet(nn.Module):
     def __init__(self, config):
