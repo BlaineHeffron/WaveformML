@@ -43,7 +43,7 @@ class LitWaveform(LitBase):
         self.loss_no_reduce = self.criterion_class(*config.net_config.criterion_params, reduction="none")
         if self.use_accuracy:
             self.accuracy = Accuracy()
-            self.softmax = Softmax()
+            self.softmax = Softmax(dim=1)
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
@@ -61,7 +61,7 @@ class LitWaveform(LitBase):
         loss = self.criterion.forward(predictions, target)
         results_dict = {'val_loss': loss}
         if self.use_accuracy:
-            pred = argmax(self.softmax(predictions, dim=1), dim=1)
+            pred = argmax(self.softmax(predictions), dim=1)
             acc = self.accuracy(pred, target)
             results_dict["val_accuracy"] = acc
         self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
