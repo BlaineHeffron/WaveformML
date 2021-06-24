@@ -60,7 +60,7 @@ class LitWaveform(LitBase):
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            f = cat((f, c * self.detector_num_factor), dim=1)
+            f = cat((f, (c * self.detector_num_factor).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         loss = self.criterion.forward(predictions, target)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
@@ -69,7 +69,7 @@ class LitWaveform(LitBase):
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            f = cat((f, c * self.detector_num_factor), dim=1)
+            f = cat((f, (c * self.detector_num_factor).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         loss = self.criterion.forward(predictions, target)
         results_dict = {'val_loss': loss}
@@ -83,7 +83,7 @@ class LitWaveform(LitBase):
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            f = cat((f, c * self.detector_num_factor), dim=1)
+            f = cat((f, (c * self.detector_num_factor).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if self.test_has_phys:
             loss = self.criterion.forward(predictions, target[:, self.target_index])
