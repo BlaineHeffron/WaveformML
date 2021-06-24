@@ -1,5 +1,6 @@
 from pytorch_lightning.metrics import Accuracy
 from torch import argmax
+from torch.nn import Softmax
 
 from src.engineering.LitBase import LitBase
 from src.evaluation.TensorEvaluator import TensorEvaluator
@@ -42,6 +43,7 @@ class LitWaveform(LitBase):
         self.loss_no_reduce = self.criterion_class(*config.net_config.criterion_params, reduction="none")
         if self.use_accuracy:
             self.accuracy = Accuracy()
+            self.softmax = Softmax()
 
     def forward(self, x, *args, **kwargs):
         return self.model(x)
