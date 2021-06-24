@@ -13,7 +13,7 @@ class LitWaveform(LitBase):
             self.use_detector_number = config.net_config.use_detector_number
             if not hasattr(config.net_config, "num_detectors"):
                 raise IOError("net config must contain 'num_detectors' property if 'use_detector_number' set to true")
-            self.config.system_config.n_samples = config.system_config.n_samples + 1
+            config.system_config.n_samples = config.system_config.n_samples + 1
             self.detector_num_factor = 1. / config.net_config.num_detectors
         else:
             self.use_detector_number = False
