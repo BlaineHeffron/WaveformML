@@ -1,5 +1,5 @@
 from pytorch_lightning.metrics import Accuracy
-from torch import argmax
+from torch import argmax, cat
 from torch.nn import Softmax
 
 from src.engineering.LitBase import LitBase
@@ -9,6 +9,14 @@ from src.evaluation.TensorEvaluator import TensorEvaluator
 class LitWaveform(LitBase):
 
     def __init__(self, config, trial=None):
+        if hasattr(config.net_config, "use_detector_number"):
+            self.use_detector_number = config.net_config.use_detector_number
+            if not hasattr(config.net_config, "num_detectors"):
+                raise IOError("net config must contain 'num_detectors' property if 'use_detector_number' set to true")
+            self.config.system_config.n_samples = config.system_config.n_samples + 1
+            self.detector_num_factor = 1. / config.net_config.num_detectors
+        else:
+            self.use_detector_number = False
         super(LitWaveform, self).__init__(config, trial)
         if config.net_config.net_class.endswith("RecurrentWaveformNet"):
             self.squeeze_index = 2
@@ -32,7 +40,8 @@ class LitWaveform(LitBase):
             metric_name = "mean absolute error"
         elif config.net_config.criterion_class == "MSELoss":
             metric_name = "mean squared error"
-        elif config.net_config.criterion_class.startswith("BCE") or config.net_config.criterion_class.startswith("CrossEntropy"):
+        elif config.net_config.criterion_class.startswith("BCE") or config.net_config.criterion_class.startswith(
+                "CrossEntropy"):
             self.use_accuracy = True
             metric_name = "Accuracy"
         else:
@@ -50,6 +59,8 @@ class LitWaveform(LitBase):
 
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
+        if self.use_detector_number:
+            f = cat((f, c * self.detector_num_factor), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         loss = self.criterion.forward(predictions, target)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
@@ -57,6 +68,8 @@ class LitWaveform(LitBase):
 
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
+        if self.use_detector_number:
+            f = cat((f, c * self.detector_num_factor), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         loss = self.criterion.forward(predictions, target)
         results_dict = {'val_loss': loss}
@@ -69,6 +82,8 @@ class LitWaveform(LitBase):
 
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
+        if self.use_detector_number:
+            f = cat((f, c * self.detector_num_factor), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if self.test_has_phys:
             loss = self.criterion.forward(predictions, target[:, self.target_index])

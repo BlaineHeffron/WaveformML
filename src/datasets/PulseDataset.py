@@ -1111,7 +1111,7 @@ class PulseDatasetWaveformNorm(PulseDataset):
         super().__init__(config, dataset_type,
                          n_per_dir, device,
                          "*PulseNorm.h5", "WaveformNorm",
-                         "evt", data_name,
+                         "det", data_name,
                          file_excludes=file_excludes,
                          label_file_pattern=label_file_pattern,
                          data_cache_size=data_cache_size,
