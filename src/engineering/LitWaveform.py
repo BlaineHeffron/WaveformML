@@ -61,7 +61,7 @@ class LitWaveform(LitBase):
         loss = self.criterion.forward(predictions, target)
         results_dict = {'val_loss': loss}
         if self.use_accuracy:
-            pred = argmax(self.softmax(predictions), dim=1)
+            pred = argmax(self.softmax(predictions, dim=1), dim=1)
             acc = self.accuracy(pred, target)
             results_dict["val_accuracy"] = acc
         self.log_dict(results_dict, on_epoch=True, prog_bar=True, logger=True)
