@@ -165,7 +165,7 @@ class LitZ(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         if self.test_waveform:
             (c, f), target = batch
-            f = cat((f, zeros((f.shape[0], 6), dtype=f.dtype)))
+            f = cat((f, zeros((f.shape[0], 6), dtype=f.dtype)), dim=1)
             coo, f = create_coord_from_det(c, f)
             loss, predictions, target_tensor, c, f = self._process_batch([(coo,f),target], self.test_has_phys)
             results_dict = {'test_loss': loss}
