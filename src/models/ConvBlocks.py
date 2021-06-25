@@ -44,6 +44,19 @@ class DilationBlock(Algorithm):
         self.func = nn.Sequential(*self.alg)
 
 
+class LinearPlanes(nn.Module):
+    def __init__(self, planes):
+        super(LinearPlanes, self).__init__()
+        alg = []
+        for i in range(len(planes) - 1):
+            self.alg.append(nn.Linear(int(round(planes[i])), int(round(planes[i + 1]))))
+            self.log.debug("Adding linear block {0} -> {1}\n".format(int(round(planes[i])), int(round(planes[i + 1]))))
+        self.net = nn.Sequential(*alg)
+
+    def forward(self, x):
+        return self.net(x)
+
+
 class LinearBlock(Algorithm):
 
     def __call__(self, *args, **kwargs):
@@ -54,16 +67,18 @@ class LinearBlock(Algorithm):
         super().__str__()
 
     def __init__(self, nin, nout, n):
-        assert(n > 0)
-        assert(nin > 0)
+        assert (n > 0)
+        assert (nin > 0)
         self.alg = []
         self.log = logging.getLogger(__name__)
         self.log.debug("Creating Linear block, nin: {0}, nout:{1}, n:{2}\n".format(nin, nout, n))
         factor = pow(float(nout) / nin, 1. / n)
         for i in range(n):
             self.alg.append(nn.Linear(int(round(nin * pow(factor, i))), int(round(nin * pow(factor, i + 1)))))
-            self.log.debug("Adding linear block {0} -> {1}\n".format(int(round(nin * pow(factor, i))), int(round(nin * pow(factor, i + 1)))))
+            self.log.debug("Adding linear block {0} -> {1}\n".format(int(round(nin * pow(factor, i))),
+                                                                     int(round(nin * pow(factor, i + 1)))))
         self.func = nn.Sequential(*self.alg)
+
 
 class Chomp1d(nn.Module):
     def __init__(self, chomp_size):
@@ -77,6 +92,7 @@ class Chomp1d(nn.Module):
 class TemporalBlock(nn.Module):
     """Implementation found athttps://github.com/locuslab/TCN/blob/master/TCN/tcn.py
     """
+
     def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2):
         super(TemporalBlock, self).__init__()
         self.conv1 = weight_norm(nn.Conv1d(n_inputs, n_outputs, kernel_size,
@@ -121,14 +137,15 @@ class TemporalConvNet(nn.Module):
         num_levels = len(num_channels)
         for i in range(num_levels):
             dilation_size = 2 ** i
-            in_channels = num_inputs if i == 0 else num_channels[i-1]
+            in_channels = num_inputs if i == 0 else num_channels[i - 1]
             out_channels = num_channels[i]
             layers += [TemporalBlock(in_channels, out_channels, kernel_size, stride=1, dilation=dilation_size,
-                                     padding=(kernel_size-1) * dilation_size, dropout=dropout)]
-            self.log.debug("Adding temporal block block {0} -> {1}, kernel {2}, dilation {3}\n".format(in_channels, out_channels, kernel_size, dilation_size))
+                                     padding=(kernel_size - 1) * dilation_size, dropout=dropout)]
+            self.log.debug(
+                "Adding temporal block block {0} -> {1}, kernel {2}, dilation {3}\n".format(in_channels, out_channels,
+                                                                                            kernel_size, dilation_size))
 
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.network(x)
-

@@ -47,10 +47,31 @@ class LinearWaveformNet(nn.Module):
             out_size = self.net_config.hparams.out_size
         else:
             out_size = 1
-        if config.net_config.hparams.n_lin > 0:
-            self.linear = LinearBlock(self.flattened_size, out_size, config.net_config.hparams.n_lin).func
+        planes = [self.nsamples]
+        if hasattr(config.net_config.hparams, "n_expand"):
+            if config.net_config.hparams.n_expand > 0:
+                if not hasattr(config.net_config.hparams, "expansion_factor"):
+                    raise IOError("config.net_config.hparams.expansion_factor must be set if n_expand > 0")
+                expand_factor = float((planes[0]*config.net_config.hparams.expansion_factor - planes[0]) / config.net_config.hparams.n_expand)
+                planes += [int(round(planes[0] + expand_factor*(i+1))) for i in range(config.net_config.hparams.n_expand)]
+            if not hasattr(config.net_config.hparams, "n_contract"):
+                if hasattr(config.net_config.hparams, "n_lin"):
+                    n_contract = config.net_config.hparams.n_lin - config.net_config.hparams.n_expand
+                else:
+                    raise IOError("if n_expand is set, must either set n_contract or n_lin")
+            else:
+                n_contract = config.net_config.hparams.n_contract
+            contract_factor = float((planes[-1]*config.net_config.hparams.expansion_factor - out_size) / n_contract)
+            start_n = planes[-1]*config.net_config.hparams.expansion_factor
+            planes += [int(round(start_n - contract_factor*(i+1))) for i in range(config.net_config.hparams.n_contract)]
+            planes[-1] = out_size
+        if len(planes) == 1:
+            if hasattr(config.net_config.hparams, "n_lin"):
+                self.linear = LinearBlock(self.nsamples, out_size, config.net_config.hparams.n_lin)
+            else:
+                raise IOError("config.net_config.hparams.n_lin must be >= 1 if n_expand and n_contract not set")
         else:
-            raise IOError("config.net_config.hparams.n_lin must be >= 1")
+            self.linear = LinearPlanes(planes)
 
     def forward(self, x):
         x = self.linear(x)
