@@ -10,8 +10,8 @@ def create_coord_from_det(c, f):
     coord = zeros((f.shape[0], 3), dtype=int32)
     seg = zeros(c.shape, dtype=c.dtype)
     floor_divide(c, 2, out=seg)
-    coord[:, 0] = c % 14
-    floor_divide(c, 14, out=coord[:, 1])
+    coord[:, 0] = seg % 14
+    coord[:,1] = floor_divide(seg, 14)
     features = zeros((f.shape[0],f.shape[1]*2), dtype=f.dtype)
     n_samp = f.shape[1]
     for i in range(coord.shape[0]):
