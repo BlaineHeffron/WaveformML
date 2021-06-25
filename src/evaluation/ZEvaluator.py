@@ -7,7 +7,7 @@ import spconv
 import torch
 
 from src.datasets.HDF5Dataset import MAX_RANGE
-from src.evaluation.AD1Evaluator import AD1Evaluator
+from src.evaluation.AD1Evaluator import AD1Evaluator, CELL_LENGTH
 from src.evaluation.Calibrator import Calibrator
 # from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.EnergyEvaluator import EnergyEvaluatorPhys
@@ -577,7 +577,7 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
         self.n_E = 40
         self.E_bin_centers = get_bin_midpoints(self.E_bounds[0], self.E_bounds[1], self.n_E)
         self.n_z = 40
-        self.z_bounds = [0., 1200.]
+        self.z_bounds = [0., CELL_LENGTH]
         self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
         self.Z_mult_names = ["z_mult_single", "z_mult_single_cal", "z_mult_dual", "z_mult_dual_cal"]
         self.E_mult_titles = ["Single Ended", "Single Ended", "Double Ended", "Double Ended"]
