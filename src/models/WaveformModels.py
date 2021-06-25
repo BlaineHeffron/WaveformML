@@ -61,8 +61,8 @@ class LinearWaveformNet(nn.Module):
                     raise IOError("if n_expand is set, must either set n_contract or n_lin")
             else:
                 n_contract = config.net_config.hparams.n_contract
-            contract_factor = float((planes[-1]*config.net_config.hparams.expansion_factor - out_size) / n_contract)
-            start_n = planes[-1]*config.net_config.hparams.expansion_factor
+            contract_factor = float((planes[-1] - out_size) / n_contract)
+            start_n = planes[-1]
             planes += [int(round(start_n - contract_factor*(i+1))) for i in range(config.net_config.hparams.n_contract)]
             planes[-1] = out_size
         if len(planes) == 1:
