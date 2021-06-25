@@ -32,7 +32,7 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
     def _init_results(self):
         i = 0
         if self.target_has_phys:
-            if not self.target_index:
+            if self.target_index is None:
                 raise RuntimeError("target is tensor of phys quantities, must pass the target index to the evaluator")
             for name in self.phys_names:
                 self.metrics.append(MetricAggregator(name, *self.default_bins[i], self.class_names,
