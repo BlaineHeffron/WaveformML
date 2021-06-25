@@ -1153,20 +1153,20 @@ def z_deviation_with_E_full_correlation(predictions, targets, dev, out_n, z_mult
                             dist_pmt = half_cell_length - true_z
                         else:
                             dist_pmt = half_cell_length + true_z
-                        z_bin = get_bin_index(dist_pmt, 0., zrange, z_bin_width, nz)
+                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length*2, z_bin_width, nz)
                         increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
                                                  z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
                         increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
                                                z_E_dual_out, seg_status)
                     elif seg_status[i, j] == 0:
                         dist_pmt = half_cell_length + true_z
-                        z_bin = get_bin_index(dist_pmt, 0., zrange, z_bin_width, nz)
+                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length*2, z_bin_width, nz)
                         increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
                                                  z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
                         increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
                                                z_E_dual_out, seg_status)
                         dist_pmt = half_cell_length - true_z
-                        z_bin = get_bin_index(dist_pmt, 0., zrange, z_bin_width, nz)
+                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length*2, z_bin_width, nz)
                         increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
                                                  z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
                         increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
