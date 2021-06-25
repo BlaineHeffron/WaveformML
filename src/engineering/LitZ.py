@@ -8,6 +8,8 @@ from src.evaluation.ZEvaluator import ZEvaluatorWF, ZEvaluatorPhys, ZEvaluatorRe
 
 def create_coord_from_det(c, f):
     coord = zeros((f.shape[0], 3), dtype=int32)
+    seg = zeros(c.shape, dtype=c.dtype)
+    floor_divide(c, 2, out=seg)
     coord[:, 0] = c % 14
     floor_divide(c, 14, out=coord[:, 1])
     features = zeros((f.shape[0],f.shape[1]*2), dtype=f.dtype)
