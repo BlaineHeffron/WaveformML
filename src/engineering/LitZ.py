@@ -1,9 +1,25 @@
 import spconv
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
-from torch import where, tensor, sum
+from torch import where, tensor, sum, cat, zeros, int32, floor_divide
 from torch.fft import rfft
 from src.evaluation.ZEvaluator import ZEvaluatorWF, ZEvaluatorPhys, ZEvaluatorRealWFNorm
+
+
+def create_coord_from_det(c, f):
+    coord = zeros((f.shape[0], 3), dtype=int32)
+    coord[:, 0] = c % 14
+    floor_divide(c, 14, out=coord[:, 1])
+    features = zeros((f.shape[0],f.shape[1]*2), dtype=f.dtype)
+    n_samp = f.shape[1]
+    for i in range(coord.shape[0]):
+        coord[i, 2] = i
+        if c[i] % 2 == 0:
+            features[i,0:n_samp] = f[i]
+        else:
+            features[i,n_samp:] = f[i]
+
+    return coord, features
 
 
 class LitZ(pl.LightningModule):
@@ -57,6 +73,11 @@ class LitZ(pl.LightningModule):
             self.target_is_cal = True
         else:
             self.target_is_cal = False
+        if self.config.dataset_config.dataset_class == "PulseDatasetWaveformNorm":
+            self.target_is_cal = True
+            self.test_waveform = True
+        else:
+            self.test_waveform = False
 
     def _format_SE_mask(self):
         SE_mask = tensor(self.evaluator.seg_status)
@@ -142,6 +163,20 @@ class LitZ(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
+        if self.test_waveform:
+            (c, f), target = batch
+            f = cat((f, zeros((f.shape[0], 6), dtype=f.dtype)))
+            coo, f = create_coord_from_det(c, f)
+            loss, predictions, target_tensor, c, f = self._process_batch([(coo,f),target], self.test_has_phys)
+            results_dict = {'test_loss': loss}
+            if not self.evaluator.logger:
+                self.evaluator.set_logger(self.logger)
+            if self.test_has_phys:
+                self.evaluator.add(predictions, target_tensor, c)
+            else:
+                self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
+            self.log_dict(results_dict, on_epoch=True, logger=True)
+            return results_dict
         loss, predictions, target_tensor, c, f = self._process_batch(batch, self.test_has_phys)
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
@@ -152,3 +187,4 @@ class LitZ(pl.LightningModule):
             self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict
+
