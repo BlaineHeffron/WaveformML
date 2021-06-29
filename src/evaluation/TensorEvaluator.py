@@ -63,7 +63,7 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
                                                  scale_factor=scale_factor, parameter_unit=unit))
 
     def add(self, target, results):
-        if target.size() >= 2:
+        if target.dim() >= 2:
             target = target.permute(1, 0)
         else:
             target = target.unsqueeze(0)
