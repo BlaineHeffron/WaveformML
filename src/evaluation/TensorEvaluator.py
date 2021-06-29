@@ -59,11 +59,14 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
                 bins = [0., 1., 40]
                 scale_factor = 1.
             self.metrics.append(MetricAggregator(name, *bins, self.class_names,
-                                         metric_name=self.metric_name, metric_unit=self.metric_unit,
-                                         scale_factor=scale_factor, parameter_unit=unit))
+                                                 metric_name=self.metric_name, metric_unit=self.metric_unit,
+                                                 scale_factor=scale_factor, parameter_unit=unit))
 
     def add(self, target, results):
-        target = target.permute(1, 0)
+        if target.size() >= 2:
+            target = target.permute(1, 0)
+        else:
+            target = target.unsqueeze(0)
         target = target.detach().cpu().numpy()
         results = results.detach().cpu().numpy()
         if self.target_has_phys:
