@@ -1,4 +1,4 @@
-from pytorch_lightning.metrics import Accuracy
+from pytorch_lightning.metrics import Accuracy, ConfusionMatrix
 from torch import argmax, cat, zeros, int32, floor_divide
 from torch.nn import Softmax
 
@@ -54,6 +54,7 @@ class LitWaveform(LitBase):
         self.loss_no_reduce = self.criterion_class(*config.net_config.criterion_params, reduction="none")
         if self.use_accuracy:
             self.accuracy = Accuracy()
+            self.confusion = ConfusionMatrix(2)
             self.softmax = Softmax(dim=1)
 
     def forward(self, x, *args, **kwargs):
@@ -92,6 +93,11 @@ class LitWaveform(LitBase):
         else:
             loss = self.criterion.forward(predictions, target)
         self.log('test_loss', loss, on_epoch=True, logger=True)
+        if self.use_accuracy:
+            if not hasattr(self, "test_confusion_matrix"):
+                self.test_confusion_matrix = self.confusion(predictions, target)
+            else:
+                self.test_confusion_matrix += self.confusion(predictions, target)
         if hasattr(self, "evaluator"):
             if not self.evaluator.logger:
                 self.evaluator.logger = self.logger
