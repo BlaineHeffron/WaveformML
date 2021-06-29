@@ -73,4 +73,7 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
             self.metrics[-1].add_normalized(results, target, self.class_names[0])
 
     def dump(self):
-        self.metric_pairs.plot(self.logger)
+        if hasattr(self,"metric_pairs"):
+            self.metric_pairs.plot(self.logger)
+        else:
+            self.metrics[-1].plot(self.logger)
