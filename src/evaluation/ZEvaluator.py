@@ -693,23 +693,36 @@ class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvalua
         single_err_E_cal = []
         dual_err_E_cal = []
         for i in range(1, self.n_E + 1):
-            single_err_E.append(
+            if np.sum(self.results["E_mult_single"][1][i, :]) > 0:
+                single_err_E.append(
                 self.z_scale * np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
                     self.results["E_mult_single"][1][i, :]))
+            else:
+                single_err_E.append(0)
             self.logger.experiment.add_scalar("{}single_z_MAE_vs_E".format(self.namespace), single_err_E[-1],
                                               global_step=i)
-            dual_err_E.append(
+
+            if np.sum(self.results["E_mult_dual"][1][i, :]) > 0:
+                dual_err_E.append(
                 self.z_scale * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
                     self.results["E_mult_dual"][1][i, :]))
+            else:
+                dual_err_E.append(0)
             self.logger.experiment.add_scalar("{}dual_z_MAE_vs_E".format(self.namespace), dual_err_E[-1], global_step=i)
-            single_err_E_cal.append(
+            if np.sum(self.results["E_mult_single_cal"][1][i, :]) > 0:
+                single_err_E_cal.append(
                 self.z_scale * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_single_cal"][1][i, :]))
+            else:
+                single_err_E_cal.append(0)
             self.logger.experiment.add_scalar("{}single_z_MAE_cal_vs_E".format(self.namespace), single_err_E_cal[-1],
                                               global_step=i)
-            dual_err_E_cal.append(
+            if np.sum(self.results["E_mult_dual_cal"][1][i, :]) > 0:
+                dual_err_E_cal.append(
                 self.z_scale * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_dual_cal"][1][i, :]))
+            else:
+                dual_err_E_cal.append(0)
             self.logger.experiment.add_scalar("{}dual_z_MAE_cal_vs_E".format(self.namespace), dual_err_E_cal[-1],
                                               global_step=i)
         labels = ["single NN", "dual NN", "single cal", "dual cal"]
