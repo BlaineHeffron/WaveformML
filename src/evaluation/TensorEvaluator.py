@@ -8,13 +8,15 @@ from src.utils.StatsUtils import StatsAggregator
 
 class TensorEvaluator(AD1Evaluator, StatsAggregator):
     def __init__(self, logger, calgroup=None, e_scale=None, target_has_phys=False, target_index=None, metric_name=None,
-                 metric_unit=None, class_names=None):
+                 metric_unit=None, class_names=None, bin_overrides=None):
         AD1Evaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
         StatsAggregator.__init__(self, logger=logger)
         self.target_has_phys = target_has_phys
         self.metric_name = metric_name
         self.metric_unit = metric_unit
         self.target_index = target_index
+        if bin_overrides is not None:
+            self.override_default_bins(bin_overrides)
         if class_names:
             self.class_names = class_names
         else:

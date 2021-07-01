@@ -4,6 +4,7 @@ from torch.nn import Softmax
 
 from src.engineering.LitBase import LitBase
 from src.evaluation.TensorEvaluator import TensorEvaluator
+from src.utils.util import DictionaryUtility
 
 
 class LitWaveform(LitBase):
@@ -48,9 +49,12 @@ class LitWaveform(LitBase):
             metric_name = "Accuracy"
         else:
             metric_name = "?"
+        eval_params = {}
+        if hasattr(config,"evaluation_config"):
+            eval_params = DictionaryUtility.to_dict(config.evaluation_config)
         self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
                                          target_has_phys=self.test_has_phys, target_index=self.target_index,
-                                         metric_name=metric_name)
+                                         metric_name=metric_name, **eval_params)
         self.loss_no_reduce = self.criterion_class(*config.net_config.criterion_params, reduction="none")
         if self.use_accuracy:
             self.accuracy = Accuracy()

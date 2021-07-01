@@ -1,4 +1,5 @@
 import os
+from typing import Dict
 
 import spconv
 import torch
@@ -63,6 +64,11 @@ class AD1Evaluator:
             gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
             self.gain_factor = np.divide(np.full((self.nx, self.ny, 2), MAX_RANGE), gains)
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
+
+    def override_default_bins(self, bin_overrides: Dict):
+        for key in bin_overrides.keys():
+            self.default_bins[key] = bin_overrides[key]
+
 
     def get_dense_matrix(self, data: torch.tensor, c: torch.tensor, to_numpy=True):
         batch_size = c[-1, -1] + 1
