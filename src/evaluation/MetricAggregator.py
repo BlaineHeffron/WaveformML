@@ -47,8 +47,9 @@ class MetricAggregator:
         @param parameter: parameter which the metric is aggregated over, assumes normalized from 0 to 1
         @param category_name: category of results being added
         """
+        list1 = [self.bin_edges[0] / self.scale_factor, self.bin_edges[-1] / self.scale_factor]
         metric_accumulate_1d(results, parameter, *self.results_dict[category_name],
-                             get_typed_list([0.0, 1.0]), self.n_bins)
+                             get_typed_list(list1), self.n_bins)
 
     def bin_midpoints(self):
         return get_bin_midpoints(self.bin_edges[0], self.bin_edges[-1], self.n_bins)
@@ -127,11 +128,13 @@ class Metric2DAggregator:
                              self.metric1.n_bins, self.metric2.n_bins)
 
     def add_normalized(self, results, parameter1, parameter2, category_name):
+        list1 = [self.metric1.bin_edges[0] / self.metric1.scale_factor, self.metric1.bin_edges[-1] / self.metric1.scale_factor]
+        list2 = [self.metric2.bin_edges[0] / self.metric2.scale_factor, self.metric2.bin_edges[-1] / self.metric2.scale_factor]
         metric_accumulate_2d(results,
                              np.stack((parameter1, parameter2), axis=1),
                              *self.results_dict[category_name],
-                             get_typed_list([0.0, 1.0]),
-                             get_typed_list([0.0, 1.0]),
+                             get_typed_list(list1),
+                             get_typed_list(list2),
                              self.metric1.n_bins, self.metric2.n_bins)
 
     def plot(self, logger):
