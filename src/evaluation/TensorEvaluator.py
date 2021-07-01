@@ -40,7 +40,7 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
                 self.metrics.append(MetricAggregator(name, *self.default_bins[i], self.class_names,
                                                      metric_name=self.metric_name, metric_unit=self.metric_unit,
                                                      scale_factor=self.scale_factor(self.target_index),
-                                                     parameter_unit=self.phys_units[i]))
+                                                     parameter_unit=self.phys_units[i], norm_factor=self.scale_factor(i)))
                 i += 1
             self.metric_pairs = MetricPairAggregator(self.metrics)
         else:

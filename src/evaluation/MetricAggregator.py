@@ -9,7 +9,7 @@ from src.utils.util import safe_divide, get_bins, get_bin_midpoints
 class MetricAggregator:
 
     def __init__(self, name, low, high, n_bins, class_names, metric_name="precision", metric_unit="", is_discreet=False,
-                 scale_factor=1.0, parameter_unit=""):
+                 scale_factor=1.0, parameter_unit="", norm_factor=None):
         """
 
         @param name: name of parameter the metric will be accumulated over
@@ -22,6 +22,7 @@ class MetricAggregator:
         @param is_discreet: whether or not the parameter is discreet
         @param scale_factor: scale factor to scale results by at the end
         @param parameter_unit: unit of measurement for the parameter
+        @param norm_factor: normalization used for metric when using add_normalized
         """
         self.name = name
         self.metric_name = metric_name
@@ -33,6 +34,7 @@ class MetricAggregator:
         self.is_discreet = is_discreet
         self.scale_factor = scale_factor
         self.parameter_unit = parameter_unit
+        self.norm_factor = norm_factor
         for nam in class_names:
             self.results_dict[nam] = (np.zeros((self.n_bins + 2,), dtype=np.double),
                                       np.zeros((self.n_bins + 2,), dtype=np.long))
@@ -47,7 +49,13 @@ class MetricAggregator:
         @param parameter: parameter which the metric is aggregated over, assumes normalized from 0 to 1
         @param category_name: category of results being added
         """
-        list1 = [self.bin_edges[0] / self.scale_factor, self.bin_edges[-1] / self.scale_factor]
+        if self.norm_factor is None:
+            list1 = [0.0, 1.0]
+        else:
+            if self.bin_edges[0] < 0:
+                list1 = [self.bin_edges[0] / self.norm_factor + 0.5, self.bin_edges[-1] / self.norm_factor + 0.5]
+            else:
+                list1 = [self.bin_edges[0] / self.norm_factor, self.bin_edges[-1] / self.norm_factor]
         metric_accumulate_1d(results, parameter, *self.results_dict[category_name],
                              get_typed_list(list1), self.n_bins)
 
@@ -128,8 +136,20 @@ class Metric2DAggregator:
                              self.metric1.n_bins, self.metric2.n_bins)
 
     def add_normalized(self, results, parameter1, parameter2, category_name):
-        list1 = [self.metric1.bin_edges[0] / self.metric1.scale_factor, self.metric1.bin_edges[-1] / self.metric1.scale_factor]
-        list2 = [self.metric2.bin_edges[0] / self.metric2.scale_factor, self.metric2.bin_edges[-1] / self.metric2.scale_factor]
+        if self.metric1.norm_factor is None:
+            list1 = [0.0, 1.0]
+        else:
+            if self.metric1.bin_edges[0] < 0:
+                list1 = [self.metric1.bin_edges[0] / self.metric1.norm_factor + 0.5, self.metric1.bin_edges[-1] / self.metric1.norm_factor + 0.5]
+            else:
+                list1 = [self.metric1.bin_edges[0] / self.metric1.norm_factor, self.metric1.bin_edges[-1] / self.metric1.norm_factor]
+        if self.metric2.norm_factor is None:
+            list2 = [0.0, 1.0]
+        else:
+            if self.metric2.bin_edges[0] < 0:
+                list2 = [self.metric2.bin_edges[0] / self.metric2.norm_factor + 0.5, self.metric2.bin_edges[-1] / self.metric2.norm_factor + 0.5]
+            else:
+                list2 = [self.metric2.bin_edges[0] / self.metric2.norm_factor, self.metric2.bin_edges[-1] / self.metric2.norm_factor]
         metric_accumulate_2d(results,
                              np.stack((parameter1, parameter2), axis=1),
                              *self.results_dict[category_name],
