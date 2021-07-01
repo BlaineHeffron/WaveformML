@@ -68,7 +68,7 @@ class AD1Evaluator:
     def override_default_bins(self, bin_overrides: Dict):
         for key in bin_overrides.keys():
             try:
-                self.default_bins[int(key)] = bin_overrides[int(key)]
+                self.default_bins[int(key)] = bin_overrides[key]
             except ValueError:
                 raise IOError("Keys for 'evaluation_config.bin_overrides' dictionary must be integers")
 
