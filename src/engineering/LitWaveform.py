@@ -79,7 +79,7 @@ class LitWaveform(LitBase):
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            coords = zeros((f.shape[0], 27), dtype=f.dtype)
+            coords = zeros((f.shape[0], 27), dtype=f.dtype, device=f.device)
             fill_coords(coords, c)
             f = cat((f, coords), dim=1)
             #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
@@ -94,7 +94,7 @@ class LitWaveform(LitBase):
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            coords = zeros((f.shape[0], 27), dtype=f.dtype)
+            coords = zeros((f.shape[0], 27), dtype=f.dtype, device=f.device)
             fill_coords(coords, c)
             f = cat((f, coords), dim=1)
             #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
@@ -114,7 +114,7 @@ class LitWaveform(LitBase):
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            coords = zeros((f.shape[0], 27), dtype=f.dtype)
+            coords = zeros((f.shape[0], 27), dtype=f.dtype, device=f.device)
             fill_coords(coords, c)
             f = cat((f, coords), dim=1)
             #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
