@@ -129,6 +129,7 @@ class ConvWaveformNet(nn.Module):
             else:
                 self.linear = LinearBlock(self.model.out_size[0]*self.model.out_size[1],
                                           self.net_config.hparams.out_size, self.net_config.hparams.n_lin)
+            self.flatten = nn.Flatten()
 
     def forward(self, x):
         det = None
