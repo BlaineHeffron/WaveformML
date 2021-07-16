@@ -165,7 +165,7 @@ class Conv1DNet(nn.Module):
         start_n = planes[-1]
         planes += [int(round(start_n - contract_factor*(i+1))) for i in range(num_contract)]
         planes[-1] = out_size
-        self.out_size = length
+        self.out_size = [length, num_channels]
         n = num_expand+num_contract
         for i in range(n):
             if n > 1:
