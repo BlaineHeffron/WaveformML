@@ -124,10 +124,10 @@ class ConvWaveformNet(nn.Module):
             raise IOError("{} not supported net type".format(config.net_config.net_type))
         if hasattr(self.net_config.hparams, "n_lin"):
             if self.use_detector_number:
-                self.linear = LinearBlock(self.model.out_size[0]*self.model.out_size[1],
+                self.linear = LinearBlock(self.model.out_size[0]*self.model.out_size[1] + 3,
                                       self.net_config.hparams.out_size, self.net_config.hparams.n_lin)
             else:
-                self.linear = LinearBlock(self.model.out_size[0]*self.model.out_size[1] + 3,
+                self.linear = LinearBlock(self.model.out_size[0]*self.model.out_size[1],
                                           self.net_config.hparams.out_size, self.net_config.hparams.n_lin)
 
     def forward(self, x):
