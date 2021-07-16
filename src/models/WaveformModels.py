@@ -133,8 +133,8 @@ class ConvWaveformNet(nn.Module):
     def forward(self, x):
         det = None
         if self.use_detector_number:
-            det = x[:, self.nsamples - 3:]
-            x = self.model(x[:, 0:self.nsamples - 3])
+            det = x[:, 1,  self.nsamples - 3:]
+            x = self.model(x[:, 1, 0:self.nsamples - 3])
         x = self.model(x)
         if hasattr(self, "linear"):
             x = self.flatten(x)
