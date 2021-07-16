@@ -153,7 +153,7 @@ class TemporalConvNet(nn.Module):
 
 
 class Conv1DNet(nn.Module):
-    def __init__(self, length, num_channels, out_size, num_expand, num_contract, expand_factor, size_factor = 3, pad_factor=1, stride_factor = 0):
+    def __init__(self, length, num_channels, out_size, num_expand, num_contract, expand_factor, size_factor = 3, pad_factor=1, stride_factor = 0, min_kernel = 2):
         super(Conv1DNet, self).__init__()
         self.log = logging.getLogger(__name__)
         planes = [num_channels]
@@ -177,6 +177,8 @@ class Conv1DNet(nn.Module):
             if st < 1:
                 st = 1
             fs = int(ceil(size_factor*decay_factor))
+            if fs < min_kernel:
+                fs = min_kernel
             pd = int(round(pad_factor * ((fs - 1)/2.) * decay_factor))
             self.log.debug("Initializing 1d convolution block for vector of length {0}: nin {1}, nout {2}, "
                            "kernel size {3}, padding {4}, stride {5}".format(self.out_size, planes[i], planes[i+1], fs, pd, st))
