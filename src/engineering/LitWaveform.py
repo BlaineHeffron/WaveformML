@@ -8,6 +8,7 @@ from src.utils.util import DictionaryUtility
 
 
 def fill_coords(coords, det):
+    det = det.long()
     coords[:, det % 14] = 1
     coords[:, floor_divide(det, 14) + 14] = 1
     coords[:, det % 2 + 25] = 1
