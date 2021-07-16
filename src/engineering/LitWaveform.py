@@ -1,10 +1,16 @@
 from pytorch_lightning.metrics import Accuracy, ConfusionMatrix
-from torch import argmax, cat, floor_divide
+from torch import argmax, cat, floor_divide, zeros, float32, int32
 from torch.nn import Softmax
 
 from src.engineering.LitBase import LitBase
 from src.evaluation.TensorEvaluator import TensorEvaluator
 from src.utils.util import DictionaryUtility
+
+
+def fill_coords(coords, det):
+    coords[:, det % 14] = 1
+    coords[:, floor_divide(det, 14) + 14] = 1
+    coords[:, det % 2 + 25] = 1
 
 
 class LitWaveform(LitBase):
@@ -16,7 +22,7 @@ class LitWaveform(LitBase):
                 if not hasattr(config.net_config, "num_detectors"):
                     raise IOError(
                         "net config must contain 'num_detectors' property if 'use_detector_number' set to true")
-                config.system_config.n_samples = config.system_config.n_samples + 3
+                config.system_config.n_samples = config.system_config.n_samples + 27
                 if config.net_config.num_detectors == 308:
                     self.detector_num_factor_x = 1. / 13
                     self.detector_num_factor_y = 1. / 10
@@ -71,8 +77,11 @@ class LitWaveform(LitBase):
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
-                     (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
+            coords = zeros((f.shape[0], 27), dtype=f.dtype)
+            fill_coords(coords, c)
+            f = cat((f, coords), dim=1)
+            #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
+            #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if predictions.dim() == 2 and target.dim() == 1:
             predictions = predictions.squeeze(1)
@@ -83,8 +92,11 @@ class LitWaveform(LitBase):
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
-                     (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
+            coords = zeros((f.shape[0], 27), dtype=f.dtype)
+            fill_coords(coords, c)
+            f = cat((f, coords), dim=1)
+            #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
+            #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if predictions.dim() == 2 and target.dim() == 1:
             predictions = predictions.squeeze(1)
@@ -100,8 +112,11 @@ class LitWaveform(LitBase):
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
-                     (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
+            coords = zeros((f.shape[0], 27), dtype=f.dtype)
+            fill_coords(coords, c)
+            f = cat((f, coords), dim=1)
+            #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
+            #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if predictions.dim() == 2 and (target.dim() == 1 or (target.dim() == 2 and self.test_has_phys)):
             predictions = predictions.squeeze(1)
