@@ -1,4 +1,4 @@
-from math import floor, pow
+from math import floor, pow, ceil
 import torch.nn as nn
 from torch.nn.utils import weight_norm
 from src.models.Algorithm import *
@@ -147,6 +147,45 @@ class TemporalConvNet(nn.Module):
                                                                                             kernel_size, dilation_size))
 
         self.network = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
+
+
+class Conv1DNet(nn.Module):
+    def __init__(self, length, num_channels, out_size, num_expand, num_contract, expand_factor, size_factor = 3, pad_factor=1, stride_factor = 0):
+        super(Conv1DNet, self).__init__()
+        self.log = logging.getLogger(__name__)
+        planes = [num_channels]
+        conv_layers = []
+        if num_expand > 0:
+            expand = float((planes[0]*expand_factor - planes[0]) / num_expand)
+            planes += [int(round(planes[0] + expand*(i+1))) for i in range(num_expand)]
+        contract_factor = float((planes[-1] - out_size) / num_contract)
+        start_n = planes[-1]
+        planes += [int(round(start_n - contract_factor*(i+1))) for i in range(num_contract)]
+        planes[-1] = out_size
+        self.out_size = length
+        n = num_expand+num_contract
+        for i in range(n):
+            if n > 1:
+                decay_factor = 1. - i / (n - 1)
+                st = int(round(stride_factor * i / (n - 1)))
+            else:
+                decay_factor = 1.
+                st = int(stride_factor)
+            if st < 1:
+                st = 1
+            fs = int(ceil(size_factor*decay_factor))
+            pd = int(round(pad_factor * ((fs - 1)/2.) * decay_factor))
+            self.log.debug("Initializing 1d convolution block for vector of length {0}: nin {1}, nout {2}, "
+                           "kernel size {3}, padding {4}, stride {5}".format(self.out_size, planes[i], planes[i+1], fs, pd, st))
+            conv_layers.append(nn.Conv1d(planes[i], planes[i+1], fs, stride=st, padding=pd))
+            arg_dict = {DIM: 1, NIN: planes[i], NOUT: planes[i+1], FS: [fs] * 4, STR: [st] * 4,
+                        PAD: [pd] * 4, DIL: [1] * 4}
+            self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", 1)
+        self.network = nn.Sequential(*conv_layers)
+
 
     def forward(self, x):
         return self.network(x)
