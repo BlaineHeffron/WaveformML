@@ -7,13 +7,6 @@ from src.evaluation.TensorEvaluator import TensorEvaluator
 from src.utils.util import DictionaryUtility
 
 
-def fill_coords(coords, det):
-    det = det.long()
-    seg = floor_divide(det, 2)
-    coords[:, seg % 14] = 1
-    coords[:, floor_divide(seg, 14) + 14] = 1
-    coords[:, det % 2 + 25] = 1
-
 
 class LitWaveform(LitBase):
 
@@ -24,7 +17,7 @@ class LitWaveform(LitBase):
                 if not hasattr(config.net_config, "num_detectors"):
                     raise IOError(
                         "net config must contain 'num_detectors' property if 'use_detector_number' set to true")
-                config.system_config.n_samples = config.system_config.n_samples + 27
+                config.system_config.n_samples = config.system_config.n_samples + 3
                 if config.net_config.num_detectors == 308:
                     self.detector_num_factor_x = 1. / 13
                     self.detector_num_factor_y = 1. / 10
@@ -76,11 +69,17 @@ class LitWaveform(LitBase):
     def forward(self, x, *args, **kwargs):
         return self.model(x)
 
+    def fill_coords(self, coords, det):
+        seg = floor_divide(det, 2)
+        coords[:, 0] = (seg % 14) * self.detector_num_factor_x
+        coords[:, 1] = floor_divide(seg, 14) * self.detector_num_factor_y
+        coords[:, 2] = det % 2
+
     def training_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            coords = zeros((f.shape[0], 27), dtype=f.dtype, device=f.device)
-            fill_coords(coords, c)
+            coords = zeros((f.shape[0], 3), dtype=f.dtype, device=f.device)
+            self.fill_coords(coords, c)
             f = cat((f, coords), dim=1)
             #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
@@ -94,8 +93,8 @@ class LitWaveform(LitBase):
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            coords = zeros((f.shape[0], 27), dtype=f.dtype, device=f.device)
-            fill_coords(coords, c)
+            coords = zeros((f.shape[0],3), dtype=f.dtype, device=f.device)
+            self.fill_coords(coords, c)
             f = cat((f, coords), dim=1)
             #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
@@ -114,8 +113,8 @@ class LitWaveform(LitBase):
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            coords = zeros((f.shape[0], 27), dtype=f.dtype, device=f.device)
-            fill_coords(coords, c)
+            coords = zeros((f.shape[0], 3), dtype=f.dtype, device=f.device)
+            self.fill_coords(coords, c)
             f = cat((f, coords), dim=1)
             #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
