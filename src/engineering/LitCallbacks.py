@@ -1,10 +1,11 @@
 import logging
+from os.path import join
 
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks.base import Callback
 from torch import zeros
 from src.utils.PlotUtils import plot_confusion_matrix
-
+from torch.jit import script
 
 class PSDCallbacks:
 
@@ -29,6 +30,18 @@ class PSDCallbacks:
             else:
                 self.log.info("Using a validation frequency of {}".format(args["check_val_every_n_epoch"]))
         return args
+
+
+class TorchScriptCallback(Callback):
+    def __init__(self):
+        super().__init__()
+
+    def on_test_start(self, trainer, pl_module):
+        print("serializing torchscript version of model")
+        script_model = script(pl_module)
+        print("saving model to {}".format(join(pl_module.logger.experiment.log_dir, "torchscript_model.pt")))
+        script_model.save(join(pl_module.logger.experiment.log_dir, "torchscript_model.pt"))
+        print("saving model success")
 
 
 class LoggingCallback(Callback):

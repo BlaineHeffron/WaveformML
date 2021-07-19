@@ -3,7 +3,7 @@ from pathlib import Path
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from src.engineering.LitCallbacks import LoggingCallback
+from src.engineering.LitCallbacks import LoggingCallback, TorchScriptCallback
 from src.engineering.LitPSD import PSDDataModule
 import argparse
 from os.path import dirname, basename, join
@@ -44,17 +44,13 @@ def main():
     modules = ModuleUtility(config.run_config.imports)
     runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config=config)
     trainer_args = {"logger": logger, "callbacks": [LoggingCallback()]}
+    if args.torchscript:
+        trainer_args["callbacks"].append(TorchScriptCallback())
     set_default_trainer_args(trainer_args, config)
     #model.set_logger(logger)
     data_module = PSDDataModule(config, runner.device)
     trainer = Trainer(**trainer_args)
-    if args.torchscript:
-        for d in data_module.test_dataloader():
-            traced_module = trace(runner, d[0])
-            traced_module.save(join(logger.log_dir, "traced_model.pt"))
-            break
-    else:
-        trainer.test(runner, datamodule=data_module)
+    trainer.test(runner, datamodule=data_module)
 
 if __name__=="__main__":
     main()

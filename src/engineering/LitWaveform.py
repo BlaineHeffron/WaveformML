@@ -7,7 +7,6 @@ from src.evaluation.TensorEvaluator import TensorEvaluator
 from src.utils.util import DictionaryUtility
 
 
-
 class LitWaveform(LitBase):
 
     def __init__(self, config, trial=None):
@@ -55,7 +54,7 @@ class LitWaveform(LitBase):
         else:
             metric_name = "?"
         eval_params = {}
-        if hasattr(config,"evaluation_config"):
+        if hasattr(config, "evaluation_config"):
             eval_params = DictionaryUtility.to_dict(config.evaluation_config)
         self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
                                          target_has_phys=self.test_has_phys, target_index=self.target_index,
@@ -81,7 +80,7 @@ class LitWaveform(LitBase):
             coords = zeros((f.shape[0], 3), dtype=f.dtype, device=f.device)
             self.fill_coords(coords, c)
             f = cat((f, coords), dim=1)
-            #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
+            # f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if predictions.dim() == 2 and target.dim() == 1:
@@ -93,10 +92,10 @@ class LitWaveform(LitBase):
     def validation_step(self, batch, batch_idx):
         (c, f), target = batch
         if self.use_detector_number:
-            coords = zeros((f.shape[0],3), dtype=f.dtype, device=f.device)
+            coords = zeros((f.shape[0], 3), dtype=f.dtype, device=f.device)
             self.fill_coords(coords, c)
             f = cat((f, coords), dim=1)
-            #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
+            # f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if predictions.dim() == 2 and target.dim() == 1:
@@ -116,7 +115,7 @@ class LitWaveform(LitBase):
             coords = zeros((f.shape[0], 3), dtype=f.dtype, device=f.device)
             self.fill_coords(coords, c)
             f = cat((f, coords), dim=1)
-            #f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
+            # f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if predictions.dim() == 2 and (target.dim() == 1 or (target.dim() == 2 and self.test_has_phys)):
@@ -144,4 +143,3 @@ class LitWaveform(LitBase):
             self.evaluator.add(target, results)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict
-
