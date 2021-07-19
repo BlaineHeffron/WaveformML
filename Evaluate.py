@@ -4,9 +4,10 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from src.engineering.LitCallbacks import LoggingCallback
-from src.engineering.LitPSD import LitPSD, PSDDataModule
+from src.engineering.LitPSD import PSDDataModule
 import argparse
-from os.path import dirname, basename
+from os.path import dirname, basename, join
+from torch.jit import trace
 
 from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version, set_default_trainer_args, setup_logger
 
@@ -16,6 +17,7 @@ def main():
     parser.add_argument("config", help="path to config file")
     parser.add_argument("checkpoint", help="path to checkpoint file")
     parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
+    parser.add_argument("--torchscript", "-t", action="store_true", help="set to generate torch script model instead of evaluating")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int, default=0)
@@ -46,7 +48,13 @@ def main():
     #model.set_logger(logger)
     data_module = PSDDataModule(config, runner.device)
     trainer = Trainer(**trainer_args)
-    trainer.test(runner, datamodule=data_module)
+    if args.torchscript:
+        for d in data_module.test_dataloader():
+            traced_module = trace(runner, d)
+            traced_module.save(join(logger.log_dir, "traced_model.pt"))
+            break
+    else:
+        trainer.test(runner, datamodule=data_module)
 
 if __name__=="__main__":
     main()
