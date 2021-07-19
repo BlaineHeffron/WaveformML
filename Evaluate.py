@@ -3,7 +3,7 @@ from pathlib import Path
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from src.engineering.LitCallbacks import LoggingCallback, TorchScriptCallback
+from src.engineering.LitCallbacks import LoggingCallback
 from src.engineering.LitPSD import PSDDataModule
 import argparse
 from os.path import dirname, basename, join

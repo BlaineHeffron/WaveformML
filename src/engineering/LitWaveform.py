@@ -1,5 +1,5 @@
 from pytorch_lightning.metrics import Accuracy, ConfusionMatrix
-from torch import argmax, cat, floor_divide, zeros, float32, int32
+from torch import argmax, cat, floor_divide, zeros
 from torch.nn import Softmax
 
 from src.engineering.LitBase import LitBase
