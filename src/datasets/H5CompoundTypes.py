@@ -1,4 +1,4 @@
-from numpy import array, int32, float32, dtype, float64, ones
+from numpy import array, int32, float32, dtype, float64, ones, double
 from h5py import h5t, h5f, h5d, h5s, File, Datatype
 from typing import List
 
@@ -27,6 +27,22 @@ class H5CompoundType:
 class DetPulseCoord(H5CompoundType):
     def __init__(self):
         super(DetPulseCoord, self).__init__([int32, float32], [3, 7], ["coord", "pulse"])
+
+
+class WaveformPairNorm(H5CompoundType):
+    def __init__(self):
+        fields = ["t", "coord", "pulse", "phys", "EZ", "PID"]
+        types = [double, int32, float32, float32, float32, int32]
+        l = [1, 3, 130, 7, 2, 1]
+        super(WaveformPairNorm, self).__init__(types, l, fields)
+
+
+class WaveformNorm(H5CompoundType):
+    def __init__(self):
+        fields = ["t", "evt", "det", "pulse", "phys", "EZ", "PID"]
+        types = [double, int32, int32, float32, float32, float32, int32]
+        l = [1, 1, 1, 130, 7, 2, 1]
+        super(WaveformNorm, self).__init__(types, l, fields)
 
 
 def main():

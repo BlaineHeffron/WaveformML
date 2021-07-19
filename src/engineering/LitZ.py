@@ -1,4 +1,6 @@
 import spconv
+
+from src.engineering.LitBase import LitBase
 from src.models.SingleEndedZConv import SingleEndedZConv
 from src.engineering.PSDDataModule import *
 from torch import where, tensor, sum, cat, zeros, int32, floor_divide
@@ -24,27 +26,11 @@ def create_coord_from_det(c, f):
     return coord, features
 
 
-class LitZ(pl.LightningModule):
+class LitZ(LitBase):
 
     def __init__(self, config, trial=None):
-        super(LitZ, self).__init__()
-        if trial:
-            self.trial = trial
-        else:
-            self.trial = None
-        self.config = config
-        if hasattr(config.system_config, "half_precision"):
-            self.needs_float = not config.system_config.half_precision
-        else:
-            self.needs_float = True
-        self.hparams = DictionaryUtility.to_dict(config)
-        self.lr = config.optimize_config.lr
-        self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
-                                     config.optimize_config.imports)
+        super(LitZ, self).__init__(config, trial)
         self.model = SingleEndedZConv(self.config)
-        self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
-        self.criterion = self.criterion_class(*config.net_config.criterion_params)
-        self.test_has_phys = False
         if hasattr(self.config.dataset_config, "test_dataset_params"):
             if self.config.dataset_config.test_dataset_params.label_name == "phys" and not hasattr(
                     self.config.dataset_config.test_dataset_params, "label_index"):
@@ -95,7 +81,7 @@ class LitZ(pl.LightningModule):
         self.register_buffer("SE_mask", SE_mask)
         print("Using single ended only loss.")
 
-    def forward(self, x, *args, **kwargs):
+    def forward(self, x):
         return self.model(x)
 
     def configure_optimizers(self):
@@ -135,6 +121,8 @@ class LitZ(pl.LightningModule):
         (c, f), target = batch
         if self.use_fft:
             f = rfft(f)
+        if self.write_torchscript:
+            self.write_model([c, f])
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size,

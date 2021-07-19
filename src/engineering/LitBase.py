@@ -1,5 +1,8 @@
+from os.path import join
+
 from src.engineering.PSDDataModule import *
 import logging
+from torch.jit import trace
 
 
 
@@ -22,12 +25,17 @@ class LitBase(pl.LightningModule):
         self.lr = config.optimize_config.lr
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
-        self.model_class = self.modules.retrieve_class(config.net_config.net_class)
-        self.model = self.model_class(config)
+        if hasattr(config.net_config, "net_class"):
+            self.model_class = self.modules.retrieve_class(config.net_config.net_class)
+            self.model = self.model_class(config)
+        else:
+            self.model = None
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        self.write_torchscript = False
+        self.model_written = False
 
-    def forward(self, x, *args, **kwargs):
+    def forward(self, x):
         return self.model(x)
 
     def configure_optimizers(self):
@@ -64,6 +72,8 @@ class LitBase(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         data, target = batch
+        if self.write_torchscript:
+            self.write_model(data)
         predictions = self.model(data)
         loss = self.criterion.forward(predictions, target)
         self.log('test_loss', loss, on_epoch=True, logger=True)
@@ -71,3 +81,11 @@ class LitBase(pl.LightningModule):
             self.evaluator.add(batch, predictions, )
         return loss
 
+    def write_model(self, data):
+        if not self.model_written:
+            print("serializing torchscript version of model")
+            trace_model = trace(self.model, data)
+            print("saving model to {}.".format(join(self.logger.experiment.log_dir, "torchscript_model.pt")))
+            trace_model.save(join(self.logger.experiment.log_dir, "torchscript_model.pt"))
+            print("saving model success")
+            self.model_written = True

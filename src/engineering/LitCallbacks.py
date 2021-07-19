@@ -32,18 +32,6 @@ class PSDCallbacks:
         return args
 
 
-class TorchScriptCallback(Callback):
-    def __init__(self):
-        super().__init__()
-
-    def on_test_start(self, trainer, pl_module):
-        print("serializing torchscript version of model")
-        script_model = script(pl_module)
-        print("saving model to {}".format(join(pl_module.logger.experiment.log_dir, "torchscript_model.pt")))
-        script_model.save(join(pl_module.logger.experiment.log_dir, "torchscript_model.pt"))
-        print("saving model success")
-
-
 class LoggingCallback(Callback):
     def __init__(self):
         super().__init__()

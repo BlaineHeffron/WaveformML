@@ -1,5 +1,7 @@
 from pytorch_lightning.metrics.classification import Accuracy
 from torchmetrics import ConfusionMatrix
+
+from src.engineering.LitBase import LitBase
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
 from torch import argmax, sum
@@ -15,31 +17,11 @@ def weight_avg(t, n):
     return sum(t * n / sum(n))
 
 
-class LitPSD(pl.LightningModule):
+class LitPSD(LitBase):
 
     def __init__(self, config, trial=None):
-        super(LitPSD, self).__init__()
-        if trial:
-            self.trial = trial
-        else:
-            self.trial = None
-        self.pylog = logging.getLogger(__name__)
-        logging.getLogger("lightning").setLevel(self.pylog.level)
-        self.config = config
-        if hasattr(config.system_config, "half_precision"):
-            self.needs_float = not config.system_config.half_precision
-        else:
-            self.needs_float = True
-        self.hparams = DictionaryUtility.to_dict(config)
+        super(LitPSD, self).__init__(config, trial)
         self.n_type = config.system_config.n_type
-        self.lr = config.optimize_config.lr
-        self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
-                                     config.optimize_config.imports)
-        self.model_class = self.modules.retrieve_class(config.net_config.net_class)
-        # self.data_module = PSDDataModule(config,self.device)
-        self.model = self.model_class(config)
-        self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
-        self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.softmax = LogSoftmax(dim=1)
         self.accuracy = Accuracy()
         self.confusion = ConfusionMatrix(num_classes=self.n_type)
@@ -147,6 +129,8 @@ class LitPSD(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
+        if self.write_torchscript:
+            self.write_model([c,f])
         predictions = self.model([c, f])
         loss = self.criterion.forward(predictions, target)
         pred = argmax(self.softmax(predictions), dim=1)

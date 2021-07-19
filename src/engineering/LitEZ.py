@@ -1,31 +1,17 @@
 import spconv
 
+from src.engineering.LitBase import LitBase
 from src.evaluation.EZEvaluator import EZEvaluatorWF, EZEvaluatorPhys
 from src.models.SingleEndedEZConv import SingleEndedEZConv
 from src.engineering.PSDDataModule import *
 from torch import where, tensor, sum
 
 
-class LitEZ(pl.LightningModule):
+class LitEZ(LitBase):
 
     def __init__(self, config, trial=None):
-        super(LitEZ, self).__init__()
-        if trial:
-            self.trial = trial
-        else:
-            self.trial = None
-        self.config = config
-        if hasattr(config.system_config, "half_precision"):
-            self.needs_float = not config.system_config.half_precision
-        else:
-            self.needs_float = True
-        self.hparams = DictionaryUtility.to_dict(config)
-        self.lr = config.optimize_config.lr
-        self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
-                                     config.optimize_config.imports)
+        super(LitEZ, self).__init__(config, trial)
         self.model = SingleEndedEZConv(self.config)
-        self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
-        self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.zscale = 1200.
         self.escale = 12.
         self.e_adjust = 12.
@@ -70,7 +56,7 @@ class LitEZ(pl.LightningModule):
         self.register_buffer("SE_mask", SE_mask)
         print("Using single ended only loss.")
 
-    def forward(self, x, *args, **kwargs):
+    def forward(self, x):
         return self.model(x)
 
     """
@@ -130,6 +116,8 @@ class LitEZ(pl.LightningModule):
             f[:, 0] *= self.e_factor
             f[:, 2] *= self.e_factor
             f[:, 3] *= self.e_factor
+        if self.write_torchscript:
+            self.write_model([c, f])
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
