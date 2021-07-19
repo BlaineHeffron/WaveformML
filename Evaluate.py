@@ -50,7 +50,7 @@ def main():
     trainer = Trainer(**trainer_args)
     if args.torchscript:
         for d in data_module.test_dataloader():
-            traced_module = trace(runner, d)
+            traced_module = trace(runner, d[0])
             traced_module.save(join(logger.log_dir, "traced_model.pt"))
             break
     else:
