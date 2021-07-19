@@ -47,7 +47,7 @@ def main():
     set_default_trainer_args(trainer_args, config)
     #model.set_logger(logger)
     if args.torchscript:
-        runner.write_model = True
+        runner.write_torchscript = True
     data_module = PSDDataModule(config, runner.device)
     trainer = Trainer(**trainer_args)
     trainer.test(runner, datamodule=data_module)
