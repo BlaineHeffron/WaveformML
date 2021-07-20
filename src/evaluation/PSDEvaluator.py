@@ -243,6 +243,10 @@ class PSDEvaluator(SingleEndedEvaluator):
                                               plot_confusion_matrix(self.results["confusion_SE"][i],
                                                                     self.class_names,
                                                                     normalize=True, title=title))
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_SE_{0}_totals".format(i),
+                                              plot_confusion_matrix(self.results["confusion_SE"][i],
+                                                                    self.class_names,
+                                                                    normalize=False, title=title))
         self.metric_pairs.plot(self.logger)
         self._init_results()
 
