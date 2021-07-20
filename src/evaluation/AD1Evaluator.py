@@ -124,4 +124,4 @@ class AD1Evaluator(StatsAggregator):
     def log_det_results(self, metric_name):
         name = "det_{}".format(metric_name)
         self.log_total(name, "{0}{1}".format(self.namespace, name), "detector totals")
-        self.log_segment_metric(name, "{0}{1}".format(self.namespace, name), "detector {}".format(metric_name))
+        self.log_metric(name, "{0}{1}".format(self.namespace, name), "detector {}".format(metric_name))
