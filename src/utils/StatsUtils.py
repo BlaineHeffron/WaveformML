@@ -114,7 +114,9 @@ class StatsAggregator:
                self.metric_metadata[base_name][name]["bin_edges"], \
                labels, self.metric_metadata[base_name][name]["dim_units"], \
                self.metric_metadata[base_name][name]["metric_name"], \
-               self.metric_metadata[base_name][name]["metric_units"]
+               self.metric_metadata[base_name][name]["metric_units"], \
+               self.metric_metadata[base_name][name]["n_bins"], \
+               self.metric_metadata[base_name][name]["dim_names"]
 
     def get_plot_ranges(self, name, base_name="results"):
         under = self.metric_metadata[base_name][name]["underflow"]
@@ -154,7 +156,7 @@ class StatsAggregator:
     def log_total(self, name, log_name, plot_title, base_name="results"):
         if np.max(getattr(self, base_name)[name][1]) <= 0:
             return
-        dim, _, bin_edges, labels, units, _, _ = self.get_plot_metadata(name, base_name)
+        dim, _, bin_edges, labels, units, _, _, n_bins, dim_names = self.get_plot_metadata(name, base_name)
         low, up = self.get_plot_ranges(name, base_name)
         if dim == 1:
             if units[0]:
@@ -175,15 +177,33 @@ class StatsAggregator:
             fig = plot_hist2d(bin_edges[0], bin_edges[1],
                               getattr(self, base_name)[name][1][low[0]:up[0], low[1]:up[1]],
                               plot_title, labels[0], labels[1], zlabel, cm=self.colormap)
+        elif dim == 3:
+            bm = self.get_bin_midpoints(name, 2, base_name)
+            if units[0] and units[1]:
+                zlabel = "total [" + units[0] + r"$^{-1}$" + units[1] + r"$^{-1}$]"
+            elif units[0]:
+                zlabel = "total [" + units[0] + r"$^{-1}$]"
+            elif units[1]:
+                zlabel = "total [" + units[1] + r"$^{-1}$]"
+            else:
+                zlabel = "total"
+            for i in range(n_bins[2]):
+                fig = plot_hist2d(bin_edges[0], bin_edges[1],
+                                  getattr(self, base_name)[name][1][low[0]:up[0], low[1]:up[1], i],
+                                  plot_title, labels[0], labels[1], zlabel, cm=self.colormap)
+                bm = self.get_bin_midpoints(name, 2, base_name)
+                log_name = "{0} = {1}".format(dim_names[2], bm[i])
+                self.logger.experiment.add_figure(log_name, fig)
         else:
-            raise ValueError("no method to plot dim > 2")
-        self.logger.experiment.add_figure(log_name, fig)
+            raise ValueError("no method to plot dim > 3")
+        if dim < 3:
+            self.logger.experiment.add_figure(log_name, fig)
 
     def log_metric(self, name, log_name, plot_title, base_name="results"):
         if np.max(getattr(self, base_name)[name][1]) <= 0:
             return
         dim, scale, bin_edges, labels, units, \
-        metric_name, metric_units = self.get_plot_metadata(name, base_name)
+        metric_name, metric_units, n_bins, dim_names = self.get_plot_metadata(name, base_name)
         low, up = self.get_plot_ranges(name, base_name)
         if metric_units:
             label = "{0} [{1}]".format(metric_name, metric_units)
@@ -200,9 +220,21 @@ class StatsAggregator:
                                                      getattr(self, base_name)[name][1][low[0]:up[0], low[1]:up[1]]),
                               plot_title, labels[0], labels[1], label, cm=self.colormap, norm_to_bin_width=False,
                               logz=False)
+
+        elif dim == 3:
+            bm = self.get_bin_midpoints(name, 2, base_name)
+            for i in range(n_bins[2]):
+                self.logger.experiment.add_figure(log_name + "_{}".format(i),
+                                                  plot_z_acc_matrix(
+                                                      scale * safe_divide_2d(
+                                                          getattr(self, base_name)[name][0][:, :, i],
+                                                          getattr(self, base_name)[name][1][:, :, i]),
+                                                      n_bins[0], n_bins[1], "{0} = {1}".format(dim_names[2], bm[i]),
+                                                      zlabel=label))
         else:
-            raise ValueError("no method to plot dim > 2")
-        self.logger.experiment.add_figure(log_name, fig)
+            raise ValueError("no method to plot dim > 3")
+        if dim < 3:
+            self.logger.experiment.add_figure(log_name, fig)
 
     def get_bin_midpoints(self, name, dim, base_name="results"):
         bin_edges = self.metric_metadata[base_name][name]["bin_edges"][dim]
@@ -213,13 +245,11 @@ class StatsAggregator:
         if np.max(getattr(self, base_name)[name][1]) <= 0:
             return
         dim, scale, bin_edges, labels, units, \
-        metric_name, metric_units = self.get_plot_metadata(name, base_name)
+        metric_name, metric_units, n_bins, dim_names = self.get_plot_metadata(name, base_name)
         if metric_units:
             label = "{0} [{1}]".format(metric_name, metric_units)
         else:
             label = metric_name
-        n_bins = self.metric_metadata[base_name][name]["n_bins"]
-        dim_names = self.metric_metadata[base_name][name]["dim_names"]
         if dim == 2:
             self.logger.experiment.add_figure(log_name,
                                               plot_z_acc_matrix(
