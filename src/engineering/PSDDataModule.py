@@ -38,22 +38,25 @@ class PSDDataModule(pl.LightningDataModule):
         # called only on 1 GPU
         pass
 
+    def gen_train_dataset(self):
+        if not hasattr(self, "train_dataset"):
+            if hasattr(self.config.dataset_config, "train_config"):
+                self.train_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.train_config,
+                                                                        self.device, self.half_precision)
+                self.log.info("Using train dataset from {}.".format(self.config.dataset_config.train_config))
+            else:
+                self.train_dataset = self.dataset_class(self.config, "train",
+                                                        self.config.dataset_config.n_train,
+                                                        self.device,
+                                                        **DictionaryUtility.to_dict(
+                                                            self.config.dataset_config.dataset_params))
+                self.log.info("Training dataset generated.")
+            self.train_excludes = self.train_dataset.get_file_list()
+
     def setup(self, stage=None):
         # called on every GPU
         if stage == 'fit' or stage is None:
-            if not hasattr(self, "train_dataset"):
-                if hasattr(self.config.dataset_config, "train_config"):
-                    self.train_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.train_config,
-                                                                            self.device, self.half_precision)
-                    self.log.info("Using train dataset from {}.".format(self.config.dataset_config.train_config))
-                else:
-                    self.train_dataset = self.dataset_class(self.config, "train",
-                                                            self.config.dataset_config.n_train,
-                                                            self.device,
-                                                            **DictionaryUtility.to_dict(
-                                                                self.config.dataset_config.dataset_params))
-                    self.log.info("Training dataset generated.")
-                self.train_excludes = self.train_dataset.get_file_list()
+            self.gen_train_dataset()
             worker_info = get_worker_info()
             if hasattr(self.config.dataset_config, "data_prep"):
                 if self.config.dataset_config.data_prep == "shuffle":
@@ -68,6 +71,7 @@ class PSDDataModule(pl.LightningDataModule):
                             self.log.info("Worker process {} beginning to shuffle dataset.".format(worker_info.id))
                         self.train_dataset.write_shuffled()  # might need to make this call configurable
         if stage == 'test' or stage is None:
+            self.gen_train_dataset()
             if not hasattr(self, "val_dataset"):
                 if hasattr(self.config.dataset_config, "val_config"):
                     self.val_dataset = self.dataset_class.retrieve_config(self.config.dataset_config.val_config,
