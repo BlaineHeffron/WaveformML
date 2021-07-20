@@ -273,12 +273,13 @@ def find_max(v):
 
 
 @nb.jit(nopython=True)
-def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stats, multiplicity, psdl, psdr):
+def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stats, multiplicity, psdl, psdr, n_SE, seg_status):
     """units for dx, dy are in cell widths, dt is in sample length,
     ddt is spread in dt, dt is time difference between left and right PMTs"""
     last_id = -1
     current_ind = -1
     n_current = 0
+    n_SE_current = 0
     tot_l_current = 0
     tot_r_current = 0
     dt_current = 0
@@ -303,7 +304,9 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
                 out_stats[4, current_ind], _, _ = moment(times, n_samples, weights=pulse)
                 out_stats[5, current_ind], _, _ = moment(pulse, n_samples)
                 multiplicity[current_ind] = n_current
+                n_SE[current_ind] = n_SE_current
             n_current = 0
+            n_SE_current = 0
             tot_l_current = 0
             tot_r_current = 0
             dt_current = 0
@@ -311,6 +314,8 @@ def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stat
             last_id = coord[2]
             current_ind += 1
         n_current += 1
+        if seg_status[coord[0], coord[1]] == 0.5:
+            n_SE_current += 1
         pulseleft = pulses[pulse_ind, 0:n_samples] * gains[coord[0], coord[1], 0]
         pulseright = pulses[pulse_ind, n_samples:2 * n_samples] * gains[coord[0], coord[1], 1]
         # TODO find peaks

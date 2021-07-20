@@ -6,6 +6,7 @@ from pytorch_lightning.metrics.functional.classification import multiclass_roc, 
 
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.MetricAggregator import *
+from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
     plot_confusion_matrix
 from src.utils.SQLiteUtils import get_gains
@@ -22,9 +23,12 @@ def calc_bin_edges(amin, amax, n):
     return get_bins(amin, amax, n)
 
 
-class PSDEvaluator:
+class PSDEvaluator(SingleEndedEvaluator):
 
-    def __init__(self, class_names, logger, device, calgroup=None):
+    def __init__(self, class_names, logger, device, calgroup=None, has_SE=False):
+        super().__init__(logger, calgroup)
+        if not has_SE:
+            self.unset_SE_segs()
         self.logger = logger
         self.device = device
         self.n_bins = 100
@@ -37,6 +41,7 @@ class PSDEvaluator:
         self.ny = 11
         self.n_samples = 150
         self.n_confusion = 10
+        self.has_SE = has_SE
         self.ene_label = "Energy [arb]"
         self.class_names = class_names
         self.n_classes = len(self.class_names)
@@ -48,6 +53,7 @@ class PSDEvaluator:
         self.summed_labelled_waveforms = []
         self.metrics = []
         self.metric_pairs = None
+        self.n_SE_max = 4
         self._init_results()
         if calgroup is not None:
             if "PROSPECT_CALDB" not in os.environ.keys():
@@ -80,7 +86,8 @@ class PSDEvaluator:
                 zeros((self.nx + 2, self.ny + 2), dtype=np.float32), zeros((self.nx + 2, self.ny + 2), dtype=np.int32)),
             "ene_psd_acc": (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
-            "confusion_energy": zeros((self.n_confusion, self.n_classes, self.n_classes), dtype=np.int32)
+            "confusion_energy": zeros((self.n_confusion, self.n_classes, self.n_classes), dtype=np.int32),
+            "confusion_SE": zeros((self.n_SE_max+1, self.n_classes, self.n_classes), dtype=np.int32)
         }
         for i in range(len(self.class_names)):
             self.results["ene_psd_prec_{}".format(self.class_names[i])] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
@@ -96,7 +103,7 @@ class PSDEvaluator:
                                             labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), \
                                             output.detach().cpu().numpy()
 
-        avg_coo, summed_pulses, output_stats, multiplicity, psdl, psdr = zeros((predictions.shape[0], 2)), \
+        avg_coo, summed_pulses, output_stats, multiplicity, psdl, psdr, n_SE = zeros((predictions.shape[0], 2)), \
                                                                          zeros((predictions.shape[0],
                                                                                 f.shape[1],),
                                                                                dtype=np.float32), \
@@ -107,9 +114,11 @@ class PSDEvaluator:
                                                                          zeros((predictions.shape[0],),
                                                                                dtype=np.float32), \
                                                                          zeros((predictions.shape[0],),
-                                                                               dtype=np.float32)
+                                                                               dtype=np.float32), \
+                                                                        zeros((predictions.shape[0],),
+                                                                              dtype=np.int32)
         average_pulse(c, f, self.gain_factor, np.arange(0.5, self.n_samples - 0.49, 1.0), avg_coo, summed_pulses,
-                      output_stats, multiplicity, psdl, psdr)
+                      output_stats, multiplicity, psdl, psdr, n_SE, self.seg_status)
 
         if self.summed_waveforms is None:
             self.summed_waveforms = np.zeros((self.n_classes + 1, summed_pulses[1].size), np.float32)
@@ -175,6 +184,9 @@ class PSDEvaluator:
         confusion_accumulate_1d(predictions, labels, energy, self.results["confusion_energy"],
                                 get_typed_list([0.0, self.emax]),
                                 self.n_confusion)
+        confusion_accumulate_1d(predictions, labels, n_SE, self.results["confusion_SE"],
+                                get_typed_list([-0.5, self.n_SE_max + 0.5]),
+                                self.n_SE_max + 1)
         metric_accumulate_2d(results, np.stack((energy, psdl), axis=1), *self.results["ene_psd_acc"],
                              get_typed_list([self.emin, self.emax]),
                              get_typed_list([self.psd_min, self.psd_max]), self.n_bins, self.n_bins)
@@ -223,6 +235,12 @@ class PSDEvaluator:
             title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
             self.logger.experiment.add_figure("evaluation/confusion_matrix_energy{0}".format(i),
                                               plot_confusion_matrix(self.results["confusion_energy"][i],
+                                                                    self.class_names,
+                                                                    normalize=True, title=title))
+        for i in range(self.n_SE_max + 1):
+            title = "{} SE segs".format(i)
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_SE_{0}".format(i),
+                                              plot_confusion_matrix(self.results["confusion_SE"][i],
                                                                     self.class_names,
                                                                     normalize=True, title=title))
         self.metric_pairs.plot(self.logger)

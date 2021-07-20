@@ -28,3 +28,8 @@ class SingleEndedEvaluator(AD1Evaluator):
                 self.blind_detl[x, y] = 1
             else:
                 self.blind_detr[x, y] = 1
+
+    def unset_SE_segs(self):
+        self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
+        self.blind_detl = np.zeros((self.nx, self.ny), dtype=np.int8)  # 1 for blind , 0 for good
+        self.blind_detr = np.zeros((self.nx, self.ny), dtype=np.int8)
