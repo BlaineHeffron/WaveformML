@@ -15,7 +15,7 @@ def moment_prod(x, counts):
 
 def calc_photon_moments(dist_vec, n):
     output = np.zeros((dist_vec.shape[0], n))
-    n_samples = dist_vec.shape[1]/2
+    n_samples = dist_vec.shape[1] / 2
     pulses = dist_vec[:, :n_samples] + dist_vec[:, n_samples:]
     for i in range(n):
         output[:, i] = stats.moment(pulses, moment=i + 2, axis=1)
@@ -25,7 +25,7 @@ def calc_photon_moments(dist_vec, n):
 def calc_time_moments(dist_vec, n):
     """dist_vec is the vector of distributions, batch index is given by the first index, 1-d distribution along second dimension"""
     output = np.zeros((dist_vec.shape[0], n))
-    n_samples = dist_vec.shape[1]/2
+    n_samples = dist_vec.shape[1] / 2
     pulses = dist_vec[:, :n_samples] + dist_vec[:, n_samples:]
     for i in range(n):
         output[:, i] = moment_prod(np.arange(2, n_samples * 4 + 2, 4) ** (i + 2), pulses)
@@ -130,6 +130,26 @@ class StatsAggregator:
                 lower.append(0)
                 upper.append(n_bins[i])
         return lower, upper
+
+    def increment_metric(self, name, results, bin_indices, base_name="results"):
+        if len(results.shape) != 1:
+            raise ValueError("results must be a 1 dimensional array")
+        if self.metric_metadata[base_name][name]["dim"] == 1:
+            getattr(self, base_name)[name][1][bin_indices[0]] += results.shape[0]
+            getattr(self, base_name)[name][0][bin_indices[0]] += np.sum(results)
+        if self.metric_metadata[base_name][name]["dim"] == 2:
+            getattr(self, base_name)[name][1][bin_indices[0], bin_indices[1]] += results.shape[0]
+            getattr(self, base_name)[name][0][bin_indices[0], bin_indices[1]] += np.sum(results)
+        elif self.metric_metadata[base_name][name]["dim"] == 3:
+            getattr(self, base_name)[name][1][bin_indices[0], bin_indices[1], bin_indices[2]] += results.shape[0]
+            getattr(self, base_name)[name][0][bin_indices[0], bin_indices[1], bin_indices[2]] += np.sum(results)
+        elif self.metric_metadata[base_name][name]["dim"] == 4:
+            getattr(self, base_name)[name][1][bin_indices[0], bin_indices[1], bin_indices[2], bin_indices[3]] += \
+                results.shape[0]
+            getattr(self, base_name)[name][0][bin_indices[0], bin_indices[1], bin_indices[2], bin_indices[3]] += np.sum(
+                results)
+        else:
+            raise ValueError("dim > 4 not supported ")
 
     def log_total(self, name, log_name, plot_title, base_name="results"):
         if np.max(getattr(self, base_name)[name][1]) <= 0:

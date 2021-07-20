@@ -426,7 +426,7 @@ class ZEvaluatorBase:
 class ZEvaluatorPhys(ZEvaluatorBase, AD1Evaluator):
     def __init__(self, logger, e_scale=None):
         ZEvaluatorBase.__init__(self, logger)
-        AD1Evaluator.__init__(self, e_scale=e_scale)
+        AD1Evaluator.__init__(self, logger, e_scale=e_scale)
         self.hascal = True
 
     def z_from_cal(self, c, f, targ, E=None):
@@ -563,12 +563,11 @@ class ZEvaluatorWF(ZEvaluatorBase):
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
 
-class ZEvaluatorRealWFNorm(StatsAggregator, SingleEndedEvaluator, WaveformEvaluator):
+class ZEvaluatorRealWFNorm(SingleEndedEvaluator, WaveformEvaluator):
 
     def __init__(self, logger, calgroup=None, namespace=None, e_scale=None):
-        StatsAggregator.__init__(self, logger)
-        SingleEndedEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
-        WaveformEvaluator.__init__(self, calgroup, e_scale=e_scale)
+        SingleEndedEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
+        WaveformEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
         if calgroup is not None:
             self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup=None, e_scale=e_scale, namespace=namespace)
         self.E_bounds = [0., 10.]

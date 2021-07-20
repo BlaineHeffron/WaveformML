@@ -10,9 +10,10 @@ from src.utils.WaveformUtils import align_wfs
 
 PULSE_ANALYSIS_SAMPLES = 20
 
+
 class WaveformEvaluator(AD1Evaluator):
-    def __init__(self, calgroup=None, e_scale=None):
-        super(WaveformEvaluator, self).__init__(calgroup=calgroup, e_scale=e_scale)
+    def __init__(self, logger, calgroup=None, e_scale=None):
+        super(WaveformEvaluator, self).__init__(logger, calgroup=calgroup, e_scale=e_scale)
         self.hascal = False
         self.sample_width = 4
         self.n_samples = 150
@@ -28,7 +29,7 @@ class WaveformEvaluator(AD1Evaluator):
         return Z, E
 
     def _align_wfs(self, f):
-        f = f.reshape((f.shape[0], 2, f.shape[1]/2))
+        f = f.reshape((f.shape[0], 2, f.shape[1] / 2))
         wfs = np.zeros((f.shape[0], 2, PULSE_ANALYSIS_SAMPLES))
         f = f.detach().cpu().numpy()
         align_wfs(f, wfs)
@@ -37,5 +38,3 @@ class WaveformEvaluator(AD1Evaluator):
     def fft_pulses(self, f: Tensor):
         wfs = self._align_wfs(f)
         return rfft(wfs)
-
-

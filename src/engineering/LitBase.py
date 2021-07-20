@@ -5,7 +5,6 @@ import logging
 from torch.jit import trace
 
 
-
 class LitBase(pl.LightningModule):
 
     def __init__(self, config, trial=None):
@@ -14,6 +13,8 @@ class LitBase(pl.LightningModule):
             self.trial = trial
         else:
             self.trial = None
+        self.nx = 14
+        self.ny = 11
         self.pylog = logging.getLogger(__name__)
         logging.getLogger("lightning").setLevel(self.pylog.level)
         self.config = config

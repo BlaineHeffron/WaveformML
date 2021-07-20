@@ -81,9 +81,6 @@ class LitZ(LitBase):
         self.register_buffer("SE_mask", SE_mask)
         print("Using single ended only loss.")
 
-    def forward(self, x):
-        return self.model(x)
-
     def configure_optimizers(self):
         optimizer = \
             self.modules.retrieve_class(self.config.optimize_config.optimizer_class)(self.model.parameters(),

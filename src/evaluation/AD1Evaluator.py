@@ -9,13 +9,14 @@ from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.Calibrator import Calibrator
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
+from src.utils.StatsUtils import StatsAggregator
 
 E_NORMALIZATION_FACTOR = 12.
 Z_NORMALIZATION_FACTOR = 1200.
 CELL_LENGTH = 1176.
 
 
-class AD1Evaluator:
+class AD1Evaluator(StatsAggregator):
     """
     for physcoord definition:
     vs[0] = p.E / 12.;
@@ -26,13 +27,16 @@ class AD1Evaluator:
     vs[5] = p.PSD;
     vs[6] = ((Float_t)(p.t - toffset)) / 30.;
     """
-    def __init__(self, calgroup=None, e_scale=None):
+
+    def __init__(self, logger, calgroup=None, e_scale=None):
+        super().__init__(logger)
         self.nx = 14
         self.ny = 11
         self.spatial_size = np.array([self.nx, self.ny])
         self.permute_tensor = torch.LongTensor([2, 0, 1])  # needed because spconv requires batch index first
         self.z_scale = Z_NORMALIZATION_FACTOR
         self.E_scale = E_NORMALIZATION_FACTOR
+        self.namespace = "evaluation/"
         if e_scale:
             self.E_adjust = self.E_scale / e_scale
             self.E_scale = e_scale
@@ -53,8 +57,10 @@ class AD1Evaluator:
         self.dp_index = 7
         self.phys_names = ["Energy", "dt", "PE0", "PE1", "z", "PSD", "t offset", "distance to PMT"]
         self.phys_units = ["MeV", "ns", "", "", "mm", "", "ns", "mm"]
-        self.default_bins = [[0.0, self.E_scale, 40], [-self.dt_scale/2., self.dt_scale/2., 40], [0.0, self.PE_scale, 40],
-                             [0.0, self.PE_scale, 40], [-self.z_scale/2., self.z_scale/2., 40], [0.0, 1.0, 40], [0.0, self.toffset_scale, 40], [0.0, CELL_LENGTH, 40]]
+        self.default_bins = [[0.0, self.E_scale, 40], [-self.dt_scale / 2., self.dt_scale / 2., 40],
+                             [0.0, self.PE_scale, 40],
+                             [0.0, self.PE_scale, 40], [-self.z_scale / 2., self.z_scale / 2., 40], [0.0, 1.0, 40],
+                             [0.0, self.toffset_scale, 40], [0.0, CELL_LENGTH, 40]]
         if calgroup is not None:
             self.hascal = True
             if "PROSPECT_CALDB" not in os.environ.keys():
@@ -71,7 +77,6 @@ class AD1Evaluator:
                 self.default_bins[int(key)] = bin_overrides[key]
             except ValueError:
                 raise IOError("Keys for 'evaluation_config.bin_overrides' dictionary must be integers")
-
 
     def get_dense_matrix(self, data: torch.tensor, c: torch.tensor, to_numpy=True):
         batch_size = c[-1, -1] + 1
@@ -104,3 +109,19 @@ class AD1Evaluator:
         elif index == self.dp_index:
             return self.dp_scale
 
+    def init_det_results(self, metric_name, metric_unit, metric_scale):
+        name = ["det_{}".format(metric_name)]
+        self.register_duplicates(name, [self.nx, self.ny, 2],
+                                 [0.5, 0.5, -0.5],
+                                 [self.nx + 0.5, self.ny + 0.5, 1.5], 3,
+                                 ["x segment", "y segment", "side"], [""] * 3,
+                                 metric_name, metric_unit,
+                                 underflow=False, overflow=False, scale=metric_scale)
+
+    def add_det_results(self, metric_name, results, x, y, z):
+        self.increment_metric("det_{}".format(metric_name), results, (x, y, z))
+
+    def log_det_results(self, metric_name):
+        name = "det_{}".format(metric_name)
+        self.log_total(name, "{0}{1}".format(self.namespace, name), "detector totals")
+        self.log_metric(name, "{0}{1}".format(self.namespace, name), "detector {}".format(metric_name))

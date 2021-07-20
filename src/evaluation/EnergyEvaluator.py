@@ -11,11 +11,10 @@ import numpy as np
 from src.utils.util import get_bin_midpoints
 
 
-class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
+class EnergyEvaluatorBase(SingleEndedEvaluator):
 
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
-        StatsAggregator.__init__(self, logger)
-        SingleEndedEvaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
+        SingleEndedEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
         self.E_bounds = [0., 9.]
         self.mult_bounds = [0.5, 10.5]
         self.n_mult = 10
@@ -97,7 +96,7 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                 100. * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
                     self.results["E_mult_dual"][1][i, :]))
             self.logger.experiment.add_scalar("{}dual_E_MAPE".format(self.namespace), dual_err_E[-1], global_step=i)
-            if not hasattr(self,"hascal") or not self.hascal:
+            if not hasattr(self, "hascal") or not self.hascal:
                 continue
             single_err_E_cal.append(
                 100. * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
@@ -107,11 +106,12 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
             dual_err_E_cal.append(
                 100. * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
                     self.results["E_mult_dual_cal"][1][i, :]))
-            self.logger.experiment.add_scalar("{}dual_E_MAPE_cal".format(self.namespace), dual_err_E_cal[-1], global_step=i)
+            self.logger.experiment.add_scalar("{}dual_E_MAPE_cal".format(self.namespace), dual_err_E_cal[-1],
+                                              global_step=i)
         labels = ["single NN", "dual NN", "single cal", "dual cal"]
         xlabel = "True Energy Deposited [MeV]"
         ylabel = "Mean Absolute Percentage Error"
-        if hasattr(self,"hascal") and self.hascal:
+        if hasattr(self, "hascal") and self.hascal:
             self.logger.experiment.add_figure("{}E_error_summary_mult".format(self.namespace),
                                               MultiLinePlot(self.E_bin_centers,
                                                             [single_err_E, dual_err_E, single_err_E_cal,
@@ -124,11 +124,10 @@ class EnergyEvaluatorBase(StatsAggregator, SingleEndedEvaluator):
                                                             labels[0:2], xlabel, ylabel, ylog=False))
 
 
-
 class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
         EnergyEvaluatorBase.__init__(self, logger, calgroup, e_scale, namespace=namespace)
-        WaveformEvaluator.__init__(self, calgroup, e_scale=e_scale)
+        WaveformEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
 
     def add(self, predictions, target, c, f):
         pred = predictions.detach().cpu().numpy()
@@ -146,10 +145,9 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
                         self.n_mult, self.n_E, self.E_bounds[0], self.E_bounds[1], self.E_scale)
 
 
-class EnergyEvaluatorPhys(EnergyEvaluatorBase, AD1Evaluator):
+class EnergyEvaluatorPhys(EnergyEvaluatorBase):
     def __init__(self, logger, calgroup=None, e_scale=None, namespace=None):
-        EnergyEvaluatorBase.__init__(self, logger, e_scale=e_scale, namespace=namespace)
-        AD1Evaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
+        EnergyEvaluatorBase.__init__(self, logger, calgroup=calgroup, e_scale=e_scale, namespace=namespace)
 
     def add(self, predictions, target, c, f, pred_numpy=False, Z_pred=None):
         if not pred_numpy:

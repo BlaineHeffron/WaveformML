@@ -56,9 +56,6 @@ class LitEZ(LitBase):
         self.register_buffer("SE_mask", SE_mask)
         print("Using single ended only loss.")
 
-    def forward(self, x):
-        return self.model(x)
-
     """
     def prepare_data(self):
         self.data_module.prepare_data()

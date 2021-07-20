@@ -42,9 +42,6 @@ class LitPSD(LitBase):
             else:
                 self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
 
-    def forward(self, x, *args, **kwargs):
-        return self.model(x)
-
     """
     def prepare_data(self):
         self.data_module.prepare_data()

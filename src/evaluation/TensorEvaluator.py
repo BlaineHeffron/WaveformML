@@ -1,16 +1,16 @@
 """
 For non sparse formatted tensors
 """
+from numpy import where
+
 from src.evaluation.AD1Evaluator import AD1Evaluator
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
-from src.utils.StatsUtils import StatsAggregator
 
 
-class TensorEvaluator(AD1Evaluator, StatsAggregator):
+class TensorEvaluator(AD1Evaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, target_has_phys=False, target_index=None, metric_name=None,
                  metric_unit=None, class_names=None, bin_overrides=None):
-        AD1Evaluator.__init__(self, calgroup=calgroup, e_scale=e_scale)
-        StatsAggregator.__init__(self, logger=logger)
+        AD1Evaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
         self.target_has_phys = target_has_phys
         self.metric_name = metric_name
         self.metric_unit = metric_unit
@@ -40,9 +40,11 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
                 self.metrics.append(MetricAggregator(name, *self.default_bins[i], self.class_names,
                                                      metric_name=self.metric_name, metric_unit=self.metric_unit,
                                                      scale_factor=self.scale_factor(self.target_index),
-                                                     parameter_unit=self.phys_units[i], norm_factor=self.scale_factor(i)))
+                                                     parameter_unit=self.phys_units[i],
+                                                     norm_factor=self.scale_factor(i)))
                 i += 1
             self.metric_pairs = MetricPairAggregator(self.metrics)
+            self.init_det_results(self.metric_name, self.metric_unit, self.scale_factor(self.target_index))
         else:
             if self.target_index is not None:
                 name = self.phys_names[self.target_index]
@@ -63,19 +65,34 @@ class TensorEvaluator(AD1Evaluator, StatsAggregator):
             self.metrics.append(MetricAggregator(name, *bins, self.class_names,
                                                  metric_name=self.metric_name, metric_unit=self.metric_unit,
                                                  scale_factor=scale_factor, parameter_unit=unit))
+            self.init_det_results(self.metric_name, self.metric_unit, 1)
 
-    def add(self, target, results):
+    def add(self, c, f, target, results):
         if target.dim() >= 2:
             target = target.permute(1, 0)
         target = target.detach().cpu().numpy()
         results = results.detach().cpu().numpy()
+        c = c.detach().cpu().numpy()
+        if len(c.shape) == 1:
+            c_is_det = True
+        else:
+            c_is_det = False
         if self.target_has_phys:
             self.metric_pairs.add_normalized(results, target, self.class_names[0])
         else:
             self.metrics[-1].add_normalized(results, target, self.class_names[0])
+        for i in range(self.nx):
+            for j in range(self.ny):
+                for k in range(2):
+                    if c_is_det:
+                        inds = c == 2 * (14 * j + i) + k
+                    else:
+                        inds = where((c == (i, j, k)).all(axis=1))
+                    self.add_det_results(self.metric_name, results[inds], i, j, k)
 
     def dump(self):
-        if hasattr(self,"metric_pairs"):
+        if hasattr(self, "metric_pairs"):
             self.metric_pairs.plot(self.logger)
         else:
             self.metrics[-1].plot(self.logger)
+        self.log_det_results(self.metric_name)
