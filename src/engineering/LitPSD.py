@@ -29,18 +29,21 @@ class LitPSD(LitBase):
             calgroup = self.config.dataset_config.calgroup
         else:
             calgroup = None
+        eval_params = {}
+        if hasattr(config, "evaluation_config"):
+            eval_params = DictionaryUtility.to_dict(config.evaluation_config)
         if self.config.dataset_config.dataset_class == "PulseDatasetDet":
-            self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
+            self.evaluator = PhysEvaluator(self.config.system_config.type_names, self.logger, device=self.device, **eval_params)
         elif self.config.dataset_config.dataset_class == "PulseDatasetWaveformNorm":
             self.evaluator = TensorEvaluator(self.logger, calgroup=calgroup,
                                              target_has_phys=False, target_index=None,
-                                             metric_name="accuracy", metric_unit="")
+                                             metric_name="accuracy", metric_unit="", **eval_params)
         else:
             if hasattr(self.config.dataset_config, "calgroup"):
                 self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device,
-                                              calgroup=self.config.dataset_config.calgroup)
+                                              calgroup=self.config.dataset_config.calgroup, **eval_params)
             else:
-                self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device)
+                self.evaluator = PSDEvaluator(self.config.system_config.type_names, self.logger, device=self.device, **eval_params)
 
     """
     def prepare_data(self):
