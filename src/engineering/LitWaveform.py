@@ -17,6 +17,8 @@ class LitWaveform(LitBase):
                     raise IOError(
                         "net config must contain 'num_detectors' property if 'use_detector_number' set to true")
                 config.system_config.n_samples = config.system_config.n_samples + 3
+                self.nx = 14
+                self.ny = 11
                 if config.net_config.num_detectors == 308:
                     self.detector_num_factor_x = 1. / (self.nx - 1)
                     self.detector_num_factor_y = 1. / (self.ny - 1)
