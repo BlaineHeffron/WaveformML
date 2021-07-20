@@ -272,12 +272,12 @@ class PSDEvaluator(SingleEndedEvaluator):
         """
         missing_classes = False
         for feat, bins, featname in zip(feature_list, bins_list, feature_names):
-            if len(label_class_inds) == 0 or feat[label_class_inds] is None:
+            if len(label_class_inds[0]) == 0:
                 print("warning, no data found for class {}".format(self.class_names[i]))
             else:
                 self.logger.experiment.add_histogram("evaluation/{0}_{1}".format(featname, self.class_names[i]),
                                                      feat[label_class_inds], 0, max_bins=len(bins) - 1, bins=bins)
-            if len(preds_class_inds) == 0 or feat[preds_class_inds] is None:
+            if len(preds_class_inds[0]) == 0:
                 missing_classes = True
                 print("warning, no data found for class {}".format(self.class_names[i]))
                 continue
