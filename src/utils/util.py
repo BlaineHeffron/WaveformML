@@ -5,7 +5,7 @@ import json
 import pickle
 from collections.abc import Mapping, Sequence
 from collections import OrderedDict
-from os.path import abspath, normpath, join
+from os.path import abspath, normpath, join, expanduser
 from pathlib import Path
 import git
 import sys
@@ -237,6 +237,13 @@ def set_default_trainer_args(trainer_args, config):
         trainer_args["check_val_every_n_epoch"] = config.optimize_config.validation_freq
 
 
+def check_path(path):
+    if not os.path.exists(abspath(normpath(expanduser(path)))):
+        raise IOError("Cannot find path {}".format(path))
+    else:
+        return abspath(normpath(expanduser(path)))
+
+
 def unique_path_combine(pathlist):
     common = []
     i = 1
@@ -405,7 +412,7 @@ def setup_logger(args):
     # set up logging to file - see previous section for more details
     logargs = {}
     haslogfile = False
-    if hasattr(args,"logfile"):
+    if hasattr(args, "logfile"):
         if args.logfile:
             haslogfile = True
             logargs["filename"] = args.logfile

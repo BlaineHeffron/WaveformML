@@ -1,32 +1,57 @@
-from numpy import array, int32, float32, dtype, float64, ones, double
-from h5py import h5t, h5f, h5d, h5s, File, Datatype
 from typing import List
 
-from src.utils.HDF5Utils import H5FileHandler
-
-array_3_int32 = h5t.array_create(h5t.STD_I32LE, (3,))
-array_7_float32 = h5t.array_create(h5t.IEEE_F32LE, (7,))
+from h5py import h5t, h5f, h5d, h5s, File, Datatype
+from numpy import double, float32, int32, dtype, array, int64, int16, ones, float64
+from numpy.random import randint
 
 
 class H5CompoundType:
-    def __init__(self, types: List, lengths: List[int], names: List[str]):
+    def __init__(self, types: List, lengths: List[int], names: List[str], name: str):
         """
         @param name: name of the type
         @param types: types within the compuond type
         @param names:  names of each type within the compound type
         """
+        self.name = name
         self.types = types
         self.names = names
         self.lengths = lengths
+        self.type = None
+        self.size = 0
+        self.offsets = []
+        self.event_index_name = None
+        self.event_index_coord = None
+        self.calc_size()
+        self.calc_offsets()
         self.create_type()
 
     def create_type(self):
         self.type = dtype([(name, t, (l,)) for name, t, l in zip(self.names, self.types, self.lengths)])
 
+    def generate_random_data(self, length):
+        arrays = {n: randint(0, high=5, size=(length, l) if l > 1 else (length,)).astype(t) for n, l, t in
+                  zip(self.names, self.lengths, self.types)}
+        # print(arrays)
+        c = [tuple([arrays[name][i] for name in arrays]) for i in range(length)]
+        # return array(arrays, dtype=self.type)
+        return array(c, dtype=self.type)
+
+    def calc_size(self):
+        tot = 0
+        for t, l in zip(self.types, self.lengths):
+            tot += dtype(t).itemsize * l
+        self.size = tot
+
+    def calc_offsets(self):
+        self.offsets = [0]
+        for t, l in zip(self.types, self.lengths):
+            self.offsets.append(self.offsets[-1] + dtype(t).itemsize * l)
+        self.offsets = self.offsets[0:-1]
+
 
 class DetPulseCoord(H5CompoundType):
     def __init__(self):
-        super(DetPulseCoord, self).__init__([int32, float32], [3, 7], ["coord", "pulse"])
+        super(DetPulseCoord, self).__init__([int32, float32], [3, 7], ["coord", "pulse"], "DetPulseCoord")
 
 
 class WaveformPairNorm(H5CompoundType):
@@ -34,15 +59,67 @@ class WaveformPairNorm(H5CompoundType):
         fields = ["t", "coord", "pulse", "phys", "EZ", "PID"]
         types = [double, int32, float32, float32, float32, int32]
         l = [1, 3, 130, 7, 2, 1]
-        super(WaveformPairNorm, self).__init__(types, l, fields)
+        self.event_index_name = "coord"
+        self.event_index_coord = 2
+        super(WaveformPairNorm, self).__init__(types, l, fields, "WaveformPairNorm")
+
+    """
+    def create_type(self):
+        self.type = dtype({'names': ['t', 'coord', 'pulse', 'phys', 'EZ', 'PID'],
+                           'formats': ['<f8', ('<i4', (3,)), ('<f4', (130,)), ('<f4', (7,)), ('<f4', (2,)), '<i4'],
+                           'offsets': [0, 520, 532, 560, 568, 572], 'itemsize': 1052})
+    """
+
+    def create_type(self):
+        self.type = dtype({'names': ['t', 'coord', 'pulse', 'phys', 'EZ', 'PID'],
+                           'formats': ['<f8', ('<i4', (3,)), ('<f4', (130,)), ('<f4', (7,)), ('<f4', (2,)), '<i4'],
+                           'offsets': [560, 520, 0, 532, 572, 568], 'itemsize': 584})
 
 
 class WaveformNorm(H5CompoundType):
     def __init__(self):
         fields = ["t", "evt", "det", "pulse", "phys", "EZ", "PID"]
-        types = [double, int32, int32, float32, float32, float32, int32]
+        types = [double, int64, int32, float32, float32, float32, int32]
         l = [1, 1, 1, 130, 7, 2, 1]
-        super(WaveformNorm, self).__init__(types, l, fields)
+        self.event_index_name = "evt"
+        self.event_index_coord = None
+        super(WaveformNorm, self).__init__(types, l, fields, "WaveformNorm")
+
+    """
+    def create_type(self):
+        self.type = dtype({'names': ['t', 'evt', 'det', 'pulse', 'phys', 'EZ', 'PID'],
+                           'formats': ['<f8', '<i8', '<i4', ('<f4', (59,)), ('<f4', (8,)), ('<f4', (2,)), '<i4'],
+                           'offsets': [0, 236, 272, 280, 288, 296, 300], 'itemsize': 516})
+    """
+
+
+class WaveformPairCal(H5CompoundType):
+    def __init__(self):
+        fields = ["evt", "t", "dt", "z", "E", "PSD", "PE", "coord", "waveform", "EZ", "PID"]
+        types = [int64, double, float32, float32, float32, float32, float32, int32, int16, float32, int32]
+        l = [1, 1, 1, 1, 1, 1, 2, 3, 130, 2, 1]
+        self.event_index_coord = 2
+        self.event_index_name = "coord"
+        super(WaveformPairCal, self).__init__(types, l, fields, "WaveformPairCal")
+
+    """
+    def create_type(self):
+        self.type = dtype({'names': ['evt', 't', 'dt', 'z', 'E', 'PSD', 'PE', 'coord', 'waveform', 'EZ', 'PID'],
+                           'formats': ['<i8', '<f8', '<f4', '<f4', '<f4', '<f4', ('<f4', (2,)), ('<i4', (3,)),
+                                       ('<i2', (130,)),
+                                       ('<f4', (2,)), '<i4'],
+                           'offsets': [0, 260, 272, 280, 284, 288, 292, 296, 304, 312, 316],
+                           'itemsize': 564})
+   """
+
+
+class Waveform(H5CompoundType):
+    def __init__(self):
+        fields = ["evt", "det", "t", "a", "PSD", "waveform", "PID", "true_E", "true_Z"]
+        types = [int64, int32, double, float32, float32, int16, int32, float32, float32]
+        l = [1, 1, 1, 1, 1, 59, 1, 1, 1]
+        self.event_index_name = "evt"
+        super(Waveform, self).__init__(types, l, fields, "Waveforms")
 
 
 def main():

@@ -5,6 +5,7 @@ from os.path import basename, join, exists
 
 from torch.utils.data import get_worker_info
 
+from src.datasets.H5CompoundTypes import *
 from src.evaluation.AD1Evaluator import Z_NORMALIZATION_FACTOR, E_NORMALIZATION_FACTOR
 from src.utils.util import config_equals, unique_path_combine, replace_file_pattern
 
@@ -25,6 +26,17 @@ mydl = DataLoader(dataset, batch_size=1, shuffle=False, sampler=None, batch_samp
 # note we will need to use pinned memory since this runs on GPU
 
 # extend torch.utils.data.IterableDataset for iterating over the dataset files (specifically to get parallelization working)
+
+
+def dataset_class_type_map(dataset_class):
+    if dataset_class is PulseDatasetWaveformNorm:
+        return WaveformNorm()
+    elif dataset_class is PulseDatasetWFPairNorm:
+        return WaveformPairNorm()
+    elif dataset_class is PulseDatasetWFPair:
+        return WaveformPairCal()
+    elif dataset_class is PulseDatasetWFPairEZ:
+        return WaveformPairCal()
 
 def _has_files(fset):
     for key in fset.keys():

@@ -1290,3 +1290,24 @@ def z_error(predictions, targets, results, n_bins, low, high, nmult, sample_segs
                         results[s_ind, mult - 1, err_bin] += 1
                     else:
                         results[s_ind, nmult, err_bin] += 1
+
+
+@nb.jit(nopython=True)
+def swap_sparse_from_dense(sparse_list, dense_list, coords):
+    """
+    Takes values from dense list of shape (dense batch size, x, y) and swaps into sparse list of shape (batch size,)
+    using coords of shape (batch size, 3) containing x, y, event number coordinates
+    @param sparse_list:
+    @param dense_list:
+    @param coords:
+    @return: None
+    """
+    prev_event = -1
+    dense_index = -1
+    for batch_index in range(sparse_list.shape[0]):
+        if coords[batch_index, 2] != prev_event:
+            prev_event = coords[batch_index, 2]
+            dense_index += 1
+        sparse_list[batch_index] = dense_list[dense_index, coords[batch_index, 0], coords[batch_index, 1]]
+
+
