@@ -1,6 +1,7 @@
 import argparse
-from os.path import expanduser, isdir, isfile, join
+from os.path import expanduser, isdir, join
 from ntpath import basename
+import torch
 
 from src.datasets.PredictionWriter import *
 from src.utils.util import check_path
@@ -14,6 +15,7 @@ def main():
     parser.add_argument("checkpoint", help="path to checkpoint file for model")
     parser.add_argument("--output", "-o", type=str, help="path to output hdf5 file")
     parser.add_argument("--cpu", "-c", action="store_true", help="map tensor device storage to cpu")
+    parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
 
     args = parser.parse_args()
     input_path = check_path(args.input_path)
@@ -34,6 +36,8 @@ def main():
     pw_args = {}
     if args.cpu:
         pw_args["map_location"] = "cpu"
+    if args.num_threads:
+        torch.set_num_threads(args.num_threads)
     PW = ZPredictionWriter(output, input_path, config, checkpoint, **pw_args)
     print("Writing predictions")
     PW.write_predictions()

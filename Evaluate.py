@@ -6,8 +6,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from src.engineering.LitCallbacks import LoggingCallback
 from src.engineering.LitPSD import PSDDataModule
 import argparse
-from os.path import dirname, basename, join
-from torch.jit import trace
+from os.path import dirname, basename
+import torch
 
 from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version, set_default_trainer_args, setup_logger
 
@@ -18,12 +18,15 @@ def main():
     parser.add_argument("checkpoint", help="path to checkpoint file")
     parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
     parser.add_argument("--torchscript", "-t", action="store_true", help="set to generate torch script model instead of evaluating")
+    parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
                         type=int, default=0)
     args = parser.parse_args()
     main_logger = setup_logger(args)
     config = get_config(args.config)
+    if args.num_threads:
+        torch.set_num_threads(args.num_threads)
     if args.calgroup:
         if hasattr(config.dataset_config, "calgroup"):
             print("Warning: overriding calgroup {0} with user supplied calgroup {1}".format(config.dataset_config.calgroup,args.calgroup))

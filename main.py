@@ -1,8 +1,9 @@
 from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import AdvancedProfiler
-from os.path import exists, join
+from os.path import exists
 from src.optimization.ModelOptimization import *
 from src.utils.ModelValidation import *
+import torch
 
 import sys
 import json
@@ -43,6 +44,7 @@ def main():
                         help="Set the path to the optuna optimization config file.")
     parser.add_argument("--config_validation", "-cv", type=str,
                         help="Set the path to the config validation file.")
+    parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument(
         "--pruning",
         "-p",
@@ -96,6 +98,9 @@ def main():
     logging.info('=======================================================')
     logging.info('Using system from %s' % config_file)
     logging.info('=======================================================')
+
+    if args.num_threads:
+        torch.set_num_threads(args.num_threads)
 
     if args.validate:
         ModelValidation.validate(config)
