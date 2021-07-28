@@ -86,12 +86,12 @@ class PredictionWriter(P2XTableWriter):
         for key, val in settings.items():
             self.XMLW.step_settings[key] = val
 
-    def write_XML(self):
+    def write_XML(self, runtime):
         self.XMLW.input_file = self.input.path + ".xml"
         self.XMLW.output_file = self.path
         self.XMLW.step_name = str(type(self).__name__)
         self.set_xml()
-        self.XMLW.write_xml(self.path + ".xml")
+        self.XMLW.write_xml(self.path + ".xml", runtime)
 
 
 class ZPredictionWriter(PredictionWriter):

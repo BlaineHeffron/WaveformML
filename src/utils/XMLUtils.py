@@ -14,7 +14,7 @@ class XMLWriter:
         self.step_name = "UNKNOWN"
         self.step_settings = {}
 
-    def generate_step_xml(self):
+    def generate_step_xml(self, runtime):
         self.step_xml = { "AnalysisStep": {
             "_PROP_": {
                 "code": self.code
@@ -37,9 +37,16 @@ class XMLWriter:
         run_info = get_run_info()
         for key, val in run_info.items():
             self.step_xml["AnalysisStep"]["_PROP_"][key] = val
+        self.step_xml["AnalysisStep"]["_PROP_"]["dtime"] = str(int(runtime))
 
-    def write_xml(self, out_path):
-        self.generate_step_xml()
+    def write_xml(self, out_path, runtime):
+        """
+        writes xml to file at out_path
+        @param out_path: string to .xml file output
+        @param runtime: time in seconds of program execution
+        @return:
+        """
+        self.generate_step_xml(runtime)
         if exists(self.input_file):
             append_xml(self.input_file, out_path, self.step_xml)
         else:

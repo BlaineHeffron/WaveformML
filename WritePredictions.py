@@ -4,6 +4,7 @@ from ntpath import basename
 
 from src.datasets.PredictionWriter import *
 from src.utils.util import check_path
+import time
 
 
 def main():
@@ -28,12 +29,14 @@ def main():
             output = join(out, fname[0:-3] + "ModelOut.h5")
         else:
             raise IOError("Output path {} not a valid directory or .h5 file".format(args.output))
+    start_time = time.time()
     PW = ZPredictionWriter(output, input_path, config, checkpoint)
     print("Writing predictions")
     PW.write_predictions()
+    runtime = time.time() - start_time
     print("Success")
     print("Writing XML metadata")
-    PW.write_XML()
+    PW.write_XML(runtime)
 
 
 if __name__ == "__main__":
