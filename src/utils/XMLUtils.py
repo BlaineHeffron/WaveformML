@@ -1,9 +1,49 @@
 import xml.etree.ElementTree as ET
-import sys
-
-from xml.dom import minidom
-from utils.util import get_run_info, get_file_md5, check_path
+from os.path import exists
+from src.utils.util import get_run_info, get_file_md5, check_path
 from os.path import expanduser
+import sys
+from ntpath import basename
+
+class XMLWriter:
+    def __init__(self):
+        self.step_xml = {}
+        self.code = basename(str(sys.argv[0]))
+        self.input_file = "UNKNOWN"
+        self.output_file = "UNKNOWN"
+        self.step_name = "UNKNOWN"
+        self.step_settings = {}
+
+    def generate_step_xml(self):
+        self.step_xml = { "AnalysisStep": {
+            "_PROP_": {
+                "code": self.code
+            },
+            "input": {
+                "_PROP_": {
+                    "file": self.input_file,
+                    "md5": get_file_md5(self.input_file)
+                }
+            },
+            "output": {
+                "_PROP_": {
+                    "file": self.output_file
+                }
+            },
+            self.step_name: {
+                "_PROP_": self.step_settings
+            }
+        }}
+        run_info = get_run_info()
+        for key, val in run_info.items():
+            self.step_xml["AnalysisStep"]["_PROP_"][key] = val
+
+    def write_xml(self, out_path):
+        self.generate_step_xml()
+        if exists(self.input_file):
+            append_xml(self.input_file, out_path, self.step_xml)
+        else:
+            print("No input XML file {} found, skipping".format(self.input_file))
 
 
 def append_xml(in_path, out_path, append_dict, parent=None):
@@ -16,16 +56,28 @@ def append_xml(in_path, out_path, append_dict, parent=None):
         if name == "_PROP_":
             #special case, describes properties of current node
             for key in append_dict[name]:
-                root.set(key, append_dict[name][key])
+                root.set(key, str(append_dict[name][key]))
             continue
         n = ET.Element(name)
         if isinstance(append_dict[name] , dict):
             append_xml(in_path, out_path, append_dict[name], n)
         else:
-            n.text = append_dict[name]
+            n.text = str(append_dict[name])
         root.append(n)
     if parent is None:
-        tree.write(out_path)
+        _pretty_print(root)
+        tree.write(out_path, xml_declaration=True)
+
+def _pretty_print(current, parent=None, index=-1, depth=0):
+    for i, node in enumerate(current):
+        _pretty_print(node, current, i, depth + 1)
+    if parent is not None:
+        if index == 0:
+            parent.text = '\n' + ('    ' * depth)
+        else:
+            parent[index - 1].tail = '\n' + ('    ' * depth)
+        if index == len(parent) - 1:
+            current.tail = '\n' + ('    ' * (depth - 1))
 
 def main():
     dir = "~/projects/neutrino_ML/data/waveforms/type_rn"

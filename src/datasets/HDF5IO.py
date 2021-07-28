@@ -3,10 +3,6 @@ from numpy import append
 from src.datasets.H5CompoundTypes import *
 from src.utils.HDF5Utils import H5FileHandler
 import os
-from src.engineering.LitZ import LitZ
-from src.utils.SparseUtils import swap_sparse_from_dense
-from src.utils.util import get_config
-import torch
 
 
 class H5Base:

@@ -355,6 +355,8 @@ def get_run_info():
     timestr = str(int(time.time()))
     user = "UNKNOWN"
     version = str(sys.version).split(" ")[0]
+    import torch
+    torch_version = str(torch.__version__)
     try:
         user = str(pwd.getpwuid(os.getuid())[0])
     except Exception:
@@ -365,6 +367,7 @@ def get_run_info():
         "git_tag": str(tag),
         "host": str(socket.gethostname()),
         "python_version": version,
+        "pytorch_version": torch_version,
         "user": user
     }
     return info

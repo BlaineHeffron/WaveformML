@@ -3,7 +3,8 @@ import torch
 from src.datasets.PulseDataset import dataset_class_type_map
 from src.datasets.HDF5IO import P2XTableWriter, H5Input
 from src.utils.SparseUtils import swap_sparse_from_dense
-from src.utils.util import get_config, ModuleUtility
+from src.utils.XMLUtils import XMLWriter
+from src.utils.util import get_config, ModuleUtility, get_file_md5
 from os.path import exists
 
 
@@ -21,7 +22,9 @@ class PredictionWriter(P2XTableWriter):
         @param checkpoint: path to model checkpoint
         """
         super(PredictionWriter, self).__init__(path)
+        self.XMLW = XMLWriter()
         self.checkpoint_path = checkpoint
+        self.config_path = config
         self.config = get_config(config)
         self.model = None
         self.data_type = None
@@ -70,18 +73,40 @@ class PredictionWriter(P2XTableWriter):
     def swap_values(self, data, model):
         raise NotImplementedError()
 
-    def write_XML(self):
-        if exists(self.input.path + ".xml"):
+    def set_xml(self):
+        """
+        set XMLW.step_settings
+        @return: none
+        SUBCLASS override this
+        """
+        settings = {"model_checkpoint": self.checkpoint_path,
+                    "model_checkpoint_hash": get_file_md5(self.checkpoint_path),
+                    "model_config": self.config_path,
+                    "model_config_hash": get_file_md5(self.checkpoint_path)}
+        for key, val in settings.items():
+            self.XMLW.step_settings[key] = val
 
+    def write_XML(self):
+        self.XMLW.input_file = self.input.path + ".xml"
+        self.XMLW.output_file = self.path
+        self.XMLW.step_name = str(type(self).__name__)
+        self.set_xml()
+        self.XMLW.write_xml(self.path + ".xml")
 
 
 class ZPredictionWriter(PredictionWriter):
 
     def __init__(self, path, input_path, config, checkpoint, **kwargs):
         super().__init__(path, input_path, config, checkpoint, **kwargs)
+        self.phy_index_replaced = 4
 
     def swap_values(self, data, model):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=model.device)
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=model.device)
         output = model.model([coords, vals]).detach().cpu().numpy().squeeze(1)
         swap_sparse_from_dense(data["phys"][:, model.evaluator.z_index], output, data["coord"])
+        self.phy_index_replaced = model.evaluator.z_index
+
+    def set_xml(self):
+        super().set_xml()
+        self.XMLW.step_settings["phys_index_replaced"] = str(self.phy_index_replaced)

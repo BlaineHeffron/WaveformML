@@ -21,6 +21,8 @@ def main():
     print("Writing predictions")
     PW.write_predictions()
     print("Success")
+    print("Writing XML metadata")
+    PW.write_XML()
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ class LitBase(pl.LightningModule):
             self.needs_float = not config.system_config.half_precision
         else:
             self.needs_float = True
-        self.hparams = DictionaryUtility.to_dict(config)
+        self.hparams.update(DictionaryUtility.to_dict(config))
         self.lr = config.optimize_config.lr
         self.modules = ModuleUtility(config.net_config.imports + config.dataset_config.imports +
                                      config.optimize_config.imports)
