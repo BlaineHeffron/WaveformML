@@ -14,6 +14,9 @@ import re
 import collections
 import numpy as np
 import csv
+import socket
+import pwd
+import hashlib
 
 log = logging.getLogger(__name__)
 
@@ -344,6 +347,46 @@ class OrderlyJSONEncoder(json.JSONEncoder):
             return list(o)
         return json.JSONEncoder.default(self, o)
 
+
+def get_run_info():
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    tag = next((tag for tag in repo.tags if tag.commit == repo.head.commit), None)
+    timestr = str(int(time.time()))
+    user = "UNKNOWN"
+    version = str(sys.version).split(" ")[0]
+    try:
+        user = str(pwd.getpwuid(os.getuid())[0])
+    except Exception:
+        pass
+    info = {
+        "time": timestr,
+        "git_hash": sha,
+        "git_tag": str(tag),
+        "host": str(socket.gethostname()),
+        "python_version": version,
+        "user": user
+    }
+    return info
+
+def get_file_md5(path):
+    """"This function returns the md5 hash
+    of the file passed into it"""
+
+    # make a hash object
+    h = hashlib.md5()
+
+    # open file for reading in binary mode
+    with open(path, 'rb') as file:
+        # loop till the end of the file
+        chunk = 0
+        while chunk != b'':
+            # read only 1024 bytes at a time
+            chunk = file.read(1024)
+            h.update(chunk)
+
+    # return the hex representation of digest
+    return str(h.hexdigest())
 
 def write_run_info(mydir):
     repo = git.Repo(search_parent_directories=True)
