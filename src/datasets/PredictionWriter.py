@@ -31,6 +31,7 @@ class PredictionWriter(P2XTableWriter):
         self.input = H5Input(input_path)
         self.n_buffer_rows = 1024 * 16
         self.n_rows_per_read = 2048
+        self.map_location = None
         for key, val in kwargs.items():
             setattr(self, key, val)
         self.retrieve_model()
@@ -38,8 +39,12 @@ class PredictionWriter(P2XTableWriter):
 
     def retrieve_model(self):
         modules = ModuleUtility(self.config.run_config.imports)
+        args = {}
+        if self.map_location is not None:
+            args["map_location"] = self.map_location
         self.model = modules.retrieve_class(self.config.run_config.run_class).load_from_checkpoint(self.checkpoint_path,
-                                                                                                   config=self.config)
+                                                                                                   config=self.config,
+                                                                                                   **args)
 
     def set_datatype(self):
         modules = ModuleUtility(self.config.dataset_config.imports)

@@ -349,7 +349,8 @@ class OrderlyJSONEncoder(json.JSONEncoder):
 
 
 def get_run_info():
-    repo = git.Repo(search_parent_directories=True)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    repo = git.Repo(path=dir_path, search_parent_directories=True)
     sha = repo.head.object.hexsha
     tag = next((tag for tag in repo.tags if tag.commit == repo.head.commit), None)
     timestr = str(int(time.time()))

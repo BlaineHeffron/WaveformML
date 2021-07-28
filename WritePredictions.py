@@ -13,6 +13,7 @@ def main():
     parser.add_argument("config", help="path to config file for model")
     parser.add_argument("checkpoint", help="path to checkpoint file for model")
     parser.add_argument("--output", "-o", type=str, help="path to output hdf5 file")
+    parser.add_argument("--cpu", "-c", action="store_true", help="map tensor device storage to cpu")
 
     args = parser.parse_args()
     input_path = check_path(args.input_path)
@@ -30,7 +31,10 @@ def main():
         else:
             raise IOError("Output path {} not a valid directory or .h5 file".format(args.output))
     start_time = time.time()
-    PW = ZPredictionWriter(output, input_path, config, checkpoint)
+    pw_args = {}
+    if args.cpu:
+        pw_args["map_location"] = "cpu"
+    PW = ZPredictionWriter(output, input_path, config, checkpoint, **pw_args)
     print("Writing predictions")
     PW.write_predictions()
     runtime = time.time() - start_time
