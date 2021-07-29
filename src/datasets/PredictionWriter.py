@@ -5,7 +5,6 @@ from src.datasets.HDF5IO import P2XTableWriter, H5Input
 from src.utils.SparseUtils import swap_sparse_from_dense
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
-import tracemalloc
 from os.path import exists
 
 
@@ -60,10 +59,8 @@ class PredictionWriter(P2XTableWriter):
         self.create_table(self.data_type.name, (nrows,), self.data_type.type)
         n_current_buffer = 0
         self.copy_p2x_attrs(self.input, self.data_type.name)
-        tracemalloc.start()
         data = self.input.next_chunk(self.n_rows_per_read)
         n_current_buffer += data.shape[0]
-        n_flushes = 0
         self.swap_values(data, self.model)
         self.add_rows(self.data_type.name, data)
         while data is not None:
@@ -74,11 +71,7 @@ class PredictionWriter(P2XTableWriter):
                 n_current_buffer += data.shape[0]
                 if n_current_buffer >= self.n_buffer_rows:
                     n_current_buffer = 0
-                    n_flushes += 1
-                    first_size, first_peak = tracemalloc.get_traced_memory()
                     self.flush(self.data_type.name)
-                    print("flush {0} mem size {1} ".format(n_flushes,first_size))
-                    print("flush {0} peak mem size {1} ".format(n_flushes, first_peak))
         self.flush()
         self.input.close()
         self.close()
