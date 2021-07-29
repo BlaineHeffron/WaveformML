@@ -25,8 +25,8 @@ def main():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     files = [join(input_path,f) for f in os.listdir(input_path) if f.endswith(args.mask[1:])]
     for f in files:
-        print("processing {}".format(f))
         args = ['python', join(dir_path, 'WritePredictions.py'), f, *sys.argv[3:]]
+        print(" ".join(args))
         subprocess.call(args)
 
 if __name__ == "__main__":
