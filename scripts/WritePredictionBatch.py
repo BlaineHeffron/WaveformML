@@ -4,6 +4,7 @@ import os
 import sys
 from os.path import join
 
+sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from src.utils.util import check_path
 
 
