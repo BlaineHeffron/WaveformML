@@ -6,6 +6,12 @@ import torch
 from src.datasets.PredictionWriter import *
 from src.utils.util import check_path
 import time
+import tracemalloc
+
+
+# ... run your application ...
+
+
 
 
 def main():
@@ -38,10 +44,16 @@ def main():
         pw_args["map_location"] = "cpu"
     if args.num_threads:
         torch.set_num_threads(args.num_threads)
+    tracemalloc.start()
     PW = ZPredictionWriter(output, input_path, config, checkpoint, **pw_args)
     print("Writing predictions")
     PW.write_predictions()
     runtime = time.time() - start_time
+    snapshot = tracemalloc.take_snapshot()
+    top_stats = snapshot.statistics('lineno')
+    print("[ Top 10 ]")
+    for stat in top_stats[:100]:
+        print(stat)
     print("Success")
     print("Writing XML metadata")
     PW.write_XML(runtime)
