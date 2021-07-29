@@ -2,7 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 from numpy import zeros
-from pytorch_lightning.metrics.functional.classification import multiclass_roc, multiclass_precision_recall_curve
+from torchmetrics.functional.classification import roc, precision_recall_curve
 
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.MetricAggregator import *
@@ -45,8 +45,8 @@ class PSDEvaluator(SingleEndedEvaluator):
         self.ene_label = "Energy [arb]"
         self.class_names = class_names
         self.n_classes = len(self.class_names)
-        self.roc = multiclass_roc
-        self.pr = multiclass_precision_recall_curve
+        self.roc = roc
+        self.pr = precision_recall_curve
         self.summed_waveforms = None
         self.n_wfs = [0] * (self.n_classes + 1)
         self.n_labelled_wfs = [0] * self.n_classes
