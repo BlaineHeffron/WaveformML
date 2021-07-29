@@ -6,20 +6,17 @@ Recommended to use conda installation manager. https://docs.conda.io/projects/co
 
 First, install prerequisites:
 
-    conda install numpy
-    conda install gitpython
-    conda install yaml
-    conda install hdf5
+    conda install numpy scipy matplotlib gitpython yaml hdf5 h5py numba pytz
 
 Then install pytorch version 1.6 or higher, see https://pytorch.org/get-started/locally/
 
 On linux with GPU support, cuda version 10.2, this command is
 
-    conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
+    conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 
 With no GPU support, the command is
 
-    conda install pytorch torchvision cpuonly -c pytorch
+    conda install pytorch torchvision torchaudio cpuonly -c pytorch
 
 Then, install pytorch-lightning and optuna
 
@@ -27,7 +24,7 @@ Then, install pytorch-lightning and optuna
 
 Pytorch lightning requires version 1.0 or higher:
     
-    pip install pytorch_lightning --upgrade
+    conda install pytorch-lightning -c conda-forge
     
 To run the sparse convolutional network code, install spconv or SparseConvNet
 
@@ -54,9 +51,9 @@ Using pip (example is for linux, see pytorch install guide for your system)
     pip install numpy
     pip install h5py
     pip install gitpython
-    pip install torch==1.6.0+cpu torchvision==0.7.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+    pip install torch==1.9.0+cpu torchvision==0.10.0+cpu torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
     pip install optuna
-    pip install pytorch_lightning --upgrade
+    pip install pytorch-lightning 
 
 
 ## Usage

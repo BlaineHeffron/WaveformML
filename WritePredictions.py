@@ -49,11 +49,9 @@ def main():
     print("Writing predictions")
     PW.write_predictions()
     runtime = time.time() - start_time
-    snapshot = tracemalloc.take_snapshot()
-    top_stats = snapshot.statistics('lineno')
-    print("[ Top 10 ]")
-    for stat in top_stats[:100]:
-        print(stat)
+    first_size, first_peak = tracemalloc.get_traced_memory()
+    print("first size {} ".format(first_size))
+    print("first peak {} ".format(first_peak))
     print("Success")
     print("Writing XML metadata")
     PW.write_XML(runtime)
