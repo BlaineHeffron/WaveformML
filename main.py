@@ -55,7 +55,7 @@ def main():
     non_trainer_args = ["config", "load_checkpoint", "load_best", "name",
                         "restore_training", "verbosity",
                         "logfile", "config_validation", "optimize_config",
-                        "pruning", "validate", "test"]
+                        "pruning", "validate", "test", "num_threads"]
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     run_test = False
