@@ -45,6 +45,7 @@ class PredictionWriter(P2XTableWriter):
         self.model = modules.retrieve_class(self.config.run_config.run_class).load_from_checkpoint(self.checkpoint_path,
                                                                                                    config=self.config,
                                                                                                    **args)
+        self.model.model.eval()
 
     def set_datatype(self):
         modules = ModuleUtility(self.config.dataset_config.imports)
@@ -59,19 +60,20 @@ class PredictionWriter(P2XTableWriter):
         self.create_table(self.data_type.name, (nrows,), self.data_type.type)
         n_current_buffer = 0
         self.copy_p2x_attrs(self.input, self.data_type.name)
-        data = self.input.next_chunk(self.n_rows_per_read)
-        n_current_buffer += data.shape[0]
-        self.swap_values(data, self.model)
-        self.add_rows(self.data_type.name, data)
-        while data is not None:
+        with torch.no_grad():
             data = self.input.next_chunk(self.n_rows_per_read)
-            if data is not None:
-                self.swap_values(data, self.model)
-                self.add_rows(self.data_type.name, data)
-                n_current_buffer += data.shape[0]
-                if n_current_buffer >= self.n_buffer_rows:
-                    n_current_buffer = 0
-                    self.flush(self.data_type.name)
+            n_current_buffer += data.shape[0]
+            self.swap_values(data, self.model)
+            self.add_rows(self.data_type.name, data)
+            while data is not None:
+                data = self.input.next_chunk(self.n_rows_per_read)
+                if data is not None:
+                    self.swap_values(data, self.model)
+                    self.add_rows(self.data_type.name, data)
+                    n_current_buffer += data.shape[0]
+                    if n_current_buffer >= self.n_buffer_rows:
+                        n_current_buffer = 0
+                        self.flush(self.data_type.name)
         self.flush()
         self.input.close()
         self.close()
