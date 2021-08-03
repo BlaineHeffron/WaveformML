@@ -1,4 +1,5 @@
 from numpy import zeros_like, stack
+from torch import ones_like
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 
@@ -64,9 +65,11 @@ class RealDataEvaluator(SingleEndedEvaluator):
         if not self.has_PID:
             return
         class_indices = additional_fields[self.PID_index] - 1  # map 1 to 0, 2 to 1, etc
+        mult_inds = ones_like(class_indices)
+        mult_inds = self.get_dense_matrix(mult_inds, c).squeeze(1)
         class_indices = self.get_dense_matrix(class_indices, c).squeeze(1)
-        parameters = stack((target[:, self.E_index, :], target[:, self.PSD_index], zeros_like(target[:, self.E_index, :]),
-                          target[:, self.z_index]), axis=1)
+        parameters = stack((target[:, self.E_index, :], target[:, self.PSD_index], mult_inds,
+                            target[:, self.z_index]), axis=1)
         if self.metric_pairs is not None:
             self.metric_pairs.add_dense_normalized_with_categories(results, parameters, self.metric_names, class_indices)
 
