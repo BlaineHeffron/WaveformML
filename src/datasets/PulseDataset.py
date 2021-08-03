@@ -1,13 +1,12 @@
 import json
 import os
 from copy import copy
-from os.path import basename, join, exists
 
 from torch.utils.data import get_worker_info
 
 from src.datasets.H5CompoundTypes import *
 from src.evaluation.AD1Evaluator import Z_NORMALIZATION_FACTOR, E_NORMALIZATION_FACTOR
-from src.utils.util import config_equals, unique_path_combine, replace_file_pattern
+from src.utils.util import config_equals, unique_path_combine
 
 from numpy import asarray, concatenate, empty, array, int8
 import h5py
@@ -92,7 +91,7 @@ class PulseDataset(HDF5Dataset):
                  label_file_pattern=None,
                  data_cache_size=3,
                  batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True, use_half=False,
-                 event_based=True):
+                 event_based=True, additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -124,7 +123,8 @@ class PulseDataset(HDF5Dataset):
                          data_cache_size=data_cache_size,
                          normalize=normalize,
                          use_half=use_half,
-                         event_based=event_based)
+                         event_based=event_based,
+                         additional_fields=additional_fields)
 
         self.use_half = use_half
         self.label_file_pattern = label_file_pattern
@@ -819,7 +819,8 @@ class PulseDatasetDetWithZ(PulseDataset):
                  model_dir=None,
                  data_dir=None,
                  dataset_dir=None,
-                 use_half=False):
+                 use_half=False,
+                 additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -840,7 +841,8 @@ class PulseDatasetDetWithZ(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          use_half=use_half,
-                         normalize=False)
+                         normalize=False,
+                         additional_fields=additional_fields)
 
     def __getitem__(self, idx):
         return super().__getitem__(idx)
@@ -863,7 +865,8 @@ class PulseDatasetDetWithEZ(PulseDataset):
                  data_dir=None,
                  dataset_dir=None,
                  use_half=False,
-                 label_index=None):
+                 label_index=None,
+                 additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -883,7 +886,8 @@ class PulseDatasetDetWithEZ(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          use_half=use_half,
-                         normalize=False)
+                         normalize=False,
+                         additional_fields=additional_fields)
         self.label_index = label_index
 
     def __getitem__(self, idx):
@@ -912,7 +916,8 @@ class PulseDatasetWFPair(PulseDataset):
                  dataset_dir=None,
                  use_half=False,
                  label_index=None,
-                 label_name=None):
+                 label_name=None,
+                 additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -931,7 +936,8 @@ class PulseDatasetWFPair(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          use_half=use_half,
-                         label_name=label_name)
+                         label_name=label_name,
+                         additional_fields=additional_fields)
         self.label_index = label_index
 
     def __getitem__(self, idx):
@@ -960,7 +966,8 @@ class PulseDatasetWFPairEZ(PulseDataset):
                  dataset_dir=None,
                  use_half=False,
                  label_index=None,
-                 label_name="EZ"):
+                 label_name="EZ",
+                 additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -979,7 +986,8 @@ class PulseDatasetWFPairEZ(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          use_half=use_half,
-                         label_name=label_name)
+                         label_name=label_name,
+                         additional_fields=additional_fields)
         self.label_index = label_index
 
     def __getitem__(self, idx):
@@ -1005,7 +1013,8 @@ class PulseDatasetRealWFPair(PulseDataset):
                  data_dir=None,
                  dataset_dir=None,
                  use_half=False,
-                 label_name="z"):
+                 label_name="z",
+                 additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -1024,7 +1033,8 @@ class PulseDatasetRealWFPair(PulseDataset):
                          data_dir=data_dir,
                          dataset_dir=dataset_dir,
                          use_half=use_half,
-                         label_name=label_name)
+                         label_name=label_name,
+                         additional_fields=additional_fields)
         if label_name is not None:
             if label_name == "z":
                 self.norm_factor = 1. / Z_NORMALIZATION_FACTOR
@@ -1063,7 +1073,8 @@ class PulseDatasetWFPairNorm(PulseDataset):
                  dataset_dir=None,
                  use_half=False,
                  label_index=None,
-                 label_name="EZ"):
+                 label_name="EZ",
+                 additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -1083,7 +1094,8 @@ class PulseDatasetWFPairNorm(PulseDataset):
                          dataset_dir=dataset_dir,
                          use_half=use_half,
                          label_name=label_name,
-                         normalize=False)
+                         normalize=False,
+                         additional_fields=additional_fields)
         self.label_index = label_index
 
     def __getitem__(self, idx):
@@ -1112,7 +1124,8 @@ class PulseDatasetWaveformNorm(PulseDataset):
                  dataset_dir=None,
                  use_half=False,
                  label_index=None,
-                 label_name="EZ"):
+                 label_name="EZ",
+                 additional_fields=None):
         """
         Args:
             config: configuration file object
@@ -1133,7 +1146,8 @@ class PulseDatasetWaveformNorm(PulseDataset):
                          use_half=use_half,
                          label_name=label_name,
                          normalize=False,
-                         event_based=False)
+                         event_based=False,
+                         additional_fields=additional_fields)
         self.label_index = label_index
 
     def __getitem__(self, idx):
