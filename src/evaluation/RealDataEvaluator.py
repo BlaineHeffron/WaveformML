@@ -1,4 +1,4 @@
-from numpy import zeros_like, concatenate
+from numpy import zeros_like, stack
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 
@@ -65,8 +65,8 @@ class RealDataEvaluator(SingleEndedEvaluator):
             return
         class_indices = additional_fields[self.PID_index] - 1  # map 1 to 0, 2 to 1, etc
         class_indices = self.get_dense_matrix(class_indices, c)
-        parameters = concatenate((target[:, self.E_index, :], target[:, self.PSD_index], zeros_like(target[:, self.E_index, :]),
-                          target[:, self.z_index]), dim=1)
+        parameters = stack((target[:, self.E_index, :], target[:, self.PSD_index], zeros_like(target[:, self.E_index, :]),
+                          target[:, self.z_index]), axis=1)
         if self.metric_pairs is not None:
             self.metric_pairs.add_dense_normalized_with_categories(results, parameters, self.metric_names, class_indices)
 
