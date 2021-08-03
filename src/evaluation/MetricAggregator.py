@@ -103,6 +103,8 @@ class MetricAggregator:
 
     def plot(self, logger):
         if len(self.class_names) == 1:
+            if np.sum(self.results_num[0]) < 200:
+                return
             logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
                                          plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                      if self.is_discreet else self.bin_edges,
@@ -119,22 +121,32 @@ class MetricAggregator:
                                                      self.results_num[0, 1:self.n_bins + 1],
                                                      self.class_names[0], self.retrieve_parameter_label(), "total"))
         else:
+            inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
             logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
                                          plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                        if self.is_discreet else self.bin_edges,
                                                        [safe_divide(
                                                            self.scale_factor * self.results_val[i, 1:self.n_bins + 1],
                                                            self.results_num[i, 1:self.n_bins + 1]
-                                                       ) for i in range(len(self.class_names))],
-                                                       self.class_names, self.retrieve_parameter_label(),
+                                                       ) for i in inds_to_plot],
+                                                       class_names_to_plot, self.retrieve_parameter_label(),
                                                        self.retrieve_metric_label(),
                                                        norm_to_bin_width=False, logy=False))
             logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
                                          plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                        if self.is_discreet else self.bin_edges,
                                                        [self.results_num[i, 1:self.n_bins + 1]
-                                                        for i in range(len(self.class_names))],
-                                                       self.class_names, self.retrieve_parameter_label(), "total"))
+                                                        for i in inds_to_plot],
+                                                       class_names_to_plot, self.retrieve_parameter_label(), "total"))
+
+    def retrieve_inds_to_plot(self):
+        to_plot = []
+        classes_to_plot = []
+        for i in range(len(self.class_names)):
+            if np.sum(self.results_num[i]) > 20:
+                to_plot.append(i)
+                classes_to_plot.append(self.class_names[i])
+        return to_plot, classes_to_plot
 
 
 class Metric2DAggregator:
@@ -220,6 +232,8 @@ class Metric2DAggregator:
 
     def plot(self, logger):
         if len(self.metric1.class_names) == 1:
+            if np.sum(self.results_num[0, 1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1]) < 20:
+                return
             logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
                                          plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                      self.results_num[0, 1:self.metric1.n_bins + 1,
@@ -242,12 +256,13 @@ class Metric2DAggregator:
 
 
         else:
+            inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
             logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
                                          plot_n_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                        [self.results_num[i, 1:self.metric1.n_bins + 1,
                                                         1:self.metric2.n_bins + 1] for i in
-                                                        range(len(self.metric1.class_names))],
-                                                       self.metric1.class_names,
+                                                        inds_to_plot],
+                                                       class_names_to_plot,
                                                        self.metric1.retrieve_parameter_label(),
                                                        self.metric2.retrieve_parameter_label()))
 
@@ -259,11 +274,19 @@ class Metric2DAggregator:
                                                                      self.results_num[i,
                                                                      1:self.metric1.n_bins + 1,
                                                                      1:self.metric2.n_bins + 1])
-                                                         for i in
-                                                         range(len(self.metric1.class_names))],
+                                                         for i in inds_to_plot],
                                                         self.metric1.retrieve_parameter_label(),
                                                         self.metric2.retrieve_parameter_label(),
-                                                        self.metric1.class_names))
+                                                        class_names_to_plot))
+
+    def retrieve_inds_to_plot(self):
+        inds = []
+        names = []
+        for i in range(self.metric1.num_classes):
+            if np.sum(self.results_num[i, 1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1]) > 20:
+                inds.append(i)
+                names.append(self.metric1.class_names[i])
+        return inds, names
 
 
 class MetricPairAggregator:

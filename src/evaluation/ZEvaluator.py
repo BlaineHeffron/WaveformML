@@ -691,6 +691,7 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
             self.log_segment_metric(name, "{0}{1}".format(self.namespace, name))
         if hasattr(self, "EnergyEvaluator"):
             self.EnergyEvaluator.dump()
+        RealDataEvaluator.dump(self)
 
     def retrieve_error_metrics(self):
         single_err_E = []

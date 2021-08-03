@@ -67,3 +67,6 @@ class RealDataEvaluator(SingleEndedEvaluator):
                           target[:, self.z_index]), dim=1)
         if self.metric_pairs is not None:
             self.metric_pairs.add_dense_normalized_with_categories(results, parameters, self.metric_names, class_indices)
+
+    def dump(self):
+        self.metric_pairs.plot(self.logger)
