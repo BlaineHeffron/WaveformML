@@ -564,11 +564,11 @@ class ZEvaluatorWF(ZEvaluatorBase):
 
 class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
 
-    def __init__(self, logger, calgroup=None, namespace=None, e_scale=None, additional_field_names=None):
+    def __init__(self, logger, calgroup=None, namespace=None, e_scale=None, additional_field_names=None, **kwargs):
         WaveformEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
         RealDataEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale,
                                    additional_field_names=additional_field_names, metric_name="mean absolute error", metric_unit="mm",
-                                   target_has_phys=True, scaling=self.z_scale)
+                                   target_has_phys=True, scaling=self.z_scale, **kwargs)
         if calgroup is not None:
             self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup=None, e_scale=e_scale, namespace=namespace)
         self.E_bounds = [0., 10.]
