@@ -63,7 +63,7 @@ class RealDataEvaluator(SingleEndedEvaluator):
         """
         if not self.has_PID:
             return
-        class_indices = additional_fields[self.PID_index].int() - 1  # map 1 to 0, 2 to 1, etc
+        class_indices = additional_fields[self.PID_index] - 1  # map 1 to 0, 2 to 1, etc
         class_indices = self.get_dense_matrix(class_indices, c)
         parameters = stack((target[:, self.E_index, :], target[:, self.PSD_index], zeros_like(target[:, self.E_index, :]),
                           target[:, self.z_index]), axis=1)
