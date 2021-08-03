@@ -12,7 +12,11 @@ def collate_fn(batch):
         if i > 0:
             b[0][0][:,2] += offset
         offset += b[1].size()[0]
-    return [cat([b[0][0] for b in batch]), cat([b[0][1] for b in batch])], cat([b[1] for b in batch])
+    if isinstance(batch[0][0][1], list):
+        #for additional fields
+        return [cat([b[0][0] for b in batch]), [cat([b[0][1][i] for b in batch]) for i in range(len(batch[0][1]))]], cat([b[1] for b in batch])
+    else:
+        return [cat([b[0][0] for b in batch]), cat([b[0][1] for b in batch])], cat([b[1] for b in batch])
 
 
 class PSDDataModule(pl.LightningDataModule):
