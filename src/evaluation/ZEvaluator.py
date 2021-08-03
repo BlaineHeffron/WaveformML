@@ -9,16 +9,15 @@ import torch
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.AD1Evaluator import AD1Evaluator, CELL_LENGTH
 from src.evaluation.Calibrator import Calibrator
-# from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.EnergyEvaluator import EnergyEvaluatorPhys
-from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
+from src.evaluation.RealDataEvaluator import RealDataEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
 from src.utils.PlotUtils import plot_z_acc_matrix, plot_hist2d, plot_hist1d, MultiLinePlot
 from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction, z_error, \
-    z_deviation_with_E, z_basic_prediction_dense, z_deviation_with_E_full_correlation, E_basic_prediction_dense
-from src.utils.StatsUtils import StatsAggregator
+    z_deviation_with_E, z_basic_prediction_dense, z_deviation_with_E_full_correlation, E_basic_prediction_dense, \
+    mean_absolute_error_dense
 from src.utils.util import get_bins, get_bin_midpoints
 
 
@@ -124,7 +123,7 @@ class ZEvaluatorBase:
                                              dtype=np.int32)
         }
 
-    def add(self, predictions, target, c, f, E=None):
+    def add(self, predictions, target, c, f, E=None, additional_fields=None):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
         z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
@@ -450,7 +449,7 @@ class ZEvaluatorPhys(ZEvaluatorBase, AD1Evaluator):
                 self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
-    def add(self, predictions, target, c, f, E=None):
+    def add(self, predictions, target, c, f, E=None, additional_fields=None):
         if E is not None:
             self.set_true_E()
             E = E.detach().cpu().numpy() * self.E_scale
@@ -527,7 +526,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         return E
 
-    def add(self, predictions, target, c, f, E=None, target_is_cal=False):
+    def add(self, predictions, target, c, f, E=None, target_is_cal=False, additional_fields=None):
         """
         @param predictions:
         @param target:
@@ -563,11 +562,13 @@ class ZEvaluatorWF(ZEvaluatorBase):
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
 
-class ZEvaluatorRealWFNorm(SingleEndedEvaluator, WaveformEvaluator):
+class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
 
-    def __init__(self, logger, calgroup=None, namespace=None, e_scale=None):
-        SingleEndedEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
+    def __init__(self, logger, calgroup=None, namespace=None, e_scale=None, additional_field_names=None):
         WaveformEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
+        RealDataEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale,
+                                   additional_field_names=additional_field_names, metric_name="mean absolute error", metric_unit="mm",
+                                   target_has_phys=True, scaling=self.z_scale)
         if calgroup is not None:
             self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup=None, e_scale=e_scale, namespace=namespace)
         self.E_bounds = [0., 10.]
@@ -616,13 +617,18 @@ class ZEvaluatorRealWFNorm(SingleEndedEvaluator, WaveformEvaluator):
                                  "Z Mean Absolute Error", "mm",
                                  underflow=False, overflow=(0, 0, 1), scale=self.z_scale)
 
-    def add(self, predictions, target, c):
+    def add(self, predictions, target, c, additional_fields=None):
         """
         @param predictions: tensor of dimension 4: (batch, predictions, x, y)  here predictions is length 1
         @param target: tensor of dimension 4 (batch, phys quantities, x, y) here phys quantities is length 7 of normalized phys quantities
+        @param additional_fields: list of additional fields (tensors)
         """
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
+        if self.has_PID:
+            results = torch.zeros_like(pred[:, 0, :, :])
+            results = mean_absolute_error_dense(pred[:, 0, :, :], targ[:, self.z_index, :, :], results)
+            RealDataEvaluator.add(self, results, target, c, additional_fields)
         z_deviation_with_E_full_correlation(pred[:, 0, :, :], targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae"][0],
                                             self.results["seg_mult_zmae"][1],
@@ -694,8 +700,8 @@ class ZEvaluatorRealWFNorm(SingleEndedEvaluator, WaveformEvaluator):
         for i in range(1, self.n_E + 1):
             if np.sum(self.results["E_mult_single"][1][i, :]) > 0:
                 single_err_E.append(
-                self.z_scale * np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
-                    self.results["E_mult_single"][1][i, :]))
+                    self.z_scale * np.sum(self.results["E_mult_single"][0][i, :]) / np.sum(
+                        self.results["E_mult_single"][1][i, :]))
             else:
                 single_err_E.append(0)
             self.logger.experiment.add_scalar("{}single_z_MAE_vs_E".format(self.namespace), single_err_E[-1],
@@ -703,23 +709,23 @@ class ZEvaluatorRealWFNorm(SingleEndedEvaluator, WaveformEvaluator):
 
             if np.sum(self.results["E_mult_dual"][1][i, :]) > 0:
                 dual_err_E.append(
-                self.z_scale * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
-                    self.results["E_mult_dual"][1][i, :]))
+                    self.z_scale * np.sum(self.results["E_mult_dual"][0][i, :]) / np.sum(
+                        self.results["E_mult_dual"][1][i, :]))
             else:
                 dual_err_E.append(0)
             self.logger.experiment.add_scalar("{}dual_z_MAE_vs_E".format(self.namespace), dual_err_E[-1], global_step=i)
             if np.sum(self.results["E_mult_single_cal"][1][i, :]) > 0:
                 single_err_E_cal.append(
-                self.z_scale * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
-                    self.results["E_mult_single_cal"][1][i, :]))
+                    self.z_scale * np.sum(self.results["E_mult_single_cal"][0][i, :]) / np.sum(
+                        self.results["E_mult_single_cal"][1][i, :]))
             else:
                 single_err_E_cal.append(0)
             self.logger.experiment.add_scalar("{}single_z_MAE_cal_vs_E".format(self.namespace), single_err_E_cal[-1],
                                               global_step=i)
             if np.sum(self.results["E_mult_dual_cal"][1][i, :]) > 0:
                 dual_err_E_cal.append(
-                self.z_scale * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
-                    self.results["E_mult_dual_cal"][1][i, :]))
+                    self.z_scale * np.sum(self.results["E_mult_dual_cal"][0][i, :]) / np.sum(
+                        self.results["E_mult_dual_cal"][1][i, :]))
             else:
                 dual_err_E_cal.append(0)
             self.logger.experiment.add_scalar("{}dual_z_MAE_cal_vs_E".format(self.namespace), dual_err_E_cal[-1],

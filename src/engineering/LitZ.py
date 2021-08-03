@@ -115,7 +115,11 @@ class LitZ(LitBase):
             return where(target_tensor == 0, target_tensor, pred), target_tensor
 
     def _process_batch(self, batch, target_has_phys=False):
+        additional_fields = None
         (c, f), target = batch
+        if isinstance(f, list):
+            additional_fields = f[1:]
+            f = f[0]
         if self.use_fft:
             f = rfft(f)
         if self.write_torchscript:
@@ -137,15 +141,15 @@ class LitZ(LitBase):
             else:
                 loss = self.criterion.forward(predictions, target_tensor)
         loss *= (self.evaluator.nx * self.evaluator.ny * batch_size / c.shape[0])
-        return loss, predictions, target_tensor, c, f
+        return loss, predictions, target_tensor, c, f, additional_fields
 
     def training_step(self, batch, batch_idx):
-        loss, _, _, _, _ = self._process_batch(batch)
+        loss, _, _, _, _, _ = self._process_batch(batch)
         self.log('train_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss, _, _, _, _ = self._process_batch(batch)
+        loss, _, _, _, _, _ = self._process_batch(batch)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
@@ -154,7 +158,7 @@ class LitZ(LitBase):
             (c, f), target = batch
             f = cat((f, zeros((f.shape[0], 6), dtype=f.dtype)), dim=1)
             coo, f = create_coord_from_det(c, f)
-            loss, predictions, target_tensor, c, f = self._process_batch([(coo,f),target], self.test_has_phys)
+            loss, predictions, target_tensor, c, f, _ = self._process_batch([(coo,f),target], self.test_has_phys)
             results_dict = {'test_loss': loss}
             if not self.evaluator.logger:
                 self.evaluator.set_logger(self.logger)
@@ -164,14 +168,14 @@ class LitZ(LitBase):
                 self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
             self.log_dict(results_dict, on_epoch=True, logger=True)
             return results_dict
-        loss, predictions, target_tensor, c, f = self._process_batch(batch, self.test_has_phys)
+        loss, predictions, target_tensor, c, f, additional_fields = self._process_batch(batch, self.test_has_phys)
         results_dict = {'test_loss': loss}
         if not self.evaluator.logger:
             self.evaluator.set_logger(self.logger)
         if self.test_has_phys:
-            self.evaluator.add(predictions, target_tensor, c)
+            self.evaluator.add(predictions, target_tensor, c, additional_fields=additional_fields)
         else:
-            self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
+            self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal, additional_fields=additional_fields)
         self.log_dict(results_dict, on_epoch=True, logger=True)
         return results_dict
 

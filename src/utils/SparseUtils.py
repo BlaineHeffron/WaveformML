@@ -152,6 +152,45 @@ def metric_accumulate_1d(results, parameter, output, out_n, xrange, nbins):
         out_n[bin_index] += 1
 
 
+@nb.jit(nopython=True)
+def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n, categories, xrange, nbins,
+                                               ignore_val=0, use_multiplicity=False):
+    """
+    @param results: 3 dim array (batch, X, Y)
+    @param parameter: 3 dim array (batch, X, Y) containing parameter for binning
+    @param output: 2 dim array (categories, bins)
+    @param categories: 3 dim array (batch, X, Y) indexing the output
+    @param xrange: list of 2 numbers, xlow, high
+    @param nbins: number of bins (not including underflow, overflow
+    @param ignore_val: if parameter contains this value, ignore it for aggregation
+    @param use_multiplicity: if true, use multiplicity instead of parameter tensor for binning
+    """
+    bin_width = (xrange[1] - xrange[0]) / nbins
+    for i in range(results.shape[0]):
+        if use_multiplicity:
+            mult = 0
+            for x in range(results.shape[1]):
+                for y in range(results.shape[2]):
+                    if parameter[i, x, y] == ignore_val:
+                        continue
+                    mult += 1
+            bin_index = get_bin_index(mult, xrange[0], xrange[1], bin_width, nbins)
+            for x in range(results.shape[1]):
+                for y in range(results.shape[2]):
+                    if parameter[i, x, y] == ignore_val:
+                        continue
+                    output[categories[i, x, y], bin_index] += results[i]
+                    out_n[categories[i, x, y], bin_index] += 1
+        else:
+            for x in range(results.shape[1]):
+                for y in range(results.shape[2]):
+                    if parameter[i, x, y] == ignore_val:
+                        continue
+                    bin_index = get_bin_index(parameter[i, x, y], xrange[0], xrange[1], bin_width, nbins)
+                    output[categories[i, x, y], bin_index] += results[i]
+                    out_n[categories[i, x, y], bin_index] += 1
+
+
 def get_typed_list(mylist):
     typed_list = List()
     [typed_list.append(x) for x in mylist]
@@ -193,6 +232,75 @@ def metric_accumulate_2d(results, metric, output, out_n, xrange, yrange, nbinsx,
         output[binx, biny] += results[i]
         out_n[binx, biny] += 1
 
+
+@nb.jit(nopython=True)
+def mean_absolute_error_dense(predictions, target, results):
+    """
+    @param predictions: 3 dim array of shape (batch, x, y)
+    @param target: 3 dim array of shape (batch, x, y)
+    """
+    for i in range(predictions.shape[0]):
+        for x in range(predictions.shape[1]):
+            for y in range(predictions.shape[2]):
+                if target[i, x, y] == 0:
+                    continue
+                results[i, x, y] = abs(predictions[i, x, y] - target[i, x, y])
+
+
+
+
+@nb.jit(nopython=True)
+def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n, categories, xrange, yrange, nbinsx,
+                                               nbinsy, ignore_val=0, multiplicity_index=-1):
+    """
+    @param results: 3 dim array (batch, X, Y) of results
+    @param parameter: 4 dim array (batch, parameter [2], X, Y) containing parameter for binning - if ignore_val ignore it
+    @param output: 3 dim array (categories, nbinsx + 2, nbinsy + 2)
+    @param categories: 3 dim array (batch, X, Y) indexing the output
+    @param xrange: list of 2 numbers, xlow, high
+    @param yrange: list of 2 numbers, ylow, high
+    @param nbinsx: number of bins x (not including underflow, overflow
+    @param nbinsy: number of bins y (not including underflow, overflow
+    @param ignore_val: if result contains this value, ignore it for aggregation
+    @param multiplicity_index: if -1, ignore, otherwise if 0 or 1 it indexes the metric that is multiplicity
+    """
+    xlen = xrange[1] - xrange[0]
+    ylen = yrange[1] - yrange[0]
+    bin_widthx = xlen / nbinsx
+    bin_widthy = ylen / nbinsy
+    for i in range(results.shape[0]):
+        if multiplicity_index != -1:
+            mult = 0
+            for x in range(results.shape[1]):
+                for y in range(results.shape[2]):
+                    if parameter[i, 1 - multiplicity_index, x, y] == ignore_val:
+                        continue
+                    mult += 1
+            if multiplicity_index == 0:
+                mult_bin_index = get_bin_index(mult, xrange[0], xrange[1], bin_widthx, nbinsx)
+            else:
+                mult_bin_index = get_bin_index(mult, yrange[0], yrange[1], bin_widthy, nbinsy)
+            for x in range(results.shape[1]):
+                for y in range(results.shape[2]):
+                    if parameter[i, 1 - multiplicity_index, x, y] == ignore_val:
+                        continue
+                    if multiplicity_index == 0:
+                        other_bin_index = get_bin_index(parameter[i, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
+                        output[categories[i, x, y], multiplicity_index, other_bin_index] += results[i]
+                        out_n[categories[i, x, y], multiplicity_index, other_bin_index] += 1
+                    else:
+                        other_bin_index = get_bin_index(parameter[i, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
+                        output[categories[i, x, y], other_bin_index, multiplicity_index] += results[i]
+                        out_n[categories[i, x, y], other_bin_index, multiplicity_index] += 1
+        else:
+            for x in range(results.shape[1]):
+                for y in range(results.shape[2]):
+                    if parameter[i, 0, x, y] == ignore_val:
+                        continue
+                    xbin_index = get_bin_index(parameter[i, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
+                    ybin_index = get_bin_index(parameter[i, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
+                    output[categories[i, x, y], xbin_index, ybin_index] += results[i]
+                    out_n[categories[i, x, y], xbin_index, ybin_index] += 1
 
 @nb.jit(nopython=True)
 def normalize_coords(out_coord, tot_l_current, tot_r_current, psdl, psdr, dt):
@@ -273,7 +381,8 @@ def find_max(v):
 
 
 @nb.jit(nopython=True)
-def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stats, multiplicity, psdl, psdr, n_SE, seg_status):
+def average_pulse(coords, pulses, gains, times, out_coords, out_pulses, out_stats, multiplicity, psdl, psdr, n_SE,
+                  seg_status):
     """units for dx, dy are in cell widths, dt is in sample length,
     ddt is spread in dt, dt is time difference between left and right PMTs"""
     last_id = -1
@@ -833,7 +942,7 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
             else:
                 r = 0
             z_out[coord[2], coord[0], coord[1]] = 0.5
-            L = sum1d(wf[n_samples*r:n_samples + n_samples*r]) * gain_factors[coord[0], coord[1], r]
+            L = sum1d(wf[n_samples * r:n_samples + n_samples * r]) * gain_factors[coord[0], coord[1], r]
             PE = L * eres[coord[0], coord[1], r]
             E_out[coord[2], coord[0], coord[1]] = PE / lin_interp(light_sum_curves[coord[0], coord[1]], 0)
         else:
@@ -1030,13 +1139,14 @@ def increment_metric_mult_SE(dev, bin_number, i, j, mult, nmult, out_dev, out_n,
 
 @nb.jit(nopython=True)
 def increment_metric_SE_2d(dev, bin_x, bin_y, i, j, single_dev, single_n, dual_dev,
-                             dual_n, seg_status):
+                           dual_n, seg_status):
     if seg_status[i, j] > 0:
         single_dev[bin_x, bin_y] += dev
         single_n[bin_x, bin_y] += 1
     else:
         dual_dev[bin_x, bin_y] += dev
         dual_n[bin_x, bin_y] += 1
+
 
 @nb.jit(nopython=True)
 def E_deviation(predictions, targets, dev, out_n, E_mult_dual_dev, E_mult_dual_out, E_mult_single_dev,
@@ -1133,9 +1243,12 @@ def z_deviation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_o
 
 
 @nb.jit(nopython=True)
-def z_deviation_with_E_full_correlation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
-                z_mult_single_out, z_E_single_dev, z_E_single_out, z_E_dual_dev, z_E_dual_out, E_mult_single_dev,
-                                        E_mult_single_out, E_mult_dual_dev, E_mult_dual_out, seg_status, blindl, nx, ny, nmult,
+def z_deviation_with_E_full_correlation(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out,
+                                        z_mult_single_dev,
+                                        z_mult_single_out, z_E_single_dev, z_E_single_out, z_E_dual_dev, z_E_dual_out,
+                                        E_mult_single_dev,
+                                        E_mult_single_out, E_mult_dual_dev, E_mult_dual_out, seg_status, blindl, nx, ny,
+                                        nmult,
                                         nz, zrange, E, E_low, E_high, nE):
     E_bin_width = (E_high - E_low) / nE
     z_bin_width = zrange / nz
@@ -1158,30 +1271,32 @@ def z_deviation_with_E_full_correlation(predictions, targets, dev, out_n, z_mult
                             dist_pmt = half_cell_length - true_z
                         else:
                             dist_pmt = half_cell_length + true_z
-                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length*2, z_bin_width, nz)
+                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length * 2, z_bin_width, nz)
                         increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
                                                  z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
                         increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
                                                z_E_dual_out, seg_status)
                     elif seg_status[i, j] == 0:
                         dist_pmt = half_cell_length + true_z
-                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length*2, z_bin_width, nz)
+                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length * 2, z_bin_width, nz)
                         increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
                                                  z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
                         increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
                                                z_E_dual_out, seg_status)
                         dist_pmt = half_cell_length - true_z
-                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length*2, z_bin_width, nz)
+                        z_bin = get_bin_index(dist_pmt, 0., half_cell_length * 2, z_bin_width, nz)
                         increment_metric_mult_SE(z_dev, z_bin, i, j, mult, nmult, dev, out_n, z_mult_single_dev,
                                                  z_mult_single_out, z_mult_dual_dev, z_mult_dual_out, seg_status)
                         increment_metric_SE_2d(z_dev, z_bin, E_bin, i, j, z_E_single_dev, z_E_single_out, z_E_dual_dev,
                                                z_E_dual_out, seg_status)
-                    if(mult > nmult):
+                    if (mult > nmult):
                         mult_bin = nmult
                     else:
-                        mult_bin = mult-1
-                    increment_metric_SE_2d(z_dev, E_bin, mult_bin, i, j, E_mult_single_dev, E_mult_single_out, E_mult_dual_dev,
+                        mult_bin = mult - 1
+                    increment_metric_SE_2d(z_dev, E_bin, mult_bin, i, j, E_mult_single_dev, E_mult_single_out,
+                                           E_mult_dual_dev,
                                            E_mult_dual_out, seg_status)
+
 
 @nb.jit(nopython=True)
 def z_deviation_with_E(predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_dual_out, z_mult_single_dev,
@@ -1309,5 +1424,3 @@ def swap_sparse_from_dense(sparse_list, dense_list, coords):
             prev_event = coords[batch_index, 2]
             dense_index += 1
         sparse_list[batch_index] = dense_list[dense_index, coords[batch_index, 0], coords[batch_index, 1]]
-
-

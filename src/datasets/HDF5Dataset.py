@@ -78,7 +78,7 @@ class HDF5Dataset(data.Dataset):
                     "coord_name": conf["coord_name"], "feat_name": conf["feat_name"],
                     "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"],
                     "label_file_pattern": conf["label_file_pattern"], "file_pattern": conf["file_pattern"],
-                    "event_based": conf["event_based"]}
+                    "event_based": conf["event_based"], "additional_fields": conf["additional_fields"]}
         cls.group_mode = False
         cls.ordered_file_set = [fp["file_path"] for fp in cls.info["data_info"]]
         cls.half_precision = use_half
@@ -99,7 +99,8 @@ class HDF5Dataset(data.Dataset):
                  data_cache_size=1,
                  normalize=False,
                  use_half=False,
-                 event_based=True):
+                 event_based=True,
+                 additional_fields=None):
         super().__init__()
         self.info = {}
         self.log = logging.getLogger(__name__)
@@ -124,6 +125,7 @@ class HDF5Dataset(data.Dataset):
         self.info["file_pattern"] = file_pattern
         self.info["events_per_dir"] = events_per_dir
         self.info["event_based"] = event_based
+        self.info["additional_fields"] = additional_fields
         self.coord_index = None
         # self.log.debug("file excludes is {}".format(file_excludes))
         self.group_mode = False
@@ -242,23 +244,47 @@ class HDF5Dataset(data.Dataset):
         if self.coord_index == -1:
             if second_ind > 0:
                 coords = torch.tensor(coords[first_ind:second_ind], dtype=torch.int32, device=self.device)
-                vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
+                if self.info['additional_fields'] is not None:
+                    for i in range(len(vals)):
+                        vals[i] = torch.tensor(vals[i][first_ind:second_ind, :], dtype=valtype, device=self.device)
+                else:
+                    vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
             elif first_ind > 0:
                 coords = torch.tensor(coords[first_ind:], dtype=torch.int32, device=self.device)
-                vals = torch.tensor(vals[first_ind:], dtype=valtype, device=self.device)
+                if self.info['additional_fields'] is not None:
+                    for i in range(len(vals)):
+                        vals[i] = torch.tensor(vals[i][first_ind:], dtype=valtype, device=self.device)
+                else:
+                    vals = torch.tensor(vals[first_ind:], dtype=valtype, device=self.device)
             else:
                 coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
-                vals = torch.tensor(vals, dtype=valtype, device=self.device)
+                if self.info['additional_fields'] is not None:
+                    for i in range(len(vals)):
+                        vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
+                else:
+                    vals = torch.tensor(vals, dtype=valtype, device=self.device)
         else:
             if second_ind > 0:
                 coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
-                vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
+                if self.info['additional_fields'] is not None:
+                    for i in range(len(vals)):
+                        vals[i] = torch.tensor(vals[i][first_ind:second_ind, :], dtype=valtype, device=self.device)
+                else:
+                    vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
             elif first_ind > 0:
                 coords = torch.tensor(coords[first_ind:, :], dtype=torch.int32, device=self.device)
-                vals = torch.tensor(vals[first_ind:, :], dtype=valtype, device=self.device)
+                if self.info['additional_fields'] is not None:
+                    for i in range(len(vals)):
+                        vals[i] = torch.tensor(vals[i][first_ind:, :], dtype=valtype, device=self.device)
+                else:
+                    vals = torch.tensor(vals[first_ind:, :], dtype=valtype, device=self.device)
             else:
                 coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
-                vals = torch.tensor(vals, dtype=valtype, device=self.device)
+                if self.info['additional_fields'] is not None:
+                    for i in range(len(vals)):
+                        vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
+                else:
+                    vals = torch.tensor(vals, dtype=valtype, device=self.device)
 
         if y is None:
             if self.info['label_name'] is None:
@@ -433,10 +459,19 @@ class HDF5Dataset(data.Dataset):
                 self.data_cache[file_path] = [data[()]]
             else:
                 if self.info['label_name'] is not None and self.info['label_file_pattern'] is None:
-                    self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']],
+                    if self.info['additional_fields'] is not None:
+                        fields = [self.info['feat_name']] + self.info['additional_fields']
+                        self.data_cache[file_path] = [(data[self.info['coord_name']], [data[f] for f in fields],
                                                    data[self.info['label_name']])]
+                    else:
+                        self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']],
+                                                       data[self.info['label_name']])]
                 else:
-                    self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
+                    if self.info['additional_fields'] is not None:
+                        fields = [self.info['feat_name']] + self.info['additional_fields']
+                        self.data_cache[file_path] = [(data[self.info['coord_name']], [data[f] for f in fields])]
+                    else:
+                        self.data_cache[file_path] = [(data[self.info['coord_name']], data[self.info['feat_name']])]
         else:
             if label_file:
                 if not self.info['label_name']:
@@ -446,10 +481,19 @@ class HDF5Dataset(data.Dataset):
                 self.data_cache[file_path].append(data[()])
             else:
                 if self.info['label_name'] is not None and self.info['label_file_pattern'] is None:
-                    self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']],
+                    if self.info['additional_fields'] is not None:
+                        fields = [self.info['feat_name']] + self.info['additional_fields']
+                        self.data_cache[file_path].append((data[self.info['coord_name']], [data[f] for f in fields],
                                                        data[self.info['label_name']]))
+                    else:
+                        self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']],
+                                                           data[self.info['label_name']]))
                 else:
-                    self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
+                    if self.info['additional_fields'] is not None:
+                        fields = [self.info['feat_name']] + self.info['additional_fields']
+                        self.data_cache[file_path].append((data[self.info['coord_name']], [data[f] for f in fields]))
+                    else:
+                        self.data_cache[file_path].append((data[self.info['coord_name']], data[self.info['feat_name']]))
         return len(self.data_cache[file_path]) - 1
 
     def get_path_info(self, file_path):
