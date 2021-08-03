@@ -179,7 +179,7 @@ def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n
                 for y in range(results.shape[2]):
                     if parameter[i, x, y] == ignore_val:
                         continue
-                    output[categories[i, x, y], bin_index] += results[i]
+                    output[categories[i, x, y], bin_index] += results[i, x, y]
                     out_n[categories[i, x, y], bin_index] += 1
         else:
             for x in range(results.shape[1]):
@@ -187,7 +187,7 @@ def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n
                     if parameter[i, x, y] == ignore_val:
                         continue
                     bin_index = get_bin_index(parameter[i, x, y], xrange[0], xrange[1], bin_width, nbins)
-                    output[categories[i, x, y], bin_index] += results[i]
+                    output[categories[i, x, y], bin_index] += results[i, x, y]
                     out_n[categories[i, x, y], bin_index] += 1
 
 
@@ -286,12 +286,12 @@ def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n
                         continue
                     if multiplicity_index == 0:
                         other_bin_index = get_bin_index(parameter[i, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
-                        output[categories[i, x, y], multiplicity_index, other_bin_index] += results[i]
-                        out_n[categories[i, x, y], multiplicity_index, other_bin_index] += 1
+                        output[categories[i, x, y], mult_bin_index, other_bin_index] += results[i, x, y]
+                        out_n[categories[i, x, y], mult_bin_index, other_bin_index] += 1
                     else:
                         other_bin_index = get_bin_index(parameter[i, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
-                        output[categories[i, x, y], other_bin_index, multiplicity_index] += results[i]
-                        out_n[categories[i, x, y], other_bin_index, multiplicity_index] += 1
+                        output[categories[i, x, y], other_bin_index, mult_bin_index] += results[i, x, y]
+                        out_n[categories[i, x, y], other_bin_index, mult_bin_index] += 1
         else:
             for x in range(results.shape[1]):
                 for y in range(results.shape[2]):
@@ -299,7 +299,7 @@ def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n
                         continue
                     xbin_index = get_bin_index(parameter[i, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
                     ybin_index = get_bin_index(parameter[i, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
-                    output[categories[i, x, y], xbin_index, ybin_index] += results[i]
+                    output[categories[i, x, y], xbin_index, ybin_index] += results[i, x, y]
                     out_n[categories[i, x, y], xbin_index, ybin_index] += 1
 
 @nb.jit(nopython=True)
