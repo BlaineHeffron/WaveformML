@@ -571,12 +571,12 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
                                    target_has_phys=True, scaling=self.z_scale, **kwargs)
         if calgroup is not None:
             self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup=None, e_scale=e_scale, namespace=namespace)
-        self.E_bounds = [0., 10.]
+        self.E_bounds = self.default_bins[0][0:2]
         self.mult_bounds = [0.5, 6.5]
         self.n_mult = 6
-        self.n_E = 40
-        self.E_bin_centers = get_bin_midpoints(self.E_bounds[0], self.E_bounds[1], self.n_E)
-        self.n_z = 40
+        self.n_E = self.default_bins[0][-1]
+        self.E_bin_centers = get_bin_midpoints(*self.default_bins[0])
+        self.n_z = 100
         self.z_bounds = [0., CELL_LENGTH]
         self.E_mult_names = ["E_mult_single", "E_mult_single_cal", "E_mult_dual", "E_mult_dual_cal"]
         self.Z_mult_names = ["z_mult_single", "z_mult_single_cal", "z_mult_dual", "z_mult_dual_cal"]
