@@ -19,7 +19,7 @@ def PID_class_map(PID):
 
 class RealDataEvaluator(SingleEndedEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, additional_field_names=None, metric_name=None,
-                 metric_unit=None, target_has_phys=False, scaling=1.0):
+                 metric_unit=None, target_has_phys=False, scaling=1.0, bin_overrides=None):
         super(RealDataEvaluator, self).__init__(logger, calgroup=calgroup, e_scale=e_scale)
         self.additional_field_names = additional_field_names
         self.has_PID = False
@@ -35,12 +35,14 @@ class RealDataEvaluator(SingleEndedEvaluator):
         self.metrics = []
         self.metric_names = []
         self.metric_pairs = None
+        if bin_overrides is not None:
+            self.override_default_bins(bin_overrides)
         self.scaling = scaling
         if self.has_PID:
             self.metric_names = ["energy", "psd", "multiplicity", "z"]
             self.class_names = [PID_class_map(i) for i in range(1, 8)]
             units = ["MeVee", "", "", "mm"]
-            metric_params = [[0.0, 10.0, 40], [0.0, 0.6, 40], [0.5, 6.5, 10], [-600, 600, 40]]
+            metric_params = [self.default_bins[0], self.default_bins[5], [0.5, 6.5, 10], self.default_bins[4]]
             scales = [self.E_scale, 1.0, 1.0, self.z_scale]
             i = 0
             for name, unit, scale in zip(self.metric_names, units, scales):
@@ -69,4 +71,5 @@ class RealDataEvaluator(SingleEndedEvaluator):
             self.metric_pairs.add_dense_normalized_with_categories(results, parameters, self.metric_names, class_indices)
 
     def dump(self):
-        self.metric_pairs.plot(self.logger)
+        if self.metric_pairs is not None:
+            self.metric_pairs.plot(self.logger)

@@ -43,18 +43,24 @@ class LitZ(LitBase):
         self.SE_only = False
         if hasattr(self.config.net_config, "SELoss"):
             self.SE_only = self.config.net_config.SELoss
+        eval_params = {}
+        if hasattr(config, "evaluation_config"):
+            eval_params = DictionaryUtility.to_dict(config.evaluation_config)
+        if hasattr(config.dataset_config, "test_dataset_params"):
+            if hasattr(config.dataset_config.test_dataset_params, "additional_fields"):
+                eval_params["additional_field_names"] = config.dataset_config.test_dataset_params.additional_fields
         if self.test_has_phys:
             if hasattr(self.config.dataset_config, "calgroup"):
-                self.evaluator = ZEvaluatorRealWFNorm(self.logger, calgroup=self.config.dataset_config.calgroup)
+                self.evaluator = ZEvaluatorRealWFNorm(self.logger, calgroup=self.config.dataset_config.calgroup, **eval_params)
             else:
-                self.evaluator = ZEvaluatorRealWFNorm(self.logger)
+                self.evaluator = ZEvaluatorRealWFNorm(self.logger, **eval_params)
         elif config.net_config.algorithm == "features":
-            self.evaluator = ZEvaluatorPhys(self.logger)
+            self.evaluator = ZEvaluatorPhys(self.logger, **eval_params)
         else:
             if hasattr(self.config.dataset_config, "calgroup"):
                 self.evaluator = ZEvaluatorWF(self.logger, calgroup=self.config.dataset_config.calgroup)
             else:
-                self.evaluator = ZEvaluatorWF(self.logger)
+                self.evaluator = ZEvaluatorWF(self.logger, **eval_params)
         if self.SE_only:
             self._format_SE_mask()
         if self.config.dataset_config.dataset_class == "PulseDatasetRealWFPair":

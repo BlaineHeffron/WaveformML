@@ -59,7 +59,7 @@ class AD1Evaluator(StatsAggregator):
         self.phys_units = ["MeV", "ns", "", "", "mm", "", "ns", "mm"]
         self.default_bins = [[0.0, self.E_scale, 40], [-self.dt_scale / 2., self.dt_scale / 2., 40],
                              [0.0, self.PE_scale, 40],
-                             [0.0, self.PE_scale, 40], [-self.z_scale / 2., self.z_scale / 2., 40], [0.0, 1.0, 40],
+                             [0.0, self.PE_scale, 40], [-self.z_scale / 2., self.z_scale / 2., 40], [0.0, 0.6, 40],
                              [0.0, self.toffset_scale, 40], [0.0, CELL_LENGTH, 40]]
         if calgroup is not None:
             self.hascal = True
