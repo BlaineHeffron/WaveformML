@@ -132,7 +132,7 @@ class MetricAggregator:
             logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
                                          plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                        if self.is_discreet else self.bin_edges,
-                                                       [self.results_num[, 1:self.n_bins + 1]
+                                                       [self.results_num[i, 1:self.n_bins + 1]
                                                         for i in range(len(self.class_names))],
                                                        self.class_names, self.retrieve_parameter_label(), "total"))
 
