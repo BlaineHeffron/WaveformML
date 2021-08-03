@@ -36,9 +36,6 @@ class RealDataEvaluator(SingleEndedEvaluator):
         self.metric_names = []
         self.metric_pairs = None
         self.scaling = scaling
-        self.initialize()
-
-    def initialize(self):
         if self.has_PID:
             self.metric_names = ["energy", "psd", "multiplicity", "z"]
             self.class_names = [PID_class_map(i) for i in range(1, 8)]
