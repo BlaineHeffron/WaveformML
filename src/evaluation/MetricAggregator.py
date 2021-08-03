@@ -320,26 +320,26 @@ class MetricPairAggregator:
 
     def add_dense_normalized_with_categories(self, results, parameters, parameter_names, categories):
         """
-        @param results: 4 dimensional input, batch x result dim (1) x X x Y
+        @param results: 3 dimensional input, batch x X x Y
         @param parameters: 4 dimensional input, batch x parameter dimension x X x Y
         @param parameter_names: list of names of the parameters, used to match with metric index
-        @param categories: 4 dimensional input, batch x category dim (1) x X x Y
+        @param categories: 4 dimensional input, batch x X x Y
         """
         for i in range(len(parameter_names) - 1):
             ind1 = self.metric_index_by_name(parameter_names[i])
-            self.metric_list[ind1].add_dense_normalized_with_categories(results, parameters[i], categories)
+            self.metric_list[ind1].add_dense_normalized_with_categories(results, parameters[:, i], categories)
             for j in range(i + 1, len(parameter_names)):
                 ind2 = self.metric_index_by_name(parameter_names[j])
                 if ind2 < ind1:
                     name = "{0}_{1}".format(ind2, ind1)
-                    self.metric_pairs[name].add_dense_normalized_with_categories(results, parameters[j], parameters[i],
+                    self.metric_pairs[name].add_dense_normalized_with_categories(results, parameters[:, j], parameters[:, i],
                                                                                  categories)
                 else:
                     name = "{0}_{1}".format(ind1, ind2)
-                    self.metric_pairs[name].add_dense_normalized_with_categories(results, parameters[i], parameters[j],
+                    self.metric_pairs[name].add_dense_normalized_with_categories(results, parameters[:, i], parameters[:, j],
                                                                                  categories)
             ind = self.metric_index_by_name(parameter_names[-1])
-            self.metric_list[ind].add_dense_normalized_with_categories(results, parameters[-1], categories)
+            self.metric_list[ind].add_dense_normalized_with_categories(results, parameters[:, -1], categories)
 
     def metric_index_by_name(self, name):
         for i, m in enumerate(self.metric_list):
