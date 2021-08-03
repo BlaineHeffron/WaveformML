@@ -246,30 +246,21 @@ class HDF5Dataset(data.Dataset):
                 coords = torch.tensor(coords[first_ind:second_ind], dtype=torch.int32, device=self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
-                        if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind, :], dtype=valtype, device=self.device)
-                        else:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind, :], device=self.device)
+                        vals[i] = torch.tensor(vals[i][first_ind:second_ind, :], dtype=valtype, device=self.device)
                 else:
                     vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
             elif first_ind > 0:
                 coords = torch.tensor(coords[first_ind:], dtype=torch.int32, device=self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
-                        if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:], dtype=valtype, device=self.device)
-                        else:
-                            vals[i] = torch.tensor(vals[i][first_ind:], device=self.device)
+                        vals[i] = torch.tensor(vals[i][first_ind:], dtype=valtype, device=self.device)
                 else:
                     vals = torch.tensor(vals[first_ind:], dtype=valtype, device=self.device)
             else:
                 coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
-                        if i == 0:
-                            vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
-                        else:
-                            vals[i] = torch.tensor(vals[i], device=self.device)
+                        vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
                 else:
                     vals = torch.tensor(vals, dtype=valtype, device=self.device)
         else:
@@ -277,30 +268,21 @@ class HDF5Dataset(data.Dataset):
                 coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
-                        if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind], dtype=valtype, device=self.device)
-                        else:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind], device=self.device)
+                        vals[i] = torch.tensor(vals[i][first_ind:second_ind], dtype=valtype, device=self.device)
                 else:
                     vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
             elif first_ind > 0:
                 coords = torch.tensor(coords[first_ind:, :], dtype=torch.int32, device=self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
-                        if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:], dtype=valtype, device=self.device)
-                        else:
-                            vals[i] = torch.tensor(vals[i][first_ind:], device=self.device)
+                        vals[i] = torch.tensor(vals[i][first_ind:], dtype=valtype, device=self.device)
                 else:
                     vals = torch.tensor(vals[first_ind:, :], dtype=valtype, device=self.device)
             else:
                 coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
-                        if i == 0:
-                            vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
-                        else:
-                            vals[i] = torch.tensor(vals[i], device=self.device)
+                        vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
                 else:
                     vals = torch.tensor(vals, dtype=valtype, device=self.device)
 
