@@ -1,4 +1,4 @@
-from torch import cat, zeros_like
+from numpy import cat, zeros_like
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 
@@ -57,7 +57,7 @@ class RealDataEvaluator(SingleEndedEvaluator):
     def add(self, results, target, c, additional_fields=None):
         """
         @param results: numpy array 3 dim (batch, x, y), metric values
-        @param target: torch tensor 4 dim (batch, n params,  x, y) of parameter values
+        @param target: numpy array 4 dim (batch, n params,  x, y) of parameter values
         @param c: torch tensor 2 dim (batch, coord)
         @param additional_fields: list of torch tensors of additional fields (same shape as results)
         """

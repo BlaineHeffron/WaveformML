@@ -628,7 +628,7 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
         if self.has_PID:
             results = np.zeros_like(pred[:, 0, :, :])
             results = mean_absolute_error_dense(pred[:, 0, :, :], targ[:, self.z_index, :, :], results)
-            RealDataEvaluator.add(self, results, target, c, additional_fields)
+            RealDataEvaluator.add(self, results, targ, c, additional_fields)
         z_deviation_with_E_full_correlation(pred[:, 0, :, :], targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae"][0],
                                             self.results["seg_mult_zmae"][1],
