@@ -55,6 +55,7 @@ class PredictionWriter(P2XTableWriter):
         self.data_type = dataset_class_type_map(dataset_class)
 
     def write_predictions(self):
+        #TODO: get dead segment list from xml file or accept list from command line input (or config file or something)
         self.copy_chanmap(self.input)
         self.input.setup_table(self.data_type.name, self.data_type.type, self.data_type.event_index_name,
                                event_index_coord=self.data_type.event_index_coord)
@@ -114,7 +115,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
     def swap_values(self, data, model):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=model.device)
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=model.device)
-        output = model.model([coords, vals]).detach().cpu().numpy().squeeze(1)
+        output = (model.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
         if self.hascal:
             dense_vals = self.get_dense_matrix(vals, coords)
