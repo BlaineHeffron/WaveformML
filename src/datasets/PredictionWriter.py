@@ -119,9 +119,10 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
         output = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
         if self.hascal:
-            dense_vals = self.get_dense_matrix(vals, coords)
-            dense_E = stack((dense_vals[:, self.E_index] * self.E_scale, dense_vals[:, self.PE0_index] * self.PE_scale,
-                             dense_vals[:, self.PE1_index] * self.PE_scale), axis=1)
+            phys = torch.tensor(data["phys"], dtype=torch.float32, device=self.model.device)
+            dense_phys = self.get_dense_matrix(phys, coords)
+            dense_E = stack((dense_phys[:, self.E_index] * self.E_scale, dense_phys[:, self.PE0_index] * self.PE_scale,
+                             dense_phys[:, self.PE1_index] * self.PE_scale), axis=1)
             cal_E_pred = zeros(dense_E[:, 0].shape)
             E_basic_prediction_dense(dense_E, output, self.blind_detl, self.blind_detr,
                                               self.calibrator.light_pos_curves,
