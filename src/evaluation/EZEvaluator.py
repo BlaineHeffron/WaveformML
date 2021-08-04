@@ -46,8 +46,7 @@ class EZEvaluatorPhys(EZEvaluatorBase):
             dense_E = self.EnergyEvaluator.get_dense_matrix(
                 torch.cat((e.unsqueeze(1), PE0.unsqueeze(1), PE1.unsqueeze(1)), dim=1), c, to_numpy=True)
             z_pred = (predictions[:, 1, :, :].detach().cpu().numpy() - 0.5) * self.EnergyEvaluator.z_scale
-            E_basic_prediction_dense(dense_E, z_pred, self.EnergyEvaluator.nx, self.EnergyEvaluator.ny,
-                                     self.ZEvaluator.seg_status,
+            E_basic_prediction_dense(dense_E, z_pred, self.EnergyEvaluator.blind_detl, self.EnergyEvaluator.blind_detr,
                                      self.EnergyEvaluator.calibrator.light_pos_curves,
                                      self.EnergyEvaluator.calibrator.light_sum_curves, cal_E_pred)
             cal_E_pred = cal_E_pred / self.EnergyEvaluator.E_scale

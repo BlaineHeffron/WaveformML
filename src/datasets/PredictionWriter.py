@@ -123,8 +123,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
             dense_E = stack((dense_vals[:, self.E_index] * self.E_scale, dense_vals[:, self.PE0_index] * self.PE_scale,
                              dense_vals[:, self.PE1_index] * self.PE_scale), axis=1)
             cal_E_pred = zeros(dense_E[:, 0].shape)
-            E_basic_prediction_dense(dense_E, output, self.nx, self.ny,
-                                              self.seg_status,
+            E_basic_prediction_dense(dense_E, output, self.blind_detl, self.blind_detr,
                                               self.calibrator.light_pos_curves,
                                               self.calibrator.light_sum_curves, cal_E_pred)
             swap_sparse_from_dense(data["EZ"][:, 0], cal_E_pred, data["coord"])

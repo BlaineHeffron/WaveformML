@@ -116,7 +116,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='', cmap=plt.cm.Bl
     return fig
 
 
-def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None, cm=plt.cm.cividis):
+def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None, cm=plt.cm.viridis):
     n_categories = len(title)
     nrows = ceil(n_categories / 3)
     fig_height = 4.0
@@ -161,7 +161,7 @@ def plot_n_contour(X, Y, Z, xlabel, ylabel, title, suptitle=None, cm=plt.cm.civi
     return fig
 
 
-def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True, cm=plt.cm.cividis):
+def plot_contour(X, Y, Z, xlabel, ylabel, title, filled=True, cm=plt.cm.viridis):
     Z = np.transpose(Z)
     fig, ax = plt.subplots()
     if filled:
@@ -238,7 +238,7 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
 
 
 def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bin_width=True, logz=True,
-                  cm=plt.cm.cividis):
+                  cm=plt.cm.viridis):
     n_categories = len(title)
     nrows = ceil(n_categories / 3)
     fig_height = 4.0
@@ -313,7 +313,7 @@ def plot_n_hist2d(xedges, yedges, vals, title, xlabel, ylabel, suptitle=None, no
 
 
 def plot_hist2d(xedges, yedges, vals, title, xlabel, ylabel, zlabel, norm_to_bin_width=True, logz=True,
-                cm=plt.cm.cividis):
+                cm=plt.cm.viridis):
     fig, ax = plt.subplots()
     xwidth = xedges[1] - xedges[0]
     ywidth = yedges[1] - yedges[0]

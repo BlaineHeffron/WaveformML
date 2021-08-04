@@ -668,8 +668,7 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
             e = targ[:, self.E_index, :, :] * self.E_scale
             dense_E = np.concatenate((np.expand_dims(e, 1), np.expand_dims(PE0, 1), np.expand_dims(PE1, 1)), axis=1)
             z_pred = (pred[:, 0, :, :] - 0.5) * self.z_scale
-            E_basic_prediction_dense(dense_E, z_pred, self.nx, self.ny,
-                                     self.seg_status,
+            E_basic_prediction_dense(dense_E, z_pred, self.blind_detl, self.blind_detr,
                                      self.calibrator.light_pos_curves,
                                      self.calibrator.light_sum_curves, cal_E_pred)
             cal_E_pred = cal_E_pred / self.E_scale

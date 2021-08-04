@@ -1005,21 +1005,21 @@ def calc_calib_z_E(coordinates, waveforms, z_out, E_out, sample_width, t_interp_
 
 
 @nb.jit(nopython=True)
-def E_basic_prediction_dense(E, z, nx, ny, seg_status, light_pos_curves, light_sum_curves, pred):
+def E_basic_prediction_dense(E, z, blind_detl, blind_detr, light_pos_curves, light_sum_curves, pred):
     """assumes z contains some z prediction for single ended"""
     """E is dense matrix, first index is batch index, second index is feature index,
     features are energy, PE0, PE1 in MeV and photons 
     z is dense matrix first index is batch index, second and third indices are cooirdinate"""
     for batch in range(E.shape[0]):
-        for x in range(nx):
-            for y in range(ny):
+        for x in range(E.shape[1]):
+            for y in range(E.shape[2]):
                 if E[batch, 0, x, y] == 0:
                     continue
-                if seg_status[x, y] > 0:
-                    if E[batch, 1, x, y] == 0 and E[batch, 2, x, y] == 0:
-                        continue
+                if blind_detl[x, y] == 1 and blind_detr[x, y] == 1:
+                    continue
+                if blind_detl[x, y] == 1 or blind_detr[x, y] == 1:
                     logR = lin_interp_inverse(light_pos_curves[x, y], z[batch, x, y])
-                    if E[batch, 1, x, y] == 0:
+                    if blind_detl[x, y] == 1:
                         P0 = E[batch, 2, x, y] / exp(logR)
                         pred[batch, x, y] = (P0 + E[batch, 2, x, y]) / lin_interp(light_sum_curves[x, y],
                                                                                   z[batch, x, y])
