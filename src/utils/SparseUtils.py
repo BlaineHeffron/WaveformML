@@ -1018,10 +1018,6 @@ def E_basic_prediction_dense(E, z, nx, ny, seg_status, light_pos_curves, light_s
                 if seg_status[x, y] > 0:
                     if E[batch, 1, x, y] == 0 and E[batch, 2, x, y] == 0:
                         continue
-                    elif E[batch, 1, x, y] != 0 and E[batch, 2, x, y] != 0:
-                        print("error: seg status is incongruent with PE0, PE1, for segment ")
-                        print(x)
-                        print(y)
                     logR = lin_interp_inverse(light_pos_curves[x, y], z[batch, x, y])
                     if E[batch, 1, x, y] == 0:
                         P0 = E[batch, 2, x, y] / exp(logR)
