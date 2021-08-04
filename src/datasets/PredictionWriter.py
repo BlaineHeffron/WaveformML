@@ -1,8 +1,10 @@
 import torch
+from numpy import stack, zeros
 
 from src.datasets.PulseDataset import dataset_class_type_map
 from src.datasets.HDF5IO import P2XTableWriter, H5Input
-from src.utils.SparseUtils import swap_sparse_from_dense
+from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
+from src.utils.SparseUtils import swap_sparse_from_dense, E_basic_prediction_dense
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
 from os.path import exists
@@ -102,19 +104,31 @@ class PredictionWriter(P2XTableWriter):
         self.XMLW.write_xml(self.path + ".xml", runtime)
 
 
-class ZPredictionWriter(PredictionWriter):
+class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
 
     def __init__(self, path, input_path, config, checkpoint, **kwargs):
-        super().__init__(path, input_path, config, checkpoint, **kwargs)
+        PredictionWriter.__init__(self, path, input_path, config, checkpoint, **kwargs)
+        SingleEndedEvaluator.__init__(self, None, **kwargs)
         self.phy_index_replaced = 4
 
     def swap_values(self, data, model):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=model.device)
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=model.device)
         output = model.model([coords, vals]).detach().cpu().numpy().squeeze(1)
-        swap_sparse_from_dense(data["phys"][:, model.evaluator.z_index], output, data["coord"])
-        self.phy_index_replaced = model.evaluator.z_index
+        swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
+        if self.hascal:
+            dense_vals = self.get_dense_matrix(vals, coords)
+            dense_E = stack((dense_vals[:, self.E_index] * self.E_scale, dense_vals[:, self.PE0_index] * self.PE_scale,
+                             dense_vals[:, self.PE1_index] * self.PE_scale), axis=1)
+            cal_E_pred = zeros(dense_E[:, 0].shape)
+            E_basic_prediction_dense(dense_E, output, self.nx, self.ny,
+                                              self.seg_status,
+                                              self.calibrator.light_pos_curves,
+                                              self.calibrator.light_sum_curves, cal_E_pred)
+            swap_sparse_from_dense(data["EZ"][:, 0], cal_E_pred, data["coord"])
+            self.XMLW.step_settings["EZ_index_replaced"] = [0, 1]
+        else:
+            self.XMLW.step_settings["EZ_index_replaced"] = [1]
 
     def set_xml(self):
         super().set_xml()
-        self.XMLW.step_settings["phys_index_replaced"] = str(self.phy_index_replaced)

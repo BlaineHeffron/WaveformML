@@ -5,7 +5,7 @@ from src.evaluation.AD1Evaluator import AD1Evaluator
 
 
 class SingleEndedEvaluator(AD1Evaluator):
-    def __init__(self, logger, calgroup=None, e_scale=None):
+    def __init__(self, logger, calgroup=None, e_scale=None, **kwargs):
         super().__init__(logger, calgroup=calgroup, e_scale=e_scale)
         SE_dead_pmts = [1, 0, 2, 4, 6, 7, 9, 10, 12, 13, 16, 19, 20, 21, 22, 24, 26, 27, 34, 36, 37, 43, 46, 48,
                         55,

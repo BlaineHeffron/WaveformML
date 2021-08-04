@@ -14,7 +14,8 @@ def main():
     parser.add_argument("config", help="path to config file for model")
     parser.add_argument("checkpoint", help="path to checkpoint file for model")
     parser.add_argument("--output", "-o", type=str, help="path to output hdf5 file")
-    parser.add_argument("--cpu", "-c", action="store_true", help="map tensor device storage to cpu")
+    parser.add_argument("--calgroup", "-c", type=str, help="calibration group to use for E prediction")
+    parser.add_argument("--cpu", "-cpu", action="store_true", help="map tensor device storage to cpu")
     parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument("--buffer_size", "-b", type=int, help="number of rows to store in memory before writing to disk", default=1024*16)
     parser.add_argument("--read_size", "-r", type=int, help="number of rows per read", default=2048)
@@ -42,6 +43,8 @@ def main():
         pw_args["n_buffer_rows"] = args.buffer_size
     if args.read_size:
         pw_args["n_rows_per_read"] = args.read_size
+    if args.calgroup:
+        pw_args["calgroup"] = args.calgroup
     if args.num_threads:
         torch.set_num_threads(args.num_threads)
     PW = ZPredictionWriter(output, input_path, config, checkpoint, **pw_args)
