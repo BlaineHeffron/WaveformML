@@ -114,6 +114,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
 
     def swap_values(self, data):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
+        coords[:, -1] = coords[:, -1] - coords[-1, -1] # make sure always starts with 0
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
