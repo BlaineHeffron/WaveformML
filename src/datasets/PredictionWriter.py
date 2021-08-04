@@ -7,7 +7,6 @@ from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.utils.SparseUtils import swap_sparse_from_dense, E_basic_prediction_dense
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
-from os.path import exists
 
 
 class PredictionWriter(P2XTableWriter):
@@ -47,7 +46,8 @@ class PredictionWriter(P2XTableWriter):
         self.model = modules.retrieve_class(self.config.run_config.run_class).load_from_checkpoint(self.checkpoint_path,
                                                                                                    config=self.config,
                                                                                                    **args)
-        self.model.model.eval()
+        self.model.eval()
+        self.model.freeze()
 
     def set_datatype(self):
         modules = ModuleUtility(self.config.dataset_config.imports)
@@ -66,12 +66,12 @@ class PredictionWriter(P2XTableWriter):
         with torch.no_grad():
             data = self.input.next_chunk(self.n_rows_per_read)
             n_current_buffer += data.shape[0]
-            self.swap_values(data, self.model)
+            self.swap_values(data)
             self.add_rows(self.data_type.name, data)
             while data is not None:
                 data = self.input.next_chunk(self.n_rows_per_read)
                 if data is not None:
-                    self.swap_values(data, self.model)
+                    self.swap_values(data)
                     self.add_rows(self.data_type.name, data)
                     n_current_buffer += data.shape[0]
                     if n_current_buffer >= self.n_buffer_rows:
@@ -81,7 +81,7 @@ class PredictionWriter(P2XTableWriter):
         self.input.close()
         self.close()
 
-    def swap_values(self, data, model):
+    def swap_values(self, data):
         raise NotImplementedError()
 
     def set_xml(self):
@@ -112,10 +112,10 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
         SingleEndedEvaluator.__init__(self, None, **kwargs)
         self.phy_index_replaced = 4
 
-    def swap_values(self, data, model):
-        coords = torch.tensor(data["coord"], dtype=torch.int32, device=model.device)
-        vals = torch.tensor(data["pulse"], dtype=torch.float32, device=model.device)
-        output = (model.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
+    def swap_values(self, data):
+        coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
+        vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+        output = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
         if self.hascal:
             dense_vals = self.get_dense_matrix(vals, coords)
