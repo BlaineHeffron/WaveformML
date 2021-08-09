@@ -13,6 +13,7 @@ def main():
     parser.add_argument("input_path", help="path to input hdf5 file")
     parser.add_argument("config", help="path to config file for model")
     parser.add_argument("checkpoint", help="path to checkpoint file for model")
+    parser.add_argument("--writer", "-w", type=str, help="choose writer. 'z' for Z prediction writer, 'irn' for IRN prediction writer")
     parser.add_argument("--output", "-o", type=str, help="path to output hdf5 file")
     parser.add_argument("--calgroup", "-c", type=str, help="calibration group to use for E prediction")
     parser.add_argument("--cpu", "-cpu", action="store_true", help="map tensor device storage to cpu")
@@ -47,7 +48,15 @@ def main():
         pw_args["calgroup"] = args.calgroup
     if args.num_threads:
         torch.set_num_threads(args.num_threads)
-    PW = ZPredictionWriter(output, input_path, config, checkpoint, **pw_args)
+    if not args.writer:
+        print("no writer selected, using ZPredictionWriter")
+        PW = ZPredictionWriter(output, input_path, config, checkpoint, **pw_args)
+    elif args.writer == "z":
+        PW = ZPredictionWriter(output, input_path, config, checkpoint, **pw_args)
+    elif args.writer == "irn":
+        PW = IRNPredictionWriter(output, input_path, config, checkpoint, **pw_args)
+    else:
+        raise IOError("{} not a valid choice for writer. ".format(args.writer))
     print("Writing predictions")
     PW.write_predictions()
     runtime = time.time() - start_time

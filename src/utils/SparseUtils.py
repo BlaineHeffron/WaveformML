@@ -1406,7 +1406,7 @@ def z_error(predictions, targets, results, n_bins, low, high, nmult, sample_segs
 @nb.jit(nopython=True)
 def swap_sparse_from_dense(sparse_list, dense_list, coords):
     """
-    Takes values from dense list of shape (dense batch size, x, y) and swaps into sparse list of shape (batch size,)
+    Takes values from dense list of shape (dense batch size, l, x, y) and swaps into sparse list of shape (batch size, l)
     using coords of shape (batch size, 3) containing x, y, event number coordinates
     @param sparse_list:
     @param dense_list:
@@ -1415,8 +1415,38 @@ def swap_sparse_from_dense(sparse_list, dense_list, coords):
     """
     prev_event = -1
     dense_index = -1
+    multi_features = False
+    if len(sparse_list.shape) == 2:
+        multi_features = True
     for batch_index in range(sparse_list.shape[0]):
         if coords[batch_index, 2] != prev_event:
             prev_event = coords[batch_index, 2]
             dense_index += 1
-        sparse_list[batch_index] = dense_list[dense_index, coords[batch_index, 0], coords[batch_index, 1]]
+        if multi_features:
+            sparse_list[batch_index, :] = dense_list[dense_index, :, coords[batch_index, 0], coords[batch_index, 1]]
+        else:
+            sparse_list[batch_index] = dense_list[dense_index, coords[batch_index, 0], coords[batch_index, 1]]
+
+@nb.jit(nopython=True)
+def swap_sparse_from_event(sparse_list, event_list, coords):
+    """
+    Takes values from event list of shape (dense batch size, l) and swaps into sparse list of shape (batch size, l)
+    using coords of shape (batch size, 3) containing x, y, event number coordinates
+    @param sparse_list:
+    @param event_list:
+    @param coords:
+    @return: None
+    """
+    prev_event = -1
+    dense_index = -1
+    multi_features = False
+    if len(sparse_list.shape) == 2:
+        multi_features = True
+    for batch_index in range(sparse_list.shape[0]):
+        if coords[batch_index, 2] != prev_event:
+            prev_event = coords[batch_index, 2]
+            dense_index += 1
+        if multi_features:
+            sparse_list[batch_index, :] = event_list[dense_index, :]
+        else:
+            sparse_list[batch_index] = event_list[dense_index]

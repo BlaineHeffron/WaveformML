@@ -4,7 +4,7 @@ from numpy import stack, zeros
 from src.datasets.PulseDataset import dataset_class_type_map
 from src.datasets.HDF5IO import P2XTableWriter, H5Input
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
-from src.utils.SparseUtils import swap_sparse_from_dense, E_basic_prediction_dense
+from src.utils.SparseUtils import swap_sparse_from_dense, E_basic_prediction_dense, swap_sparse_from_event
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
 
@@ -128,9 +128,28 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
                                               self.calibrator.light_pos_curves,
                                               self.calibrator.light_sum_curves, cal_E_pred)
             swap_sparse_from_dense(data["EZ"][:, 0], cal_E_pred, data["coord"])
+
+    def set_xml(self):
+        super().set_xml()
+        if self.hascal:
             self.XMLW.step_settings["EZ_index_replaced"] = [0, 1]
         else:
             self.XMLW.step_settings["EZ_index_replaced"] = [1]
 
+
+class IRNPredictionWriter(PredictionWriter):
+
+    def __init__(self, path, input_path, config, checkpoint, **kwargs):
+        PredictionWriter.__init__(self, path, input_path, config, checkpoint, **kwargs)
+        self.phy_index_replaced = 4
+
+    def swap_values(self, data):
+        coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
+        coords[:, -1] = coords[:, -1] - coords[0, -1] # make sure always starts with 0
+        vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+        output = self.model([coords, vals]).detach().cpu().numpy()
+        swap_sparse_from_event(data["phys"][:, 4:], output, coords)
+
     def set_xml(self):
         super().set_xml()
+        self.XMLW.step_settings["phys_index_replaced"] = [4,5,6]
