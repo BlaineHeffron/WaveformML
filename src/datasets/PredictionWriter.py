@@ -148,7 +148,7 @@ class IRNPredictionWriter(PredictionWriter):
         coords[:, -1] = coords[:, -1] - coords[0, -1] # make sure always starts with 0
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = self.model([coords, vals]).detach().cpu().numpy()
-        swap_sparse_from_event(data["phys"][:, 4:], output, coords)
+        swap_sparse_from_event(data["phys"][:, 4:], output, data["coord"])
 
     def set_xml(self):
         super().set_xml()
