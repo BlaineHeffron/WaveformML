@@ -14,6 +14,7 @@ def main():
     parser.add_argument("mask", help="file mask (ie *WFNorm.h5)")
     parser.add_argument("config", help="path to config file for model")
     parser.add_argument("checkpoint", help="path to checkpoint file for model")
+    parser.add_argument("--writer", "-w", type=str, help="choose writer. 'z' for Z prediction writer, 'irn' for IRN prediction writer")
     parser.add_argument("--output", "-o", type=str, help="directory to output hdf5 files")
     parser.add_argument("--calgroup", "-c", type=str, help="calibration group to use")
     parser.add_argument("--cpu", "-cpu", action="store_true", help="map tensor device storage to cpu")
