@@ -2,7 +2,6 @@ from os.path import join
 
 from src.engineering.PSDDataModule import *
 import logging
-from torch.jit import trace
 
 
 class LitBase(pl.LightningModule):
@@ -33,7 +32,7 @@ class LitBase(pl.LightningModule):
             self.model = None
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
-        self.write_torchscript = False
+        self.write_onnx = False
         self.model_written = False
 
     def forward(self, x):
@@ -73,7 +72,7 @@ class LitBase(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         data, target = batch
-        if self.write_torchscript:
+        if self.write_onnx:
             self.write_model(data)
         predictions = self.model(data)
         loss = self.criterion.forward(predictions, target)
@@ -84,9 +83,8 @@ class LitBase(pl.LightningModule):
 
     def write_model(self, data):
         if not self.model_written:
-            print("serializing torchscript version of model")
-            trace_model = trace(self.model, data)
-            print("saving model to {}.".format(join(self.logger.experiment.log_dir, "torchscript_model.pt")))
-            trace_model.save(join(self.logger.experiment.log_dir, "torchscript_model.pt"))
+            path = join(self.logger.experiment.log_dir, "model.onnx")
+            print("saving onnx model to {}.".format(path))
+            onnx_model = self.to_onnx(path, data, export_params=True)
             print("saving model success")
             self.model_written = True

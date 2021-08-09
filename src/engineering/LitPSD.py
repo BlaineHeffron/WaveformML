@@ -129,7 +129,7 @@ class LitPSD(LitBase):
 
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
-        if self.write_torchscript:
+        if self.write_onnx:
             self.write_model([c,f])
         predictions = self.model([c, f])
         loss = self.criterion.forward(predictions, target)

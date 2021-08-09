@@ -128,7 +128,7 @@ class LitZ(LitBase):
             f = f[0]
         if self.use_fft:
             f = rfft(f)
-        if self.write_torchscript:
+        if self.write_onnx:
             self.write_model([c, f])
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1

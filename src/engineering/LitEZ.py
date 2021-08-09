@@ -113,7 +113,7 @@ class LitEZ(LitBase):
             f[:, 0] *= self.e_factor
             f[:, 2] *= self.e_factor
             f[:, 3] *= self.e_factor
-        if self.write_torchscript:
+        if self.write_onnx:
             self.write_model([c, f])
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1

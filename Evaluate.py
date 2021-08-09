@@ -17,7 +17,7 @@ def main():
     parser.add_argument("config", help="path to config file")
     parser.add_argument("checkpoint", help="path to checkpoint file")
     parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
-    parser.add_argument("--torchscript", "-t", action="store_true", help="set to generate torch script model instead of evaluating")
+    parser.add_argument("--onnx", "-o", action="store_true", help="set to generate onnx model instead of evaluating")
     parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
@@ -49,8 +49,8 @@ def main():
     trainer_args = {"logger": logger, "callbacks": [LoggingCallback()]}
     set_default_trainer_args(trainer_args, config)
     #model.set_logger(logger)
-    if args.torchscript:
-        runner.write_torchscript = True
+    if args.onnx:
+        runner.write_onnx = True
     data_module = PSDDataModule(config, runner.device)
     trainer = Trainer(**trainer_args)
     trainer.test(runner, datamodule=data_module)
