@@ -55,7 +55,7 @@ class PredictionWriter(P2XTableWriter):
         self.data_type = dataset_class_type_map(dataset_class)
 
     def write_predictions(self):
-        #TODO: get dead segment list from xml file or accept list from command line input (or config file or something)
+        # TODO: get dead segment list from xml file or accept list from command line input (or config file or something)
         self.copy_chanmap(self.input)
         self.input.setup_table(self.data_type.name, self.data_type.type, self.data_type.event_index_name,
                                event_index_coord=self.data_type.event_index_coord)
@@ -114,7 +114,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
 
     def swap_values(self, data):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
-        coords[:, -1] = coords[:, -1] - coords[0, -1] # make sure always starts with 0
+        coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
@@ -125,8 +125,8 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
                              dense_phys[:, self.PE1_index] * self.PE_scale), axis=1)
             cal_E_pred = zeros(dense_E[:, 0].shape)
             E_basic_prediction_dense(dense_E, output, self.blind_detl, self.blind_detr,
-                                              self.calibrator.light_pos_curves,
-                                              self.calibrator.light_sum_curves, cal_E_pred)
+                                     self.calibrator.light_pos_curves,
+                                     self.calibrator.light_sum_curves, cal_E_pred)
             swap_sparse_from_dense(data["EZ"][:, 0], cal_E_pred, data["coord"])
 
     def set_xml(self):
@@ -145,11 +145,11 @@ class IRNPredictionWriter(PredictionWriter):
 
     def swap_values(self, data):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
-        coords[:, -1] = coords[:, -1] - coords[0, -1] # make sure always starts with 0
+        coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = self.model([coords, vals]).detach().cpu().numpy()
         swap_sparse_from_event(data["phys"][:, 4:], output, data["coord"])
 
     def set_xml(self):
         super().set_xml()
-        self.XMLW.step_settings["phys_index_replaced"] = [4,5,6]
+        self.XMLW.step_settings["phys_index_replaced"] = [4, 5, 6]
