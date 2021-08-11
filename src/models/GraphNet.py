@@ -1,10 +1,11 @@
 import torch.nn.functional as F
-from torch_geometric.nn import EdgeConv, knn_graph
+from torch_geometric.nn import EdgeConv, knn_graph, GCNConv
 
 from src.models.BasicNetwork import *
 
-#see https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
-#try https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#torch_geometric.nn.conv.EdgeConv
+
+# see https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
+# try https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#torch_geometric.nn.conv.EdgeConv
 
 
 class DynamicEdgeConv(EdgeConv):
@@ -20,11 +21,17 @@ class DynamicEdgeConv(EdgeConv):
 class GraphNet(nn.Module):
     def __init__(self, config):
         super(GraphNet, self).__init__()
-        #self.conv1 = GCNConv(dataset.num_node_features, 16)
-        #self.conv2 = GCNConv(16, dataset.num_classes)
         self.config = config
-        self.conv1 = DynamicEdgeConv(self.config.system_config.n_samples, 16)
-        self.conv2 = DynamicEdgeConv(16, self.config.ntype)
+        if hasattr(config.net_config.hparams, "k"):
+            self.k = config.net_config.hparams.k
+        else:
+            self.k = 6
+        if config.net_config.net_type == "Edge":
+            self.conv1 = DynamicEdgeConv(self.config.system_config.n_samples * 2, 16, k=self.k)
+            self.conv2 = DynamicEdgeConv(16, self.config.system_config.n_type, k=self.k)
+        else:
+            self.conv1 = GCNConv(self.config.system_config.n_samples * 2, 16)
+            self.conv2 = GCNConv(16, self.config.system_config.n_type)
 
     def forward(self, data):
         x, coo = data[1], data[0]
