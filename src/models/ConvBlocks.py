@@ -254,7 +254,7 @@ class Conv2DBlock(nn.Module):
                     Conv2d(nframes[i], nframes[i + 1], (fs, fs), (st, st), pd, (dil, dil), 1, trainable_weights))
                 self.log.debug("added regular convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
             self.log.debug("filter size: {0}, stride: {1}, pad: {2}, dil: {3}".format(fs, st, pd, dil))
-            self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
+            self.alg.append(nn.BatchNorm2d(nframes[i + 1]))
             self.alg.append(nn.ReLU())
             if self.dropout:
                 self.alg.append(nn.Dropout(self.dropout))
