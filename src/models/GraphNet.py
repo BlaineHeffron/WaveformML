@@ -13,18 +13,19 @@ class DynamicEdgeConv(EdgeConv):
         super(DynamicEdgeConv, self).__init__(in_channels, out_channels)
         self.k = k
 
-    def forward(self, x, batch=None):
+    def forward(self, feat, x, batch=None):
         edge_index = knn_graph(x, self.k, batch, loop=False, flow=self.flow)
-        return super(DynamicEdgeConv, self).forward(x, edge_index)
+        return super(DynamicEdgeConv, self).forward(feat, edge_index)
+
 
 class DynamicGraphConv(GCNConv):
     def __init__(self, in_channels, out_channels, k=6):
         super(DynamicGraphConv, self).__init__(in_channels, out_channels)
         self.k = k
 
-    def forward(self, x, batch=None):
+    def forward(self, feat, x, batch=None):
         edge_index = knn_graph(x, self.k, batch, loop=False, flow=self.flow)
-        return super(DynamicGraphConv, self).forward(x, edge_index)
+        return super(DynamicGraphConv, self).forward(feat, edge_index)
 
 
 class GraphNet(nn.Module):
