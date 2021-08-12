@@ -1,8 +1,10 @@
 from math import floor, pow, ceil
 import torch.nn as nn
+from torch.nn import Conv2d
 from torch.nn.utils import weight_norm
 from src.models.Algorithm import *
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
+from src.models.SPConvBlocks import _get_frame_expansion, _get_frame_contraction
 
 
 class DilationBlock(Algorithm):
@@ -153,20 +155,21 @@ class TemporalConvNet(nn.Module):
 
 
 class Conv1DNet(nn.Module):
-    def __init__(self, length, num_channels, out_size, num_expand, num_contract, expand_factor, size_factor = 3, pad_factor=1, stride_factor = 0, min_kernel = 2):
+    def __init__(self, length, num_channels, out_size, num_expand, num_contract, expand_factor, size_factor=3,
+                 pad_factor=1, stride_factor=0, min_kernel=2):
         super(Conv1DNet, self).__init__()
         self.log = logging.getLogger(__name__)
         planes = [num_channels]
         conv_layers = []
         if num_expand > 0:
-            expand = float((planes[0]*expand_factor - planes[0]) / num_expand)
-            planes += [int(round(planes[0] + expand*(i+1))) for i in range(num_expand)]
+            expand = float((planes[0] * expand_factor - planes[0]) / num_expand)
+            planes += [int(round(planes[0] + expand * (i + 1))) for i in range(num_expand)]
         contract_factor = float((planes[-1] - out_size) / num_contract)
         start_n = planes[-1]
-        planes += [int(round(start_n - contract_factor*(i+1))) for i in range(num_contract)]
+        planes += [int(round(start_n - contract_factor * (i + 1))) for i in range(num_contract)]
         planes[-1] = out_size
         self.out_size = [length, num_channels]
-        n = num_expand+num_contract
+        n = num_expand + num_contract
         for i in range(n):
             if n > 1:
                 decay_factor = 1. - i / (n - 1)
@@ -176,18 +179,90 @@ class Conv1DNet(nn.Module):
                 st = int(stride_factor)
             if st < 1:
                 st = 1
-            fs = int(ceil(size_factor*decay_factor))
+            fs = int(ceil(size_factor * decay_factor))
             if fs < min_kernel:
                 fs = min_kernel
-            pd = int(round(pad_factor * ((fs - 1)/2.) * decay_factor))
+            pd = int(round(pad_factor * ((fs - 1) / 2.) * decay_factor))
             self.log.debug("Initializing 1d convolution block for vector of length {0}: nin {1}, nout {2}, "
-                           "kernel size {3}, padding {4}, stride {5}".format(self.out_size, planes[i], planes[i+1], fs, pd, st))
-            conv_layers.append(nn.Conv1d(planes[i], planes[i+1], fs, stride=st, padding=pd))
-            arg_dict = {DIM: 1, NIN: planes[i], NOUT: planes[i+1], FS: [fs] * 4, STR: [st] * 4,
+                           "kernel size {3}, padding {4}, stride {5}".format(self.out_size, planes[i], planes[i + 1],
+                                                                             fs, pd, st))
+            conv_layers.append(nn.Conv1d(planes[i], planes[i + 1], fs, stride=st, padding=pd))
+            arg_dict = {DIM: 1, NIN: planes[i], NOUT: planes[i + 1], FS: [fs] * 4, STR: [st] * 4,
                         PAD: [pd] * 4, DIL: [1] * 4}
             self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", 1)
         self.network = nn.Sequential(*conv_layers)
 
-
     def forward(self, x):
         return self.network(x)
+
+
+class Conv2DBlock(nn.Module):
+    def __init__(self, nin, nout, n, size,
+                 size_factor=3, pad_factor=0., stride_factor=1.0,
+                 dil_factor=1., expansion_factor=1., n_expansion=0,
+                 pointwise_factor=0., dropout=None,
+                 trainable_weights=False):
+        super(Conv2DBlock, self).__init__()
+        self.alg = []
+        self.out_size = size
+        self.dropout = dropout
+        self.log = logging.getLogger(__name__)
+        self.log.debug("Initializing convolution block with nin {0}, nout {1}, size {2}".format(nin, nout, size))
+        self.ndim = len(size) - 1
+        if pointwise_factor > 0:
+            n_contraction = n - 1 - n_expansion
+        if n_contraction < 1:
+            raise ValueError("n_contraction too large, must be < n - 1")
+        else:
+            n_contraction = n - n_expansion
+        if n_contraction < 1:
+            raise ValueError("n_contraction too large, must be < n")
+        nframes = [nin]
+        if pointwise_factor > 0:
+            nframes.append(nin - int(floor((nin - nout) * pointwise_factor)))
+        if n_expansion > 0:
+            nframes += _get_frame_expansion(nframes[-1], expansion_factor, n_expansion)
+        if n_contraction > 0:
+            nframes += _get_frame_contraction(nframes[-1], nout, n_contraction)
+        for i in range(n):
+            if pointwise_factor > 0:
+                if n > 1:
+                    decay_factor = 1. - (i - 1) / (n - 1)
+                else:
+                    decay_factor = 1.
+            else:
+                if n > 1:
+                    decay_factor = 1. - i / (n - 1)
+                else:
+                    decay_factor = 1.
+            fs = int(ceil(size_factor * decay_factor))
+            if fs < 2:
+                fs = 2
+            st = int(round(stride_factor * i / (n - 1)))
+            if st < 1:
+                st = 1
+            dil = int(round(dil_factor ** i))
+            pd = int(round(pad_factor * ((fs - 1) / 2.) * dil_factor * decay_factor))
+            if i == 0 and pointwise_factor > 0:
+                pd, fs, dil, st = 0, 1, 1, 1
+                self.alg.append(
+                    Conv2d(nframes[i], nframes[i + 1], (fs, fs), (st, st), pd, (dil, dil), 1, trainable_weights))
+                # self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
+                self.log.debug("added pointwise convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
+            else:
+                self.alg.append(
+                    Conv2d(nframes[i], nframes[i + 1], (fs, fs), (st, st), pd, (dil, dil), 1, trainable_weights))
+                self.log.debug("added regular convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
+            self.log.debug("filter size: {0}, stride: {1}, pad: {2}, dil: {3}".format(fs, st, pd, dil))
+            self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
+            self.alg.append(nn.ReLU())
+            if self.dropout:
+                self.alg.append(nn.Dropout(self.dropout))
+            arg_dict = {DIM: self.ndim, NIN: nframes[i], NOUT: nframes[i + 1], FS: [fs] * 4, STR: [st] * 4,
+                        PAD: [pd] * 4, DIL: [dil] * 4}
+            self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", self.ndim)
+            self.log.debug("Loop {0}, output size is {1}".format(i, self.out_size))
+        self.model = nn.Sequential(*self.alg)
+
+    def forward(self, x):
+        return self.model(x)
