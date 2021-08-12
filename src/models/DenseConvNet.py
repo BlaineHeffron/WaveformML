@@ -53,7 +53,7 @@ class DenseConvNet(nn.Module):
             for p_name in extras:
                 params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams, p_name))
                 if p_name == "conv_params":
-                    self.model = Conv2DBlock(size[2], hparams.out_planes, hparams.n_conv, size, True, **params)
+                    self.model = Conv2DBlock(size[2], hparams.out_planes, hparams.n_conv, size,  **params)
                     size = self.model.out_size
                 elif p_name == "lin_params":
                     flat_size = 1
