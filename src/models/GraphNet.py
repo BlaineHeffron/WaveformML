@@ -17,6 +17,15 @@ class DynamicEdgeConv(EdgeConv):
         edge_index = knn_graph(x, self.k, batch, loop=False, flow=self.flow)
         return super(DynamicEdgeConv, self).forward(x, edge_index)
 
+class DynamicGraphConv(GCNConv):
+    def __init__(self, in_channels, out_channels, k=6):
+        super(DynamicGraphConv, self).__init__(in_channels, out_channels)
+        self.k = k
+
+    def forward(self, x, batch=None):
+        edge_index = knn_graph(x, self.k, batch, loop=False, flow=self.flow)
+        return super(DynamicGraphConv, self).forward(x, edge_index)
+
 
 class GraphNet(nn.Module):
     def __init__(self, config):
@@ -30,8 +39,8 @@ class GraphNet(nn.Module):
             self.conv1 = DynamicEdgeConv(self.config.system_config.n_samples * 2, 16, k=self.k)
             self.conv2 = DynamicEdgeConv(16, self.config.system_config.n_type, k=self.k)
         else:
-            self.conv1 = GCNConv(self.config.system_config.n_samples * 2, 16)
-            self.conv2 = GCNConv(16, self.config.system_config.n_type)
+            self.conv1 = DynamicGraphConv(self.config.system_config.n_samples * 2, 16)
+            self.conv2 = DynamicGraphConv(16, self.config.system_config.n_type)
 
     def forward(self, data):
         x, coo = data[1], data[0]
