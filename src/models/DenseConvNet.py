@@ -17,7 +17,6 @@ class DenseConvNet(nn.Module):
         self.nsamples = self.system_config.n_samples
         self.ntype = self.system_config.n_type
         self.modules = ModuleUtility(self.net_config.imports)
-        self.sequence_class = self.modules.retrieve_class(self.net_config.sequence_class)
         self.x = 14
         self.y = 11
         self.get_algorithm()
