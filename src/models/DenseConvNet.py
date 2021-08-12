@@ -31,8 +31,6 @@ class DenseConvNet(nn.Module):
         return x
 
     def get_algorithm(self):
-        sparse_funcs = []
-        linear_funcs = []
         if hasattr(self.net_config, "hparams"):
             try:
                 self.create_algorithm(self.net_config.hparams, self.ntype)

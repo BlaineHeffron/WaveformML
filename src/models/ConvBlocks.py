@@ -211,12 +211,12 @@ class Conv2DBlock(nn.Module):
         self.ndim = len(size) - 1
         if pointwise_factor > 0:
             n_contraction = n - 1 - n_expansion
-        if n_contraction < 1:
-            raise ValueError("n_contraction too large, must be < n - 1")
+            if n_contraction < 1:
+                raise ValueError("n_contraction too large, must be < n - 1")
         else:
             n_contraction = n - n_expansion
-        if n_contraction < 1:
-            raise ValueError("n_contraction too large, must be < n")
+            if n_contraction < 1:
+                raise ValueError("n_contraction too large, must be < n")
         nframes = [nin]
         if pointwise_factor > 0:
             nframes.append(nin - int(floor((nin - nout) * pointwise_factor)))
