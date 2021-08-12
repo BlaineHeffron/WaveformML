@@ -21,12 +21,14 @@ class DenseConvNet(nn.Module):
         self.y = 11
         self.get_algorithm()
         self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
+        self.dense_permute = LongTensor([0, 3, 1, 2])
 
     def forward(self, x):
         batch_size = x[0][-1, -1] + 1
-        spacial_size = [batch_size, self.x, self.y]
-        sparse_tensor = sparse_coo_tensor(transpose(x[0][:, self.permute_tensor], 0, 1), x[1], size=spacial_size)
-        x = self.model(sparse_tensor.to_dense())
+        spacial_size = [batch_size, self.x, self.y, self.nsamples*2]
+        sparse_tensor = sparse_coo_tensor(transpose(x[0][:, self.permute_tensor], 0, 1), x[1], size=spacial_size,
+                                          device=x[0].device)
+        x = self.model(sparse_tensor.to_dense()[self.dense_permute])
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
         return x
