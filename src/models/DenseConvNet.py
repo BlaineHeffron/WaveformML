@@ -1,8 +1,8 @@
 from copy import copy
 
-from torch import nn
+from torch import nn, LongTensor
 import logging
-from torch import sparse_coo_tensor
+from torch import sparse_coo_tensor, transpose
 
 from src.models.ConvBlocks import Conv2DBlock, LinearBlock
 from src.utils.util import ModuleUtility, DictionaryUtility
@@ -20,11 +20,12 @@ class DenseConvNet(nn.Module):
         self.x = 14
         self.y = 11
         self.get_algorithm()
+        self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
 
     def forward(self, x):
         batch_size = x[0][-1, -1] + 1
         spacial_size = [batch_size, self.x, self.y]
-        sparse_tensor = sparse_coo_tensor(x[0], x[1], size=spacial_size)
+        sparse_tensor = sparse_coo_tensor(transpose(x[0][:, self.permute_tensor], 0, 1), x[1], size=spacial_size)
         x = self.model(sparse_tensor.to_dense())
         x = x.view(-1, self.n_linear)
         x = self.linear(x)
@@ -35,7 +36,9 @@ class DenseConvNet(nn.Module):
             try:
                 self.create_algorithm(self.net_config.hparams, self.ntype)
             except AssertionError as e:
-                raise AssertionError("Parameters {0} \nlead to error : {1}".format(DictionaryUtility.to_dict(self.net_config.hparams), e))
+                raise AssertionError(
+                    "Parameters {0} \nlead to error : {1}".format(DictionaryUtility.to_dict(self.net_config.hparams),
+                                                                  e))
         else:
             raise IOError("net_config must contain one of either 'algorithm' or 'hparams'")
 
@@ -51,7 +54,7 @@ class DenseConvNet(nn.Module):
             for p_name in extras:
                 params = {} if not hasattr(hparams, p_name) else DictionaryUtility.to_dict(getattr(hparams, p_name))
                 if p_name == "conv_params":
-                    self.model = Conv2DBlock(size[2], hparams.out_planes, hparams.n_conv, size,  **params)
+                    self.model = Conv2DBlock(size[2], hparams.out_planes, hparams.n_conv, size, **params)
                     size = self.model.out_size
                 elif p_name == "lin_params":
                     flat_size = 1
