@@ -133,6 +133,7 @@ class HDF5Dataset(data.Dataset):
         # Search for all h5 files
         all_files = []
         for i, file_path in enumerate(file_paths):
+            print(file_path)
             p = Path(file_path)
             if not p.is_dir():
                 raise RuntimeError("{0} is not a valid directory.".format(str(p.resolve())))
