@@ -47,12 +47,14 @@ class DilationBlock(Algorithm):
 
 
 class LinearPlanes(nn.Module):
-    def __init__(self, planes):
+    def __init__(self, planes, activation=None):
         super(LinearPlanes, self).__init__()
         self.log = logging.getLogger(__name__)
         alg = []
         for i in range(len(planes) - 1):
             alg.append(nn.Linear(int(round(planes[i])), int(round(planes[i + 1]))))
+            if activation is not None:
+                alg.append(activation)
             self.log.debug("Adding linear block {0} -> {1}\n".format(int(round(planes[i])), int(round(planes[i + 1]))))
         self.net = nn.Sequential(*alg)
 
