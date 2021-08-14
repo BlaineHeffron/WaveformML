@@ -89,7 +89,7 @@ class GraphNet(nn.Module):
             self.pool_ratio = config.net_config.hparams.pool_ratio
             self.log.debug("Setting pool ratio to {}".format(self.pool_ratio))
         if self.n_lin > 0:
-            self.linear = LinearBlock(self.graph_out*2, self.lin_outputs, self.n_lin).func
+            self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
         self.reduction_type = "linear"
@@ -125,7 +125,8 @@ class GraphNet(nn.Module):
             #x, x1, edge_index, batch = layer(x, edge_index, batch)
             x, edge_index = layer(x, edge_index)
         if self.n_lin > 0:
-            x = cat([global_max_pool(x, coo[:, 2]), global_mean_pool(x, coo[:, 2])], dim=1)
+            #x = cat([global_max_pool(x, coo[:, 2]), global_mean_pool(x, coo[:, 2])], dim=1)
+            x = global_max_pool(x, coo[:, 2])
             x = self.linear(x)
         return x
 
