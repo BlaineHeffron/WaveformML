@@ -1,7 +1,7 @@
 import torch.nn.functional as F
 from torch import cat
 from torch.nn import ReLU
-from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, TopKPooling, global_max_pool, global_mean_pool, \
+from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, global_max_pool, global_mean_pool, \
     MessagePassing, SAGEConv, GraphConv, GATConv, GATv2Conv, TransformerConv, TAGConv, GINConv, GINEConv, ARMAConv, \
     SGConv, GMMConv, EGConv, FeaStConv, LEConv, ClusterGCNConv, GENConv, HypergraphConv, GCN2Conv, PANConv, FiLMConv, \
     SuperGATConv
@@ -42,13 +42,12 @@ class GraphLayer(nn.Module):
         super(GraphLayer, self).__init__()
         self.log = logging.getLogger(__name__)
         self.graph_net = net
-        self.pool = TopKPooling(out_channels, pool_ratio)
 
-    def forward(self, x, edge_index, batch):
+    def forward(self, x, edge_index):
         x = F.relu(self.graph_net(x, edge_index))
-        x, edge_index, edge_attr, batch, perm, score = self.pool(x, edge_index, None, batch)
+        #x, edge_index, edge_attr, batch, perm, score = self.pool(x, edge_index, None, batch)
         #return x, cat([global_max_pool(x, batch), global_mean_pool(x, batch)], dim=1), edge_index, batch
-        return x, edge_index, batch
+        return x
 
 
 
@@ -121,13 +120,12 @@ class GraphNet(nn.Module):
 
     def forward(self, data):
         x, coo = data[1], data[0].long()
-        batch = coo[:, 2]
-        edge_index = knn_graph(coo, self.k, batch, loop=False)
+        edge_index = knn_graph(coo, self.k, coo[:, 2], loop=False)
         for layer in self.graph_layers:
             #x, x1, edge_index, batch = layer(x, edge_index, batch)
-            x, edge_index, batch = layer(x, edge_index, batch)
+            x, edge_index = layer(x, edge_index)
         if self.n_lin > 0:
-            x = cat([global_max_pool(x, batch), global_mean_pool(x, batch)], dim=1)
+            x = cat([global_max_pool(x, coo[:, 2]), global_mean_pool(x, coo[:, 2])], dim=1)
             x = self.linear(x)
         return x
 
