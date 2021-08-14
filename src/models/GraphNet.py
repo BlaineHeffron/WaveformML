@@ -1,6 +1,6 @@
 import torch.nn.functional as F
 from torch import cat
-from torch.nn import ReLU
+from torch.nn import ReLU, ModuleList
 from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, global_max_pool, global_mean_pool, \
     MessagePassing, SAGEConv, GraphConv, GATConv, GATv2Conv, TransformerConv, TAGConv, GINConv, GINEConv, ARMAConv, \
     SGConv, GMMConv, EGConv, FeaStConv, LEConv, ClusterGCNConv, GENConv, HypergraphConv, GCN2Conv, PANConv, FiLMConv, \
@@ -59,7 +59,21 @@ class GraphNet(nn.Module):
         self.lin_outputs = 0
         self.feat_size = self.config.system_config.n_samples*2
         self.n_lin = 0
-        self.n_graph = config.net_config.hparams.n_graph
+        self.n_graph = 0
+        self.n_expansion = 0
+        self.expansion_factor = 1.0
+        if hasattr(config.net_config.hparams, "n_graph"):
+            self.n_graph = config.net_config.hparams.n_graph
+        elif hasattr(config.net_config.hparams, "n_contract"):
+            if not hasattr(config.net_config.hparams, "n_expand"):
+                raise IOError("if net_config.hparams.n_graph not specified, must specify n_expand and n_contract")
+            self.n_graph = config.net_config.hparams.n_contract + config.net_config.hparams.n_expand
+        else:
+            raise IOError("if net_config.hparams.n_graph not specified, must specify n_expand and n_contract")
+        if hasattr(config.net_config.hparams, "expansion_factor"):
+            self.expansion_factor = config.net_config.hparams.expansion_factor
+        if hasattr(config.net_config.hparams, "n_expand"):
+            self.n_expansion = config.net_config.hparams.n_expand
         self.graph_index = config.net_config.hparams.graph_class_index
         self.graph_class = self.retrieve_class(config.net_config.hparams.graph_class_index)
         if hasattr(config.net_config.hparams, "n_lin"):
@@ -76,7 +90,7 @@ class GraphNet(nn.Module):
             self.k = 6
         self.graph_out = 10
         self.graph_params = {}
-        self.graph_layers = []
+        self.graph_layers = ModuleList()
         self.graph_planes = []
         if hasattr(config.net_config.hparams, "graph_params"):
             self.graph_params = DictionaryUtility.to_dict(config.net_config.hparams.graph_params)
@@ -97,13 +111,29 @@ class GraphNet(nn.Module):
             self.reduction_type = config.net_config.hparams.reduction_type
         self.graph_planes = [self.feat_size]
         if self.reduction_type == "linear":
-            red = int((self.graph_planes[0] - self.graph_out) / self.n_graph)
-            for n in range(self.n_graph):
-                self.graph_planes.append(self.graph_planes[-1] - red)
+            if self.n_expansion > 0:
+                exp = int((self.graph_planes[0]*self.expansion_factor - self.graph_planes[0]) / self.n_expansion)
+                for n in range(self.n_expansion):
+                    self.graph_planes.append(self.graph_planes[-1] + exp)
+                red = int((self.graph_planes[-1] - self.graph_out) / (self.n_graph - self.n_expansion))
+                for n in range(self.n_graph - self.n_expansion):
+                    self.graph_planes.append(self.graph_planes[-1] - red)
+            else:
+                red = int((self.graph_planes[0] - self.graph_out) / self.n_graph)
+                for n in range(self.n_graph):
+                    self.graph_planes.append(self.graph_planes[-1] - red)
         elif self.reduction_type == "geometric":
-            red = float(self.graph_out / self.graph_planes[0]) ** (1./self.n_graph)
-            for n in range(self.n_graph):
-                self.graph_planes.append(int(self.graph_planes[-1] * red))
+            if self.n_expansion > 0:
+                exp = float(self.expansion_factor) ** (1./self.n_expansion)
+                for n in range(self.n_expansion):
+                    self.graph_planes.append(int(self.graph_planes[-1] * exp))
+                red = float(self.graph_out / self.graph_planes[-1]) ** (1. / (self.n_graph - self.n_expansion))
+                for n in range(self.n_graph - self.n_expansion):
+                    self.graph_planes.append(int(self.graph_planes[-1] * red))
+            else:
+                red = float(self.graph_out / self.graph_planes[0]) ** (1./self.n_graph)
+                for n in range(self.n_graph):
+                    self.graph_planes.append(int(self.graph_planes[-1] * red))
         else:
             raise IOError("net_config.hparams.reduction_type must be either linear or geometric")
         self.graph_planes[-1] = int(self.graph_out)
@@ -115,7 +145,6 @@ class GraphNet(nn.Module):
                 self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nin, nout], activation=ReLU()), **self.graph_params), nout, self.pool_ratio))
             else:
                 self.graph_layers.append(GraphLayer(self.graph_class(nin, nout, **self.graph_params), nout, self.pool_ratio))
-        self.graph_layers = nn.Sequential(*self.graph_layers)
 
 
     def forward(self, data):
@@ -123,7 +152,7 @@ class GraphNet(nn.Module):
         edge_index = knn_graph(coo, self.k, coo[:, 2], loop=False)
         for layer in self.graph_layers:
             #x, x1, edge_index, batch = layer(x, edge_index, batch)
-            x, edge_index = layer(x, edge_index)
+            x = layer(x, edge_index)
         if self.n_lin > 0:
             #x = cat([global_max_pool(x, coo[:, 2]), global_mean_pool(x, coo[:, 2])], dim=1)
             x = global_max_pool(x, coo[:, 2])
