@@ -1,6 +1,7 @@
 import torch.nn.functional as F
-from torch import cat
-from torch.nn import ReLU, ModuleList
+from torch_geometric.transforms import Cartesian, LocalCartesian, Distance
+from torch.nn import ReLU, ModuleList, Linear
+from torch_geometric.data import Data
 from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, global_max_pool, global_mean_pool, \
     MessagePassing, SAGEConv, GraphConv, GATConv, GATv2Conv, TransformerConv, TAGConv, GINConv, GINEConv, ARMAConv, \
     SGConv, GMMConv, EGConv, FeaStConv, LEConv, ClusterGCNConv, GENConv, HypergraphConv, GCN2Conv, PANConv, FiLMConv, \
@@ -38,16 +39,31 @@ class GraphLayer(nn.Module):
     """
     @param net: MessagePassing layer that must conform to __init__(self, in_channels, out_channels, *args, **kwargs)
     """
-    def __init__(self, net: MessagePassing, out_channels, pool_ratio):
+    def __init__(self, net: MessagePassing, uses_edge_attr=False, edge_attr_dim_match=False, match_size=None, edge_attr_dim=None):
         super(GraphLayer, self).__init__()
         self.log = logging.getLogger(__name__)
         self.graph_net = net
+        self.uses_edge_attr = uses_edge_attr
+        self.edge_attr_dim_match = edge_attr_dim_match
+        if edge_attr_dim_match:
+            if not edge_attr_dim:
+                raise RuntimeError("edge_attr_dim must be supplied if edge_attr_dim_match is true")
+            if not match_size:
+                raise RuntimeError("match_size must be supplied if edge_attr_dim_match is true")
+            self.linear = Linear(edge_attr_dim, match_size)
 
-    def forward(self, x, edge_index):
-        x = F.relu(self.graph_net(x, edge_index))
+    def forward(self, data: Data):
+        if self.uses_edge_attr:
+            if self.edge_attr_dim_match:
+                edge_attr = self.linear(data.edge_attr)
+                data.x = F.relu(self.graph_net(data.x, data.edge_index, edge_attr))
+            else:
+                data.x = F.relu(self.graph_net(data.x, data.edge_index, data.edge_attr))
+        else:
+            data.x = F.relu(self.graph_net(data.x, data.edge_index))
         #x, edge_index, edge_attr, batch, perm, score = self.pool(x, edge_index, None, batch)
         #return x, cat([global_max_pool(x, batch), global_mean_pool(x, batch)], dim=1), edge_index, batch
-        return x
+        return data
 
 
 
@@ -102,22 +118,38 @@ class GraphNet(nn.Module):
         if hasattr(config.net_config.hparams, "pool_ratio"):
             self.pool_ratio = config.net_config.hparams.pool_ratio
             self.log.debug("Setting pool ratio to {}".format(self.pool_ratio))
+        self.use_self_loops = False
+        if hasattr(config.net_config.hparams, "self_loop"):
+            self.use_self_loops = config.net_config.hparams.self_loop
         if self.n_lin > 0:
             self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
+        self.edge_attr_transform = Cartesian()
+        self.edge_attr_dim = 2
+        if hasattr(config.net_config.hparams, "edge_transform"):
+            if config.net_config.hparams.edge_transform == "cartesian":
+                self.edge_attr_transform = Cartesian()
+                self.edge_attr_dim = 2
+            elif config.net_config.hparams.edge_transform == "localcartesian":
+                self.edge_attr_transform = LocalCartesian()
+                self.edge_attr_dim = 2
+            else:
+                raise IOError("net_config.hparams.edge_transform must be one of 'cartesian', 'localcartesian'")
         self.reduction_type = "linear"
         if hasattr(config.net_config.hparams, "reduction_type"):
             self.reduction_type = config.net_config.hparams.reduction_type
         self.graph_planes = [self.feat_size]
+        self.n_contract = self.n_graph - self.n_expansion
         if self.reduction_type == "linear":
             if self.n_expansion > 0:
                 exp = int((self.graph_planes[0]*self.expansion_factor - self.graph_planes[0]) / self.n_expansion)
                 for n in range(self.n_expansion):
                     self.graph_planes.append(self.graph_planes[-1] + exp)
-                red = int((self.graph_planes[-1] - self.graph_out) / (self.n_graph - self.n_expansion))
-                for n in range(self.n_graph - self.n_expansion):
-                    self.graph_planes.append(self.graph_planes[-1] - red)
+                if self.n_contract > 0:
+                    red = int((self.graph_planes[-1] - self.graph_out) / self.n_contract)
+                    for n in range(self.n_contract):
+                        self.graph_planes.append(self.graph_planes[-1] - red)
             else:
                 red = int((self.graph_planes[0] - self.graph_out) / self.n_graph)
                 for n in range(self.n_graph):
@@ -127,9 +159,10 @@ class GraphNet(nn.Module):
                 exp = float(self.expansion_factor) ** (1./self.n_expansion)
                 for n in range(self.n_expansion):
                     self.graph_planes.append(int(self.graph_planes[-1] * exp))
-                red = float(self.graph_out / self.graph_planes[-1]) ** (1. / (self.n_graph - self.n_expansion))
-                for n in range(self.n_graph - self.n_expansion):
-                    self.graph_planes.append(int(self.graph_planes[-1] * red))
+                if self.n_contract > 0:
+                    red = float(self.graph_out / self.graph_planes[-1]) ** (1. / self.n_contract)
+                    for n in range(self.n_contract):
+                        self.graph_planes.append(int(self.graph_planes[-1] * red))
             else:
                 red = float(self.graph_out / self.graph_planes[0]) ** (1./self.n_graph)
                 for n in range(self.n_graph):
@@ -137,33 +170,73 @@ class GraphNet(nn.Module):
         else:
             raise IOError("net_config.hparams.reduction_type must be either linear or geometric")
         self.graph_planes[-1] = int(self.graph_out)
+        default_params = self.default_positional_params(self.graph_index)
+        self.uses_edge_attr = self.needs_edge_attr(self.graph_index)
+        self.default_keyword_params(self.graph_index)
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
-            nout = self.graph_planes[i+1]
+            nout = self.output_modifier(self.graph_index, self.graph_planes[i+1])
+            match_ind = nin
+            dim_match = False
+            if self.edge_attr_dimension_match(self.graph_index):
+                match_ind = nin
+                dim_match = True
             self.log.debug("Adding graph layer of type {0} with nin: {1}, nout: {2}".format(self.graph_class, nin, nout))
             if self.class_needs_nn(self.graph_index):
-                self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nin, nout], activation=ReLU()), **self.graph_params), nout, self.pool_ratio))
+                nlin_in = self.nn_input_modifier(self.graph_index)*nin
+                if dim_match and self.edge_attr_dim_match(self.graph_index):
+                    match_ind = nlin_in
+                self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
             else:
-                self.graph_layers.append(GraphLayer(self.graph_class(nin, nout, **self.graph_params), nout, self.pool_ratio))
+                self.graph_layers.append(GraphLayer(self.graph_class(nin, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
 
 
     def forward(self, data):
-        x, coo = data[1], data[0].long()
-        edge_index = knn_graph(coo, self.k, coo[:, 2], loop=False)
+        coo = data[0].long()
+        edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
+        geom_data = Data(x=data[1], edge_index=edge_index, pos=coo[:, 0:2])
+        if self.uses_edge_attr:
+            self.edge_attr_transform(geom_data)
         for layer in self.graph_layers:
             #x, x1, edge_index, batch = layer(x, edge_index, batch)
-            x = layer(x, edge_index)
+            geom_data = layer(geom_data)
         if self.n_lin > 0:
             #x = cat([global_max_pool(x, coo[:, 2]), global_mean_pool(x, coo[:, 2])], dim=1)
-            x = global_max_pool(x, coo[:, 2])
-            x = self.linear(x)
-        return x
+            geom_data.x = global_max_pool(geom_data.x, coo[:, 2])
+            geom_data.x = self.linear(geom_data.x)
+        return geom_data.x
+
+    def nn_input_modifier(self, index):
+        if index == 12:
+            return 2
+        else:
+            return 1
 
     def class_needs_nn(self, index):
-        if index in [7, 8, 13]:
+        if index in [7, 11, 12]:
             return True
         else:
             return False
+
+    def default_positional_params(self, index):
+        if index == 10:
+            # degree of pseudodimensionality of coordinate and kernel size
+            return [2, 2]
+        else:
+            return []
+
+    def default_keyword_params(self, index):
+        if index == 5:
+            self.graph_params["edge_dim"] = self.edge_attr_dim
+
+    def edge_attr_dimension_match(self, index):
+        return index in [11, 16]
+
+    def needs_edge_attr(self, index):
+        return index in [5, 10, 11, 16]
+
+    def output_modifier(self, index, out_channels):
+        return out_channels
 
     def retrieve_class(self, index):
         if index == 0:
@@ -183,35 +256,27 @@ class GraphNet(nn.Module):
         elif index == 7:
             return GINConv
         elif index == 8:
-            return GINEConv
-        elif index == 9:
             return ARMAConv
-        elif index == 10:
+        elif index == 9:
             return SGConv
-        elif index == 11:
+        elif index == 10:
             return GMMConv
+        elif index == 11:
+            return GINEConv
         elif index == 12:
-            return EGConv
-        elif index == 13:
             return EdgeConv
-        elif index == 14:
+        elif index == 13:
             return FeaStConv
-        elif index == 15:
+        elif index == 14:
             return LEConv
-        elif index == 16:
+        elif index == 15:
             return ClusterGCNConv
-        elif index == 17:
+        elif index == 16:
             return GENConv
-        elif index == 18:
-            return HypergraphConv
-        elif index == 19:
-            return GCN2Conv
-        elif index == 20:
-            return PANConv
-        elif index == 21:
-            return FiLMConv
-        elif index == 22:
+        elif index == 17:
             return SuperGATConv
+        elif index == 18:
+            return FiLMConv
 
 
 
