@@ -184,7 +184,7 @@ class GraphNet(nn.Module):
             self.log.debug("Adding graph layer of type {0} with nin: {1}, nout: {2}".format(self.graph_class, nin, nout))
             if self.class_needs_nn(self.graph_index):
                 nlin_in = self.nn_input_modifier(self.graph_index)*nin
-                if dim_match and self.edge_attr_dim_match(self.graph_index):
+                if dim_match:
                     match_ind = nlin_in
                 self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
             else:
