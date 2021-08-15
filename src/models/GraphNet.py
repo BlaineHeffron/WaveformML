@@ -213,7 +213,7 @@ class GraphNet(nn.Module):
             return 1
 
     def class_needs_nn(self, index):
-        if index in [7, 11, 12]:
+        if index in [7, 12]:
             return True
         else:
             return False
@@ -230,10 +230,10 @@ class GraphNet(nn.Module):
             self.graph_params["edge_dim"] = self.edge_attr_dim
 
     def edge_attr_dimension_match(self, index):
-        return index in [11, 16]
+        return index in [16]
 
     def needs_edge_attr(self, index):
-        return index in [5, 10, 11, 16]
+        return index in [5, 10, 16]
 
     def output_modifier(self, index, out_channels):
         return out_channels
@@ -262,7 +262,7 @@ class GraphNet(nn.Module):
         elif index == 10:
             return GMMConv
         elif index == 11:
-            return GINEConv
+            return FiLMConv
         elif index == 12:
             return EdgeConv
         elif index == 13:
@@ -275,8 +275,6 @@ class GraphNet(nn.Module):
             return GENConv
         elif index == 17:
             return SuperGATConv
-        elif index == 18:
-            return FiLMConv
 
 
 
