@@ -290,6 +290,7 @@ class PointNet(nn.Module):
         self.n_graph = 0
         self.n_expansion = 0
         self.expansion_factor = 1.0
+        self.ndim = 2
         if hasattr(config.net_config.hparams, "n_graph"):
             self.n_graph = config.net_config.hparams.n_graph
         elif hasattr(config.net_config.hparams, "n_contract"):
@@ -383,7 +384,7 @@ class PointNet(nn.Module):
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
-            self.graph_layers.append(PointConv(LinearPlanes([nin, nout], activation=ReLU()), LinearPlanes([nout, nout], activation=ReLU()), **self.graph_params))
+            self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=ReLU()), LinearPlanes([nout, nout], activation=ReLU()), **self.graph_params))
 
     def forward(self, data):
         coo = data[0].long()
