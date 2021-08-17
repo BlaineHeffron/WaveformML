@@ -1,11 +1,13 @@
 import torch.nn.functional as F
-from torch_geometric.transforms import Cartesian, LocalCartesian, Distance
+from torch_geometric.transforms import Cartesian, LocalCartesian
 from torch.nn import ReLU, ModuleList, Linear
 from torch_geometric.data import Data
 from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, global_max_pool, global_mean_pool, \
     MessagePassing, SAGEConv, GraphConv, GATConv, GATv2Conv, TransformerConv, TAGConv, GINConv, GINEConv, ARMAConv, \
     SGConv, GMMConv, EGConv, FeaStConv, LEConv, ClusterGCNConv, GENConv, HypergraphConv, GCN2Conv, PANConv, FiLMConv, \
     SuperGATConv
+
+from torch_geometric.nn import PointConv
 
 from src.models.BasicNetwork import *
 
@@ -277,4 +279,120 @@ class GraphNet(nn.Module):
             return SuperGATConv
 
 
+class PointNet(nn.Module):
+    def __init__(self, config):
+        super(PointNet, self).__init__()
+        self.log = logging.getLogger(__name__)
+        self.config = config
+        self.lin_outputs = 0
+        self.feat_size = self.config.system_config.n_samples*2
+        self.n_lin = 0
+        self.n_graph = 0
+        self.n_expansion = 0
+        self.expansion_factor = 1.0
+        if hasattr(config.net_config.hparams, "n_graph"):
+            self.n_graph = config.net_config.hparams.n_graph
+        elif hasattr(config.net_config.hparams, "n_contract"):
+            if not hasattr(config.net_config.hparams, "n_expand"):
+                raise IOError("if net_config.hparams.n_graph not specified, must specify n_expand and n_contract")
+            self.n_graph = config.net_config.hparams.n_contract + config.net_config.hparams.n_expand
+        else:
+            raise IOError("if net_config.hparams.n_graph not specified, must specify n_expand and n_contract")
+        if hasattr(config.net_config.hparams, "expansion_factor"):
+            self.expansion_factor = config.net_config.hparams.expansion_factor
+        if hasattr(config.net_config.hparams, "n_expand"):
+            self.n_expansion = config.net_config.hparams.n_expand
+        if hasattr(config.net_config.hparams, "n_lin"):
+            self.n_lin = config.net_config.hparams.n_lin
+            if hasattr(config.system_config, "n_type"):
+                self.lin_outputs = config.system_config.n_type
+            elif hasattr(config.net_config, "n_out"):
+                self.lin_outputs = config.net_config.n_out
+            else:
+                raise IOError("Need to specify system_config.n_type for classifier or net_config.n_out to determine number of outputs of linear layer")
+        if hasattr(config.net_config.hparams, "k"):
+            self.k = config.net_config.hparams.k
+        else:
+            self.k = 6
+        self.graph_out = 10
+        self.graph_params = {}
+        self.graph_layers = ModuleList()
+        self.graph_planes = []
+        if hasattr(config.net_config.hparams, "graph_params"):
+            self.graph_params = DictionaryUtility.to_dict(config.net_config.hparams.graph_params)
+        if hasattr(config.net_config.hparams, "graph_out"):
+            self.graph_out = config.net_config.hparams.graph_out
+        else:
+            self.log.debug("no net_config.hparams.graph_out set, setting graph outputs default to {}".format(self.graph_out))
+        self.pool_ratio = 0.8
+        if hasattr(config.net_config.hparams, "pool_ratio"):
+            self.pool_ratio = config.net_config.hparams.pool_ratio
+            self.log.debug("Setting pool ratio to {}".format(self.pool_ratio))
+        self.use_self_loops = False
+        if hasattr(config.net_config.hparams, "self_loop"):
+            self.use_self_loops = config.net_config.hparams.self_loop
+        if self.n_lin > 0:
+            self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
+        else:
+            self.linear = None
+        self.edge_attr_transform = Cartesian()
+        self.edge_attr_dim = 2
+        if hasattr(config.net_config.hparams, "edge_transform"):
+            if config.net_config.hparams.edge_transform == "cartesian":
+                self.edge_attr_transform = Cartesian()
+                self.edge_attr_dim = 2
+            elif config.net_config.hparams.edge_transform == "localcartesian":
+                self.edge_attr_transform = LocalCartesian()
+                self.edge_attr_dim = 2
+            else:
+                raise IOError("net_config.hparams.edge_transform must be one of 'cartesian', 'localcartesian'")
+        self.reduction_type = "linear"
+        if hasattr(config.net_config.hparams, "reduction_type"):
+            self.reduction_type = config.net_config.hparams.reduction_type
+        self.graph_planes = [self.feat_size]
+        self.n_contract = self.n_graph - self.n_expansion
+        if self.reduction_type == "linear":
+            if self.n_expansion > 0:
+                exp = int((self.graph_planes[0]*self.expansion_factor - self.graph_planes[0]) / self.n_expansion)
+                for n in range(self.n_expansion):
+                    self.graph_planes.append(self.graph_planes[-1] + exp)
+                if self.n_contract > 0:
+                    red = int((self.graph_planes[-1] - self.graph_out) / self.n_contract)
+                    for n in range(self.n_contract):
+                        self.graph_planes.append(self.graph_planes[-1] - red)
+            else:
+                red = int((self.graph_planes[0] - self.graph_out) / self.n_graph)
+                for n in range(self.n_graph):
+                    self.graph_planes.append(self.graph_planes[-1] - red)
+        elif self.reduction_type == "geometric":
+            if self.n_expansion > 0:
+                exp = float(self.expansion_factor) ** (1./self.n_expansion)
+                for n in range(self.n_expansion):
+                    self.graph_planes.append(int(self.graph_planes[-1] * exp))
+                if self.n_contract > 0:
+                    red = float(self.graph_out / self.graph_planes[-1]) ** (1. / self.n_contract)
+                    for n in range(self.n_contract):
+                        self.graph_planes.append(int(self.graph_planes[-1] * red))
+            else:
+                red = float(self.graph_out / self.graph_planes[0]) ** (1./self.n_graph)
+                for n in range(self.n_graph):
+                    self.graph_planes.append(int(self.graph_planes[-1] * red))
+        else:
+            raise IOError("net_config.hparams.reduction_type must be either linear or geometric")
+        self.graph_planes[-1] = int(self.graph_out)
+        for i in range(self.n_graph):
+            nin = self.graph_planes[i]
+            nout = self.graph_planes[i+1]
+            self.graph_layers.append(PointConv(LinearPlanes([nin, nout], activation=ReLU), LinearPlanes([nout, nout], activation=ReLU), **self.graph_params))
 
+    def forward(self, data):
+        coo = data[0].long()
+        edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
+        geom_data = Data(x=data[1], edge_index=edge_index, pos=coo[:, 0:2])
+        self.edge_attr_transform(geom_data)
+        for layer in self.graph_layers:
+            geom_data.x = layer(geom_data.x, geom_data.pos, geom_data.edge_index)
+        if self.n_lin > 0:
+            geom_data.x = global_max_pool(geom_data.x, coo[:, 2])
+            geom_data.x = self.linear(geom_data.x)
+        return geom_data.x
