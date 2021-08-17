@@ -383,7 +383,7 @@ class PointNet(nn.Module):
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
-            self.graph_layers.append(PointConv(LinearPlanes([nin, nout], activation=ReLU), LinearPlanes([nout, nout], activation=ReLU), **self.graph_params))
+            self.graph_layers.append(PointConv(LinearPlanes([nin, nout], activation=ReLU()), LinearPlanes([nout, nout], activation=ReLU()), **self.graph_params))
 
     def forward(self, data):
         coo = data[0].long()
