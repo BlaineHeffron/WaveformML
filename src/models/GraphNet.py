@@ -525,10 +525,7 @@ class Graph3DNet(nn.Module):
         z = arange(0, self.config.system_config.n_samples, 1).repeat(data[1].shape[0]).unsqueeze(1)
         pos = cat((pos, z), dim=1)[nonzero_rows]
         edge_index = knn_graph(pos, self.k, batch, loop=self.use_self_loops)
-        print("edge index shape: {}".format(edge_index.shape))
-        print("pos shape: {}".format(pos.shape))
         geom_data = Data(x=feat[nonzero_rows], edge_index=edge_index, pos=pos)
-        print("feat shape: {}".format(geom_data.x.shape))
         #self.edge_attr_transform(geom_data)
         for layer in self.graph_layers:
             geom_data.x = layer(geom_data.x, geom_data.pos, geom_data.edge_index)
