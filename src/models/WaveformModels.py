@@ -78,7 +78,7 @@ class LinearWaveformNet(nn.Module):
             else:
                 raise IOError("config.net_config.hparams.n_lin must be >= 1 if n_expand and n_contract not set")
         else:
-            self.linear = LinearPlanes(planes)
+            self.linear = LinearPlanes(planes, activation=nn.ReLU())
 
     def forward(self, x):
         x = self.linear(x)
@@ -128,7 +128,7 @@ class ConvWaveformNet(nn.Module):
                 out += 3
             lin_planes = [int(floor(out - i*((out - self.net_config.hparams.out_size) / self.net_config.hparams.n_lin)))
                           for i in range(self.net_config.hparams.n_lin+1)]
-            self.linear = LinearPlanes(lin_planes)
+            self.linear = LinearPlanes(lin_planes, activation=nn.ReLU())
             self.flatten = nn.Flatten()
 
     def forward(self, x):
