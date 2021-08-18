@@ -1,6 +1,6 @@
 from math import floor, pow, ceil
 import torch.nn as nn
-from torch.nn import Conv2d
+from torch.nn import Conv2d, Conv1d
 from torch.nn.utils import weight_norm
 from src.models.Algorithm import *
 from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, PAD, DIL
@@ -60,6 +60,23 @@ class LinearPlanes(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
+
+class PointwiseReducer(nn.Module):
+    def __init__(self, planes):
+        super(PointwiseReducer, self).__init__()
+        self.log = logging.getLogger(__name__)
+        alg = []
+        for i in range(len(planes) - 1):
+            alg.append(Conv1d(int(round(planes[i])), int(round(planes[i+1])), 1, padding=0, bias=False))
+            alg.append(nn.ReLU())
+        self.net = nn.Sequential(*alg)
+
+    def forward(self, x):
+        x = self.net(x.unsqueeze(2))
+        return x.squeeze(2)
+
+
 
 
 class LinearBlock(Algorithm):
@@ -189,6 +206,7 @@ class Conv1DNet(nn.Module):
                            "kernel size {3}, padding {4}, stride {5}".format(self.out_size, planes[i], planes[i + 1],
                                                                              fs, pd, st))
             conv_layers.append(nn.Conv1d(planes[i], planes[i + 1], fs, stride=st, padding=pd))
+            conv_layers.append(nn.ReLU())
             arg_dict = {DIM: 1, NIN: planes[i], NOUT: planes[i + 1], FS: [fs] * 4, STR: [st] * 4,
                         PAD: [pd] * 4, DIL: [1] * 4}
             self.out_size = ModelValidation.calc_output_size(arg_dict, self.out_size, "cur", "prev", 1)

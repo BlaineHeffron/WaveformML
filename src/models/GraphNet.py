@@ -1,6 +1,6 @@
 import torch.nn.functional as F
 from torch_geometric.transforms import Cartesian, LocalCartesian
-from torch.nn import ReLU, ModuleList, Linear
+from torch.nn import ModuleList, Linear
 from torch_geometric.data import Data
 from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, global_max_pool, global_mean_pool, \
     MessagePassing, SAGEConv, GraphConv, GATConv, GATv2Conv, TransformerConv, TAGConv, GINConv, GINEConv, ARMAConv, \
@@ -14,7 +14,7 @@ from src.models.BasicNetwork import *
 
 # see https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
 # try https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#torch_geometric.nn.conv.EdgeConv
-from src.models.ConvBlocks import LinearBlock, LinearPlanes
+from src.models.ConvBlocks import LinearBlock, PointwiseReducer
 from src.utils.util import DictionaryUtility
 
 
@@ -191,7 +191,7 @@ class GraphNet(nn.Module):
                 nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
                 if dim_match:
                     match_ind = nlin_in
-                self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
+                self.graph_layers.append(GraphLayer(self.graph_class(PointwiseReducer([nlin_in, nout]), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
             else:
                 nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
                 self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
@@ -390,7 +390,7 @@ class PointNet(nn.Module):
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
-            self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=ReLU()), LinearPlanes([nout, nout], activation=ReLU()), **self.graph_params))
+            self.graph_layers.append(PointConv(PointwiseReducer([nin + self.ndim, nout]), PointwiseReducer([nout, nout]), **self.graph_params))
 
     def forward(self, data):
         coo = data[0].long()
