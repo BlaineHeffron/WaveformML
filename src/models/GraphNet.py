@@ -125,7 +125,7 @@ class GraphNet(nn.Module):
             self.use_self_loops = config.net_config.hparams.self_loop
         if self.n_lin > 0:
             out_modifier = 1
-            if "heads" in self.graph_params.keys():
+            if "heads" in self.graph_params.keys() and self.graph_index == 17:
                 out_modifier = self.graph_params["heads"]
             self.linear = LinearBlock(self.graph_out*out_modifier, self.lin_outputs, self.n_lin).func
         else:
@@ -216,7 +216,7 @@ class GraphNet(nn.Module):
         if index == 12:
             return 2
         else:
-            if "heads" in self.graph_params and num_layer > 0:
+            if "heads" in self.graph_params and num_layer > 0 and index == 17:
                 return self.graph_params["heads"]
             return 1
 
