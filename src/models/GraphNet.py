@@ -124,7 +124,10 @@ class GraphNet(nn.Module):
         if hasattr(config.net_config.hparams, "self_loop"):
             self.use_self_loops = config.net_config.hparams.self_loop
         if self.n_lin > 0:
-            self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
+            out_modifier = 1
+            if "heads" in self.graph_params.keys():
+                out_modifier = self.graph_params["heads"]
+            self.linear = LinearBlock(self.graph_out*out_modifier, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
         self.edge_attr_transform = Cartesian()
@@ -185,12 +188,13 @@ class GraphNet(nn.Module):
                 dim_match = True
             self.log.debug("Adding graph layer of type {0} with nin: {1}, nout: {2}".format(self.graph_class, nin, nout))
             if self.class_needs_nn(self.graph_index):
-                nlin_in = self.nn_input_modifier(self.graph_index)*nin
+                nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
                 if dim_match:
                     match_ind = nlin_in
                 self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
             else:
-                self.graph_layers.append(GraphLayer(self.graph_class(nin, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
+                nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
+                self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
 
 
     def forward(self, data):
@@ -208,10 +212,12 @@ class GraphNet(nn.Module):
             geom_data.x = self.linear(geom_data.x)
         return geom_data.x
 
-    def nn_input_modifier(self, index):
+    def nn_input_modifier(self, index, num_layer):
         if index == 12:
             return 2
         else:
+            if "heads" in self.graph_params and num_layer > 0:
+                return self.graph_params["heads"]
             return 1
 
     def class_needs_nn(self, index):
