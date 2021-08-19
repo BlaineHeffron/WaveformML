@@ -510,10 +510,21 @@ class Graph3DNet(nn.Module):
         else:
             raise IOError("net_config.hparams.reduction_type must be either linear or geometric")
         self.graph_planes[-1] = int(self.graph_out)
+        self.conv_type = "gmm"
+        if hasattr(self.config.net_config, "net_type"):
+            self.conv_type = self.config.net_config.net_type
+        avail_types = ["gmm","cluster","point"]
+        if self.conv_type not in avail_types:
+            raise IOError("conv type not available, must be one of {}".format(avail_types))
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
-            self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=nn.ReLU()), LinearPlanes([nout, nout], activation=nn.ReLU()), **self.graph_params))
+            if self.conv_type == "point":
+                self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=nn.ReLU()), LinearPlanes([nout, nout], activation=nn.ReLU()), **self.graph_params))
+            elif self.conv_type == "gmm":
+                self.graph_layers.append(GMMConv(nin, nout, 3, 3, **self.graph_params))
+            elif self.conv_type == "cluster":
+                self.graph_layers.append(ClusterGCNConv(nin, nout, **self.graph_params))
 
     def forward(self, data):
         #tranform data from (x,y, batch), (val) format to 3d graph (use n samples for left and right as 3rd dimension)
@@ -526,9 +537,15 @@ class Graph3DNet(nn.Module):
         pos = cat((pos, z), dim=1)[nonzero_rows]
         edge_index = knn_graph(pos, self.k, batch, loop=self.use_self_loops)
         geom_data = Data(x=feat[nonzero_rows], edge_index=edge_index, pos=pos)
-        #self.edge_attr_transform(geom_data)
+        if self.conv_type == "gmm":
+            self.edge_attr_transform(geom_data)
         for layer in self.graph_layers:
-            geom_data.x = layer(geom_data.x, geom_data.pos, geom_data.edge_index)
+            if self.conv_type == "point":
+                geom_data.x = layer(geom_data.x, geom_data.pos, geom_data.edge_index)
+            elif self.conv_type == "gmm":
+                geom_data.x = layer(geom_data.x, geom_data.edge_index, geom_data.edge_attr)
+            elif self.conv_type == "cluster":
+                geom_data.x = layer(geom_data.x, geom_data.edge_index)
         if self.n_lin > 0:
             geom_data.x = global_max_pool(geom_data.x, batch)
             geom_data.x = self.linear(geom_data.x)
