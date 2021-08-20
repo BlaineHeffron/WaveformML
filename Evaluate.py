@@ -35,15 +35,18 @@ def main():
     log_folder = dirname(args.config)
     p = Path(log_folder)
     cp = p.glob('*.tfevents.*')
+    tb_logger_args = {}
+    if args.occlude:
+        tb_logger_args = {"sub_dir": "occlude_{0}".format(args.occlude)}
     logger = None
     if cp:
         for ckpt in cp:
             print("Using existing log file {}".format(ckpt))
             vnum = get_tb_logdir_version(str(ckpt))
-            logger = TensorBoardLogger(dirname(dirname(log_folder)), name=basename(dirname(log_folder)), version=vnum)
+            logger = TensorBoardLogger(dirname(dirname(log_folder)), name=basename(dirname(log_folder)), version=vnum, **tb_logger_args)
             break
     else:
-        logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name)
+        logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name, **tb_logger_args)
         print("Creating new log file in directory {}".format(logger.log_dir))
     if args.occlude:
         setattr(config.dataset_config, "occlude_index", args.occlude)
