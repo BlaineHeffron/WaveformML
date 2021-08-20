@@ -113,6 +113,8 @@ class LitEZ(LitBase):
             f[:, 0] *= self.e_factor
             f[:, 2] *= self.e_factor
             f[:, 3] *= self.e_factor
+        if self.occlude_index:
+            f[:, self.occlude_index] = 0
         if self.write_onnx:
             self.write_model([c, f])
         predictions = self.model([c, f])

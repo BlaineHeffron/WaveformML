@@ -131,6 +131,8 @@ class LitPSD(LitBase):
         (c, f), target = batch
         if self.write_onnx:
             self.write_model([c,f])
+        if self.occlude_index:
+            f[:, self.occlude_index] = 0
         predictions = self.model([c, f])
         loss = self.criterion.forward(predictions, target)
         pred = argmax(self.softmax(predictions), dim=1)

@@ -118,6 +118,8 @@ class LitWaveform(LitBase):
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
         if self.write_onnx:
             self.write_model(f.unsqueeze(self.squeeze_index))
+        if self.occlude_index:
+            f[:, self.occlude_index] = 0
         predictions = self.model(f.unsqueeze(self.squeeze_index)).squeeze(1)
         if predictions.dim() == 2 and (target.dim() == 1 or (target.dim() == 2 and self.test_has_phys)):
             predictions = predictions.squeeze(1)

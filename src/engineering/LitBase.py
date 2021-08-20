@@ -34,6 +34,10 @@ class LitBase(pl.LightningModule):
         self.criterion = self.criterion_class(*config.net_config.criterion_params)
         self.write_onnx = False
         self.model_written = False
+        if hasattr(config.dataset_config, "occlude_index"):
+            self.occlude_index = config.dataset_config.occlude_index
+        else:
+            self.occlude_index = None
 
     def forward(self, x):
         return self.model(x)
@@ -78,7 +82,7 @@ class LitBase(pl.LightningModule):
         loss = self.criterion.forward(predictions, target)
         self.log('test_loss', loss, on_epoch=True, logger=True)
         if hasattr(self, "evaluator"):
-            self.evaluator.add(batch, predictions, )
+            self.evaluator.add(batch, predictions)
         return loss
 
     def write_model(self, data):

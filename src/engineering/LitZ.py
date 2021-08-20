@@ -130,6 +130,8 @@ class LitZ(LitBase):
             f = rfft(f)
         if self.write_onnx:
             self.write_model([c, f])
+        if self.occlude_index:
+            f[:, self.occlude_index] = 0
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size,
