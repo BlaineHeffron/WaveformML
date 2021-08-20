@@ -3,10 +3,9 @@ from pathlib import Path
 from os.path import join, exists, basename, dirname, realpath
 import sys
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
-from src.utils.TensorBoardUtils import TBHelper, run_evaluation
+from src.utils.TensorBoardUtils import TBHelper
 import numpy as np
-from src.utils.PlotUtils import MultiLinePlot
-import matplotlib.pyplot as plt
+from src.utils.PlotUtils import ScatterPlt
 
 
 def main():
@@ -43,8 +42,7 @@ def main():
         results[occlude_ind] = best_loss
         print("{0} for ind {1} is {2}".format(metric_name, occlude_ind, best_loss))
     print("outputting results to plot {}".format(plot_path))
-    fig = MultiLinePlot([i for i in range(num_ind)], [results], [metric_name + " for occluded features"], "feature index occluded", metric_name)
-    plt.savefig(plot_path)
+    ScatterPlt([i for i in range(num_ind)], results, "feature index occluded", metric_name, plot_path, title=metric_name + " for occluded features")
 
 
 
