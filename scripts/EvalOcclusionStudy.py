@@ -37,8 +37,9 @@ def main():
         for f in logfiles:
             tbh.set_file(str(f.resolve()))
             file_loss = tbh.get_best_value(metric_name)
-            if best_loss > file_loss:
-                best_loss = file_loss
+            if file_loss is not None:
+                if best_loss > file_loss:
+                    best_loss = file_loss
         results[occlude_ind] = best_loss
         print("{0} for ind {1} is {2}".format(metric_name, occlude_ind, best_loss))
     print("outputting results to plot {}".format(plot_path))
