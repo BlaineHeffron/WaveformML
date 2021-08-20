@@ -12,6 +12,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("dir", help="directory of occlude_# folders")
     parser.add_argument("n", help="number of feature occluded")
+    parser.add_argument("--split", '-s', action="store_true", help="split the features in half and plot both halves")
     args = parser.parse_args()
     num_ind = int(args.n)
     results = np.zeros((num_ind,))
@@ -43,9 +44,23 @@ def main():
         results[occlude_ind] = best_loss
         print("{0} for ind {1} is {2}".format(metric_name, occlude_ind, best_loss))
     print("outputting results to plot {}".format(plot_path))
-    ScatterPlt([i for i in range(num_ind)], results, "feature index occluded", metric_name, plot_path, title=metric_name + " for occluded features")
-    results_rel = results - np.min(results)
-    ScatterPlt([i for i in range(num_ind)], results_rel, "feature index occluded", "additional " + metric_name, plot_path_rel, title=metric_name + " difference for occluded features")
+    if args.split:
+        plot_path0 = join(args.dir, "occlude_results_det0_{}.png".format(metric_name))
+        plot_path1 = join(args.dir, "occlude_results_det1_{}.png".format(metric_name))
+        plot_path0_rel = join(args.dir, "occlude_results_det0_{}_relative.png".format(metric_name))
+        plot_path1_rel = join(args.dir, "occlude_results_det1_{}_relative.png".format(metric_name))
+        half = int(num_ind/2)
+        x = [i for i in range(half)]
+        ScatterPlt(x, results[0:half], "feature index occluded", metric_name, plot_path0, title="detector 0")
+        ScatterPlt(x, results[half:], "feature index occluded", metric_name, plot_path1, title="detector 1")
+        results_rel = results[0:half] - np.min(results)
+        ScatterPlt(x, results_rel, "feature index occluded", "additional " + metric_name, plot_path0_rel, title="detector 0")
+        results_rel = results[half:] - np.min(results)
+        ScatterPlt(x, results_rel, "feature index occluded", "additional " + metric_name, plot_path1_rel, title="detector 1")
+    else:
+        ScatterPlt([i for i in range(num_ind)], results, "feature index occluded", metric_name, plot_path, title=metric_name + " for occluded features")
+        results_rel = results - np.min(results)
+        ScatterPlt([i for i in range(num_ind)], results_rel, "feature index occluded", "additional " + metric_name, plot_path_rel, title=metric_name + " difference for occluded features")
 
 
 
