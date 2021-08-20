@@ -25,14 +25,14 @@ def main():
         try:
             occlude_ind = int(dir.name.split("_")[-1])
         except TypeError as e:
-            print("directory {} bad directory, skipping".format(dir.resolve()))
+            print("directory {} bad directory, skipping".format(str(dir.resolve())))
             continue
-        thisdir = dir.resolve()
+        thisdir = str(dir.resolve())
         occlude_dir = Path(thisdir)
         logfiles = occlude_dir.glob("*events.out.tfevents.*")
         best_loss = 100000000
         for f in logfiles:
-            tbh.set_file(f.resolve())
+            tbh.set_file(str(f.resolve()))
             file_loss = tbh.get_best_value(metric_name)
             if best_loss > file_loss:
                 best_loss = file_loss
