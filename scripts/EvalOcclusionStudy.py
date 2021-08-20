@@ -14,7 +14,7 @@ def main():
     parser.add_argument("dir", help="directory of occlude_# folders")
     parser.add_argument("n", help="number of feature occluded")
     args = parser.parse_args()
-    results = np.zeros((args.n,))
+    results = np.zeros((int(args.n),))
     metric_name = "test_loss"
     p = Path(args.dir)
     tbh = TBHelper()
@@ -39,7 +39,7 @@ def main():
         results[occlude_ind] = best_loss
         print("{0} for ind {1} is {2}".format(metric_name, occlude_ind, best_loss))
     print("outputting results to plot {}".format(plot_path))
-    fig = MultiLinePlot([i for i in range(args.n)], [results], [metric_name + " for occluded features"], "feature index occluded", metric_name)
+    fig = MultiLinePlot([i for i in range(int(args.n))], [results], [metric_name + " for occluded features"], "feature index occluded", metric_name)
     plt.savefig(plot_path)
 
 
