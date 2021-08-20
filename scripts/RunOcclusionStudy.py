@@ -24,11 +24,11 @@ def main():
     args = parser.parse_args()
     for n in range(args.n_features):
         if len(sys.argv) > 4:
-            args = ['python', args.config, args.checkpoint, "-oc", str(n), *sys.argv[4:]]
+            argl = ['python', args.config, args.checkpoint, "-oc", str(n), *sys.argv[4:]]
         else:
-            args = ['python', args.config, args.checkpoint, "-oc", str(n)]
-        print(" ".join(args))
-        subprocess.call(args)
+            argl = ['python', args.config, args.checkpoint, "-oc", str(n)]
+        print(" ".join(argl))
+        subprocess.call(argl)
 
 if __name__ == "__main__":
     main()
