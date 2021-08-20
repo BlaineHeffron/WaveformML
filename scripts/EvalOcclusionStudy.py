@@ -51,12 +51,12 @@ def main():
         print("outputting results to plot {0} and {1}".format(plot_path0, plot_path1))
         half = int(num_ind/2)
         x = [i for i in range(half)]
-        ScatterPlt(x, results[0:half], "feature index occluded", metric_name, plot_path0, title="detector 0")
-        ScatterPlt(x, results[half:], "feature index occluded", metric_name, plot_path1, title="detector 1")
+        ScatterPlt(x, results[0:half], "sample index occluded", metric_name, plot_path0, title="detector 0")
+        ScatterPlt(x, results[half:], "sample index occluded", metric_name, plot_path1, title="detector 1")
         results_rel = results[0:half] - np.min(results)
-        ScatterPlt(x, results_rel, "feature index occluded", "additional " + metric_name, plot_path0_rel, title="detector 0")
+        ScatterPlt(x, results_rel, "sample index occluded", "additional " + metric_name, plot_path0_rel, title="detector 0")
         results_rel = results[half:] - np.min(results)
-        ScatterPlt(x, results_rel, "feature index occluded", "additional " + metric_name, plot_path1_rel, title="detector 1")
+        ScatterPlt(x, results_rel, "sample index occluded", "additional " + metric_name, plot_path1_rel, title="detector 1")
     else:
         print("outputting results to plot {}".format(plot_path))
         ScatterPlt([i for i in range(num_ind)], results, "feature index occluded", metric_name, plot_path, title=metric_name + " for occluded features")
