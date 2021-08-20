@@ -19,6 +19,7 @@ def main():
     p = Path(args.dir)
     tbh = TBHelper()
     plot_path = join(args.dir, "occlude_results_{}.png".format(metric_name))
+    plot_path_rel = join(args.dir, "occlude_results_{}_relative.png".format(metric_name))
     for dir in p.glob("occlude_*"):
         if not dir.is_dir:
             continue
@@ -43,6 +44,8 @@ def main():
         print("{0} for ind {1} is {2}".format(metric_name, occlude_ind, best_loss))
     print("outputting results to plot {}".format(plot_path))
     ScatterPlt([i for i in range(num_ind)], results, "feature index occluded", metric_name, plot_path, title=metric_name + " for occluded features")
+    results_rel = results - np.min(results)
+    ScatterPlt([i for i in range(num_ind)], results_rel, "feature index occluded", "additional " + metric_name, plot_path_rel, title=metric_name + " difference for occluded features")
 
 
 
