@@ -24,7 +24,7 @@ def main():
             continue
         try:
             occlude_ind = int(dir.name.split("_")[-1])
-        except TypeError as e:
+        except ValueError as e:
             print("directory {} bad directory, skipping".format(str(dir.resolve())))
             continue
         if occlude_ind >= num_ind:
