@@ -18,7 +18,7 @@ def main():
     parser.add_argument("checkpoint", help="path to checkpoint file")
     parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
     parser.add_argument("--onnx", "-o", action="store_true", help="set to generate onnx model instead of evaluating")
-    parser.add_argument("--occlude", "-oc", type=int, help="feature index to zero out during evaluation")
+    parser.add_argument("--occlude", "-oc", type=int, default=-1, help="feature index to zero out during evaluation")
     parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument("--verbosity", "-v",
                         help="Set the verbosity for this run.",
@@ -48,7 +48,7 @@ def main():
     else:
         logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name, **tb_logger_args)
         print("Creating new log file in directory {}".format(logger.log_dir))
-    if args.occlude:
+    if args.occlude > -1:
         setattr(config.dataset_config, "occlude_index", args.occlude)
     modules = ModuleUtility(config.run_config.imports)
     runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config=config)
