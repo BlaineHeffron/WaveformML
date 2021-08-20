@@ -24,9 +24,9 @@ def main():
     args = parser.parse_args()
     for n in range(args.n_features):
         if len(sys.argv) > 4:
-            args = ['python', args.config, args.checkpoint, "-oc", n, *sys.argv[4:]]
+            args = ['python', args.config, args.checkpoint, "-oc", str(n), *sys.argv[4:]]
         else:
-            args = ['python', args.config, args.checkpoint, "-oc", n]
+            args = ['python', args.config, args.checkpoint, "-oc", str(n)]
         print(" ".join(args))
         subprocess.call(args)
 
