@@ -25,9 +25,9 @@ def main():
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     for n in range(args.n_features):
         if len(sys.argv) > 4:
-            argl = ['python', join(dir_path, 'WritePredictions.py'), args.config, args.checkpoint, "-oc", str(n), *sys.argv[4:]]
+            argl = ['python', join(dir_path, 'Evaluate.py'), args.config, args.checkpoint, "-oc", str(n), *sys.argv[4:]]
         else:
-            argl = ['python', join(dir_path, 'WritePredictions.py'), args.config, args.checkpoint, "-oc", str(n)]
+            argl = ['python', join(dir_path, 'Evaluate.py'), args.config, args.checkpoint, "-oc", str(n)]
         print(" ".join(argl))
         subprocess.call(argl)
 
