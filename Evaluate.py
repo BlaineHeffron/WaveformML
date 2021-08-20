@@ -36,7 +36,7 @@ def main():
     p = Path(log_folder)
     cp = p.glob('*.tfevents.*')
     tb_logger_args = {}
-    if args.occlude:
+    if args.occlude > -1:
         tb_logger_args = {"sub_dir": "occlude_{0}".format(args.occlude)}
     logger = None
     if cp:
