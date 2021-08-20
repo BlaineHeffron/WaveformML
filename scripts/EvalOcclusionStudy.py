@@ -43,12 +43,12 @@ def main():
                     best_loss = file_loss
         results[occlude_ind] = best_loss
         print("{0} for ind {1} is {2}".format(metric_name, occlude_ind, best_loss))
-    print("outputting results to plot {}".format(plot_path))
     if args.split:
         plot_path0 = join(args.dir, "occlude_results_det0_{}.png".format(metric_name))
         plot_path1 = join(args.dir, "occlude_results_det1_{}.png".format(metric_name))
         plot_path0_rel = join(args.dir, "occlude_results_det0_{}_relative.png".format(metric_name))
         plot_path1_rel = join(args.dir, "occlude_results_det1_{}_relative.png".format(metric_name))
+        print("outputting results to plot {0} and {1}".format(plot_path0, plot_path1))
         half = int(num_ind/2)
         x = [i for i in range(half)]
         ScatterPlt(x, results[0:half], "feature index occluded", metric_name, plot_path0, title="detector 0")
@@ -58,6 +58,7 @@ def main():
         results_rel = results[half:] - np.min(results)
         ScatterPlt(x, results_rel, "feature index occluded", "additional " + metric_name, plot_path1_rel, title="detector 1")
     else:
+        print("outputting results to plot {}".format(plot_path))
         ScatterPlt([i for i in range(num_ind)], results, "feature index occluded", metric_name, plot_path, title=metric_name + " for occluded features")
         results_rel = results - np.min(results)
         ScatterPlt([i for i in range(num_ind)], results_rel, "feature index occluded", "additional " + metric_name, plot_path_rel, title=metric_name + " difference for occluded features")
