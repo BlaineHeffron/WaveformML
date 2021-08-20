@@ -10,7 +10,23 @@ from src.utils.util import get_config, get_tb_logdir_version, ModuleUtility, set
 
 
 class TBHelper:
-    def __init__(self, f):
+    def __init__(self, f=None):
+        self.f = None
+        self.ea = None
+        if f is not None:
+            self.set_file(f)
+
+    def get_best_value(self,scalar_name):
+        if scalar_name not in self.ea.Tags()['scalars']:
+            return None
+        else:
+            best = 100000.
+            for row in self.ea.Scalars(scalar_name):
+                if row.value < best:
+                    best = row.value
+            return best
+
+    def set_file(self, f):
         self.f = f
         self.ea = event_accumulator.EventAccumulator(f,
                                             size_guidance={ # see below regarding this argument
@@ -20,18 +36,7 @@ class TBHelper:
                                                 event_accumulator.SCALARS: 0,
                                                 event_accumulator.HISTOGRAMS: 1,
                                             })
-        self.ea.Reload() # loads events from file
-
-    def get_best_value(self,scalar_name):
-        if scalar_name not in self.ea.Tags()['scalars']:
-            return None
-
-        else:
-            best = 100000.
-            for row in self.ea.Scalars('epoch_val_loss'):
-                if row.value < best:
-                    best = row.value
-            return best
+        self.ea.Reload()
 
 
 
