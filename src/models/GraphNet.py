@@ -6,7 +6,7 @@ from torch_geometric.data import Data
 from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, global_max_pool, global_mean_pool, \
     MessagePassing, SAGEConv, GraphConv, GATConv, GATv2Conv, TransformerConv, TAGConv, GINConv, GINEConv, ARMAConv, \
     SGConv, GMMConv, EGConv, FeaStConv, LEConv, ClusterGCNConv, GENConv, HypergraphConv, GCN2Conv, PANConv, FiLMConv, \
-    SuperGATConv
+    SuperGATConv, BatchNorm
 
 from torch_geometric.nn import PointConv
 
@@ -42,12 +42,13 @@ class GraphLayer(nn.Module):
     """
     @param net: MessagePassing layer that must conform to __init__(self, in_channels, out_channels, *args, **kwargs)
     """
-    def __init__(self, net: MessagePassing, uses_edge_attr=False, edge_attr_dim_match=False, match_size=None, edge_attr_dim=None):
+    def __init__(self, net: MessagePassing, uses_edge_attr=False, edge_attr_dim_match=False, match_size=None, edge_attr_dim=None, batchnorm=None):
         super(GraphLayer, self).__init__()
         self.log = logging.getLogger(__name__)
         self.graph_net = net
         self.uses_edge_attr = uses_edge_attr
         self.edge_attr_dim_match = edge_attr_dim_match
+        self.batchnorm = batchnorm
         if edge_attr_dim_match:
             if not edge_attr_dim:
                 raise RuntimeError("edge_attr_dim must be supplied if edge_attr_dim_match is true")
@@ -59,11 +60,14 @@ class GraphLayer(nn.Module):
         if self.uses_edge_attr:
             if self.edge_attr_dim_match:
                 edge_attr = self.linear(data.edge_attr)
-                data.x = F.relu(self.graph_net(data.x, data.edge_index, edge_attr))
+                data.x = self.graph_net(data.x, data.edge_index, edge_attr)
             else:
-                data.x = F.relu(self.graph_net(data.x, data.edge_index, data.edge_attr))
+                data.x = self.graph_net(data.x, data.edge_index, data.edge_attr)
         else:
-            data.x = F.relu(self.graph_net(data.x, data.edge_index))
+            data.x = self.graph_net(data.x, data.edge_index)
+        if self.batchnorm:
+            data.x = self.batchnorm(data.x)
+        data.x = F.relu(data.x)
         #x, edge_index, edge_attr, batch, perm, score = self.pool(x, edge_index, None, batch)
         #return x, cat([global_max_pool(x, batch), global_mean_pool(x, batch)], dim=1), edge_index, batch
         return data
@@ -192,10 +196,10 @@ class GraphNet(nn.Module):
                 nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
                 if dim_match:
                     match_ind = nlin_in
-                self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
+                self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim,  batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
             else:
                 nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
-                self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
+                self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim, batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
 
 
     def forward(self, data):
@@ -390,18 +394,23 @@ class PointNet(nn.Module):
         else:
             raise IOError("net_config.hparams.reduction_type must be either linear or geometric")
         self.graph_planes[-1] = int(self.graph_out)
+        self.norms = ModuleList()
+        self.activation = nn.ReLU()
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
             self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=nn.ReLU()), LinearPlanes([nout, nout], activation=nn.ReLU()), **self.graph_params))
+            self.norms.append(BatchNorm(nout))
 
     def forward(self, data):
         coo = data[0].long()
         edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
         geom_data = Data(x=data[1], edge_index=edge_index, pos=coo[:, 0:2])
         #self.edge_attr_transform(geom_data)
-        for layer in self.graph_layers:
+        for layer, norm in zip(self.graph_layers, self.norms):
             geom_data.x = layer(geom_data.x, geom_data.pos, geom_data.edge_index)
+            geom_data.x = norm(geom_data.x)
+            geom_data.x = self.activation(geom_data.x)
         if self.n_lin > 0:
             geom_data.x = global_max_pool(geom_data.x, coo[:, 2])
             geom_data.x = self.linear(geom_data.x)
@@ -516,6 +525,8 @@ class Graph3DNet(nn.Module):
         avail_types = ["gmm","cluster","point"]
         if self.conv_type not in avail_types:
             raise IOError("conv type not available, must be one of {}".format(avail_types))
+        self.norms = ModuleList()
+        self.activation = nn.ReLU()
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
@@ -525,6 +536,7 @@ class Graph3DNet(nn.Module):
                 self.graph_layers.append(GMMConv(nin, nout, 3, 3, **self.graph_params))
             elif self.conv_type == "cluster":
                 self.graph_layers.append(ClusterGCNConv(nin, nout, **self.graph_params))
+            self.norms.append(BatchNorm(nout))
 
     def forward(self, data):
         #tranform data from (x,y, batch), (val) format to 3d graph (use n samples for left and right as 3rd dimension)
@@ -539,13 +551,15 @@ class Graph3DNet(nn.Module):
         geom_data = Data(x=feat[nonzero_rows], edge_index=edge_index, pos=pos)
         if self.conv_type == "gmm":
             self.edge_attr_transform(geom_data)
-        for layer in self.graph_layers:
+        for layer, norm in zip(self.graph_layers, self.norms):
             if self.conv_type == "point":
                 geom_data.x = layer(geom_data.x, geom_data.pos, geom_data.edge_index)
             elif self.conv_type == "gmm":
                 geom_data.x = layer(geom_data.x, geom_data.edge_index, geom_data.edge_attr)
             elif self.conv_type == "cluster":
                 geom_data.x = layer(geom_data.x, geom_data.edge_index)
+            geom_data.x = norm(geom_data.x)
+            geom_data.x = self.activation(geom_data.x)
         if self.n_lin > 0:
             geom_data.x = global_max_pool(geom_data.x, batch)
             geom_data.x = self.linear(geom_data.x)
