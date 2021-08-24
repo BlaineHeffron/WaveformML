@@ -6,6 +6,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.profiler import SimpleProfiler
 from pytorch_lightning import Trainer
 from pytorch_lightning import LightningModule
+from torch.cuda import empty_cache
 
 import optuna
 
@@ -199,14 +200,19 @@ class ModelOptimization:
         data_module = PSDDataModule(self.config, model.device)
         try:
             trainer.fit(model, datamodule=data_module)
-            loss = trainer.checkpoint_callback.best_model_score
+            loss = trainer.checkpoint_callback.best_model_score.item()
             self.log.info("best loss found for trial {0} is {1}".format(trial.number, loss))
+            gc.collect()
         except RuntimeError as e:
             print("Caught error during trial {0}, moving to next trial. Error message below.".format(trial.number, trial))
             print(e)
             self.log.info("Trial {0} failed with error {1}".format(trial.number,e))
             gc.collect()
             loss = None
+        try:
+            empty_cache()
+        except Exception as e:
+            pass
         return loss
 
     def run_study(self, pruning=False):
