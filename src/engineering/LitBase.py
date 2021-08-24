@@ -1,17 +1,22 @@
 from os.path import join
 
 from src.engineering.PSDDataModule import *
+from torch import tensor, Tensor, ones, float32
+import spconv
 import logging
+
+from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 
 
 class LitBase(pl.LightningModule):
 
-    def __init__(self, config, trial=None):
+    def __init__(self, config, trial=None, event_predictions=True):
         super(LitBase, self).__init__()
         if trial:
             self.trial = trial
         else:
             self.trial = None
+        self.event_predictions = event_predictions
         self.nx = 14
         self.ny = 11
         self.pylog = logging.getLogger(__name__)
@@ -31,13 +36,23 @@ class LitBase(pl.LightningModule):
         else:
             self.model = None
         self.criterion_class = self.modules.retrieve_class(config.net_config.criterion_class)
-        self.criterion = self.criterion_class(*config.net_config.criterion_params)
+        if self.event_predictions:
+            criterion_named_params = {"reduction": 'mean'}
+        else:
+            criterion_named_params = {"reduction": 'sum'}
+        self.criterion = self.criterion_class(*config.net_config.criterion_params, **criterion_named_params)
         self.write_onnx = False
         self.model_written = False
         if hasattr(config.dataset_config, "occlude_index"):
             self.occlude_index = config.dataset_config.occlude_index
         else:
             self.occlude_index = None
+        self.SE_only = False
+        if hasattr(self.config.net_config, "SELoss"):
+            self.SE_only = self.config.net_config.SELoss
+        if self.SE_only:
+            self.evaluator = SingleEndedEvaluator(self.logger)
+            self._format_SE_mask()
 
     def forward(self, x):
         return self.model(x)
@@ -92,3 +107,65 @@ class LitBase(pl.LightningModule):
             onnx_model = self.to_onnx(path, data, export_params=True)
             print("saving model success")
             self.model_written = True
+
+    def _format_SE_mask(self):
+        SE_mask = tensor(self.evaluator.seg_status)
+        for i in range(self.evaluator.nx):
+            for j in range(self.evaluator.ny):
+                if SE_mask[i, j] == 0.5:
+                    SE_mask[i, j] = 1.0
+                elif SE_mask[i, j] == 1.0:
+                    SE_mask[i, j] = 0.
+        SE_mask = SE_mask.unsqueeze(0)
+        SE_mask = SE_mask.unsqueeze(0)
+        self.register_buffer("SE_mask", SE_mask)
+        print("Using single ended only loss.")
+
+    def _calc_segment_loss(self, coo: Tensor, predictions: Tensor, target: Tensor, use_float=True, target_index=None):
+        """
+        @param coo: tensor of coordinates, shape (batch size, 3)
+        @param predictions: dense tensor of predictions, shape (# events, # outputs, x, y)
+        @param target: tensor of target values still in sparse format, shape (batch size, 1)
+        @param use_float: true if predicting continuous values with MSE or L1 loss, false if predicting classes
+        @return  loss, sparse mask, target tensor, predictions
+        Note, this assumes the criterion is using 'sum' as its aggregation method
+        """
+        batch_size = coo[-1, -1] + 1
+        num_predictions = coo.shape[0]
+        if target.shape[0] != num_predictions:
+            raise ValueError("if using segment loss, target must have same number of elements in first dimension as coordinate tensor")
+        sparse_mask = spconv.SparseConvTensor(ones((num_predictions, predictions.shape[1]), dtype=float32, device=self.device),
+                                              coo[:, self.model.permute_tensor],
+                                              self.model.spatial_size, batch_size).dense()
+        if len(target.shape) == 1:
+            target_tensor = spconv.SparseConvTensor(target.unsqueeze(1), coo[:, self.model.permute_tensor],
+                                                self.model.spatial_size, batch_size).dense()
+        else:
+            target_tensor = spconv.SparseConvTensor(target, coo[:, self.model.permute_tensor],
+                                                    self.model.spatial_size, batch_size).dense()
+        predictions = sparse_mask * predictions
+        if self.SE_only:
+            if target_index is None:
+                if use_float:
+                    loss = self.criterion.forward(self.SE_mask * predictions, self.SE_mask * target_tensor)
+                else:
+                    loss = self.criterion.forward(self.SE_mask * predictions, self.SE_mask * target_tensor.squeeze(1))
+            else:
+                if use_float:
+                    loss = self.criterion.forward(self.SE_mask * predictions,
+                                                  self.SE_mask * target_tensor[:, target_index, :, :].unsqueeze(1))
+                else:
+                    loss = self.criterion.forward(self.SE_mask * predictions,
+                                                  self.SE_mask * target_tensor[:, target_index, :, :])
+        else:
+            if target_index is None:
+                if use_float:
+                    loss = self.criterion.forward(predictions, target_tensor)
+                else:
+                    loss = self.criterion.forward(predictions, target_tensor.squeeze(1))
+            else:
+                if use_float:
+                    loss = self.criterion.forward(predictions, target_tensor[:, target_index, :, :].unsqueeze(1))
+                else:
+                    loss = self.criterion.forward(predictions, target_tensor[:, target_index, :, :])
+        return loss / num_predictions, target_tensor, predictions

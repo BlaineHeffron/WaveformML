@@ -29,7 +29,7 @@ def create_coord_from_det(c, f):
 class LitZ(LitBase):
 
     def __init__(self, config, trial=None):
-        super(LitZ, self).__init__(config, trial)
+        super(LitZ, self).__init__(config, trial, event_predictions=False)
         self.model = SingleEndedZConv(self.config)
         if hasattr(self.config.dataset_config, "test_dataset_params"):
             if self.config.dataset_config.test_dataset_params.label_name == "phys" and not hasattr(
@@ -40,9 +40,6 @@ class LitZ(LitBase):
             self.use_fft = True
         else:
             self.use_fft = False
-        self.SE_only = False
-        if hasattr(self.config.net_config, "SELoss"):
-            self.SE_only = self.config.net_config.SELoss
         eval_params = {}
         if hasattr(config, "evaluation_config"):
             eval_params = DictionaryUtility.to_dict(config.evaluation_config)
@@ -61,8 +58,6 @@ class LitZ(LitBase):
                 self.evaluator = ZEvaluatorWF(self.logger, calgroup=self.config.dataset_config.calgroup)
             else:
                 self.evaluator = ZEvaluatorWF(self.logger, **eval_params)
-        if self.SE_only:
-            self._format_SE_mask()
         if self.config.dataset_config.dataset_class == "PulseDatasetRealWFPair":
             self.target_is_cal = True
         else:
@@ -72,20 +67,6 @@ class LitZ(LitBase):
             self.test_waveform = True
         else:
             self.test_waveform = False
-
-    def _format_SE_mask(self):
-        SE_mask = tensor(self.evaluator.seg_status)
-        for i in range(self.evaluator.nx):
-            for j in range(self.evaluator.ny):
-                if SE_mask[i, j] == 0.5:
-                    SE_mask[i, j] = 1.0
-                elif SE_mask[i, j] == 1.0:
-                    SE_mask[i, j] = 0.
-        SE_mask = SE_mask.unsqueeze(0)
-        SE_mask = SE_mask.unsqueeze(0)
-        self.SE_factor = (self.evaluator.nx * self.evaluator.ny) / sum(SE_mask)
-        self.register_buffer("SE_mask", SE_mask)
-        print("Using single ended only loss.")
 
     def configure_optimizers(self):
         optimizer = \
@@ -133,22 +114,11 @@ class LitZ(LitBase):
         if self.occlude_index:
             f[:, self.occlude_index] = 0
         predictions = self.model([c, f])
-        batch_size = c[-1, -1] + 1
-        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size,
-                                                                        target_has_phys)
         if target_has_phys:
-            if self.SE_only:
-                loss = self.criterion.forward(self.SE_mask * predictions[:, 0, :, :],
-                                              self.SE_mask * target_tensor[:, self.evaluator.z_index, :,
-                                                             :]) * self.SE_factor
-            else:
-                loss = self.criterion.forward(predictions[:, 0, :, :], target_tensor[:, self.evaluator.z_index, :, :])
+            loss, sparse_mask, target_tensor, predictions = \
+                self._calc_segment_loss( c, predictions, target, target_index=self.evaluator.z_index)
         else:
-            if self.SE_only:
-                loss = self.criterion.forward(self.SE_mask * predictions, self.SE_mask * target_tensor) * self.SE_factor
-            else:
-                loss = self.criterion.forward(predictions, target_tensor)
-        loss *= (self.evaluator.nx * self.evaluator.ny * batch_size / c.shape[0])
+            loss, sparse_mask, target_tensor, predictions = self._calc_segment_loss( c, predictions, target)
         return loss, predictions, target_tensor, c, f, additional_fields
 
     def training_step(self, batch, batch_idx):

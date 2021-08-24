@@ -10,7 +10,7 @@ from torch import where, tensor, sum
 class LitEZ(LitBase):
 
     def __init__(self, config, trial=None):
-        super(LitEZ, self).__init__(config, trial)
+        super(LitEZ, self).__init__(config, trial, event_predictions=False)
         self.model = SingleEndedEZConv(self.config)
         self.zscale = 1200.
         self.escale = 12.
@@ -23,9 +23,6 @@ class LitEZ(LitBase):
         if hasattr(config.net_config, "e_adjust"):
             self.e_adjust = config.net_config.e_adjust
         self.e_factor = self.escale / self.e_adjust
-        self.SE_only = False
-        if hasattr(self.config.net_config, "SELoss"):
-            self.SE_only = self.config.net_config.SELoss
         if config.net_config.algorithm == "features":
             self.phys_coord = True
             if hasattr(self.config.dataset_config, "calgroup"):
@@ -39,34 +36,6 @@ class LitEZ(LitBase):
                                                e_scale=self.e_adjust)
             else:
                 self.evaluator = EZEvaluatorWF(self.logger, e_scale=self.e_adjust)
-        if self.SE_only:
-            self._format_SE_mask()
-
-    def _format_SE_mask(self):
-        SE_mask = tensor(self.evaluator.EnergyEvaluator.seg_status)
-        for i in range(self.evaluator.EnergyEvaluator.nx):
-            for j in range(self.evaluator.EnergyEvaluator.ny):
-                if SE_mask[i, j] == 0.5:
-                    SE_mask[i, j] = 1.0
-                elif SE_mask[i, j] == 1.0:
-                    SE_mask[i, j] = 0.
-        SE_mask = SE_mask.unsqueeze(0)
-        SE_mask = SE_mask.unsqueeze(0)
-        self.SE_factor = (self.evaluator.EnergyEvaluator.nx * self.evaluator.EnergyEvaluator.ny) / sum(SE_mask)
-        self.register_buffer("SE_mask", SE_mask)
-        print("Using single ended only loss.")
-
-    """
-    def prepare_data(self):
-        self.data_module.prepare_data()
-        self.data_module.setup()
-
-    def train_dataloader(self):
-        return self.data_module.train_dataloader()
-
-    def val_dataloader(self):
-        return self.data_module.val_dataloader()
-    """
 
     def configure_optimizers(self):
         optimizer = \

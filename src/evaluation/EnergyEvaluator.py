@@ -50,8 +50,8 @@ class EnergyEvaluatorBase(SingleEndedEvaluator):
                                  "Energy Mean Absolute Percent Error", "",
                                  underflow=False, overflow=(0, 0, 1), scale=100.)
 
-    def calc_deviation_with_z(self, pred, targ, cal_E, cal_Z):
-        E_deviation_with_z(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emape"][0],
+    def calc_deviation_with_z(self, c, pred, targ, cal_E, cal_Z):
+        E_deviation_with_z(c, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emape"][0],
                            self.results["seg_mult_Emape"][1], self.results["E_mult_dual"][0],
                            self.results["E_mult_dual"][1], self.results["E_mult_single"][0],
                            self.results["E_mult_single"][1], self.seg_status, self.nx, self.ny,
@@ -59,7 +59,7 @@ class EnergyEvaluatorBase(SingleEndedEvaluator):
                            self.z_scale, cal_Z, self.results["E_z_dual"][0],
                            self.results["E_z_dual"][1], self.results["E_z_single"][0],
                            self.results["E_z_single"][1])
-        E_deviation_with_z(cal_E, targ[:, 0, :, :], self.results["seg_mult_Emape_cal"][0],
+        E_deviation_with_z(c, cal_E, targ[:, 0, :, :], self.results["seg_mult_Emape_cal"][0],
                            self.results["seg_mult_Emape_cal"][1], self.results["E_mult_dual_cal"][0],
                            self.results["E_mult_dual_cal"][1], self.results["E_mult_single_cal"][0],
                            self.results["E_mult_single_cal"][1], self.seg_status, self.nx, self.ny,
@@ -135,10 +135,10 @@ class EnergyEvaluatorWF(EnergyEvaluatorBase, WaveformEvaluator):
         if self.hascal:
             c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
             Z, E = self.z_E_from_cal(c, f, (pred.shape[0], pred.shape[2], pred.shape[3]))
-            self.calc_deviation_with_z(pred, targ, E, Z)
+            self.calc_deviation_with_z(c, pred, targ, E, Z)
 
         else:
-            E_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emape"][0],
+            E_deviation(c.detach().cpu().numpy(), pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_Emape"][0],
                         self.results["seg_mult_Emape"][1], self.results["E_mult_dual"][0],
                         self.results["E_mult_dual"][1], self.results["E_mult_single"][0],
                         self.results["E_mult_single"][1], self.seg_status, self.nx, self.ny,
@@ -177,4 +177,4 @@ class EnergyEvaluatorPhys(EnergyEvaluatorBase):
             cal_E_pred = cal_E_pred / self.E_scale
             Z = self.get_dense_matrix(torch.tensor(cal_z_pred), c)
             E = self.get_dense_matrix(torch.tensor(cal_E_pred), c)
-        self.calc_deviation_with_z(pred, targ, E[:, 0, :, :], Z[:, 0, :, :])
+        self.calc_deviation_with_z(coo, pred, targ, E[:, 0, :, :], Z[:, 0, :, :])

@@ -126,15 +126,16 @@ class ZEvaluatorBase:
     def add(self, predictions, target, c, f, E=None, additional_fields=None):
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
-        z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
+        coo = c.detach().cpu().numpy()
+        z_deviation(coo, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                     self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                     self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
                     self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
                     self.nmult, self.n_bins, self.z_scale)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
+        z_error(coo, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         if self.hascal:
-            self.z_from_cal(c, f, targ, E)
+            self.z_from_cal(coo, f, targ, E)
 
     def retrieve_error_metrics(self):
         single_err = np.sum(self.results["z_mult_mae_single"][0]) / np.sum(self.results["z_mult_mae_single"][1])
@@ -430,22 +431,21 @@ class ZEvaluatorPhys(ZEvaluatorBase, AD1Evaluator):
 
     def z_from_cal(self, c, f, targ, E=None):
         pred = np.zeros(f[:, 4].shape)
-        coo = c.detach().cpu().numpy()
         z = f[:, 4].detach().cpu().numpy()
-        z_basic_prediction(coo, z, pred)
+        z_basic_prediction(c, z, pred)
         if E is None:
             E = f[:, 0] * self.E_scale
             E = self.get_dense_matrix(E, c)
         pred = torch.tensor(pred)
         pred = self.get_dense_matrix(pred, c)
-        z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
+        z_deviation_with_E(c, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                            self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                            self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                            self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
                            self.nmult, self.n_bins, self.z_scale, E[:, 0, :, :], self.results["E_mult_mae_dual_cal"][0],
                            self.results["E_mult_mae_dual_cal"][1], self.results["E_mult_mae_single_cal"][0],
                            self.results["E_mult_mae_single_cal"][1], self.E_low, self.E_high)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins,
+        z_error(c, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins,
                 self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
@@ -455,22 +455,23 @@ class ZEvaluatorPhys(ZEvaluatorBase, AD1Evaluator):
             E = E.detach().cpu().numpy() * self.E_scale
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
+        coo = target.detach().cpu().numpy()
         if E is None:
             E = f[:, 0] * self.E_scale
             E = self.get_dense_matrix(E, c)
         else:
             E = np.expand_dims(E, axis=1)
-        z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
+        z_deviation_with_E(coo, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                            self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                            self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
                            self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
                            self.nmult, self.n_bins, self.z_scale, E[:, 0, :, :], self.results["E_mult_mae_dual"][0],
                            self.results["E_mult_mae_dual"][1], self.results["E_mult_mae_single"][0],
                            self.results["E_mult_mae_single"][1], self.E_low, self.E_high)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
+        z_error(coo, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         if self.hascal:
-            self.z_from_cal(c, f, targ, E)
+            self.z_from_cal(coo, f, targ, E)
         """
         self.logger.experiment.add_histogram("Energy", f[:, self.E_index])
         self.logger.experiment.add_histogram("dt", f[:, self.dt_index])
@@ -499,7 +500,6 @@ class ZEvaluatorWF(ZEvaluatorBase):
             self.calibrator = Calibrator(CalibrationDB(os.environ["PROSPECT_CALDB"], calgroup))
 
     def z_from_cal(self, c, f, targ, E=None, target_is_cal=False):
-        c, f = c.detach().cpu().numpy(), f.detach().cpu().numpy()
         pred = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         cal_E = np.zeros((targ.shape[0], targ.shape[2], targ.shape[3]))
         calc_calib_z_E(c, f, pred, cal_E, self.sample_width, self.calibrator.t_interp_curves,
@@ -509,20 +509,19 @@ class ZEvaluatorWF(ZEvaluatorBase):
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
 
         if target_is_cal:
-            pred = targ[:, 0, :, :].copy()
-            pred[:, self.seg_status == 0.5] = 0.5
-            pred[targ[:, 0, :, :] == 0] = 0
-            z_basic_prediction_dense(pred, targ[:, 0, :, :], target_is_cal)
+            pred = self.get_dense_matrix(torch.full((c.shape[0],), 0.5, dtype=targ.dtype), c).squeeze(1)
+            pred[:, self.seg_status != 0.5] = targ[:, self.seg_status != 0.5]
+            z_basic_prediction_dense(c, pred, targ[:, 0, :, :], target_is_cal)
         if E is None:
             E = cal_E
-        z_deviation_with_E(pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
+        z_deviation_with_E(c, pred, targ[:, 0, :, :], self.results["seg_mult_mae_cal"][0],
                            self.results["seg_mult_mae_cal"][1], self.results["z_mult_mae_dual_cal"][0],
                            self.results["z_mult_mae_dual_cal"][1], self.results["z_mult_mae_single_cal"][0],
                            self.results["z_mult_mae_single_cal"][1], self.seg_status, self.nx, self.ny,
                            self.nmult, self.n_bins, self.z_scale, E, self.results["E_mult_mae_dual_cal"][0],
                            self.results["E_mult_mae_dual_cal"][1], self.results["E_mult_mae_single_cal"][0],
                            self.results["E_mult_mae_single_cal"][1], self.E_low, self.E_high)
-        z_error(pred, targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins, self.error_low,
+        z_error(c, pred, targ[:, 0, :, :], self.results["seg_sample_error_cal"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
         return E
 
@@ -540,12 +539,13 @@ class ZEvaluatorWF(ZEvaluatorBase):
             E = E.detach().cpu().numpy() * self.E_scale
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
+        coo = c.detach().cpu().numpy()
         if self.hascal:
             if E is None:
-                E = self.z_from_cal(c, f, targ, E, target_is_cal)
+                E = self.z_from_cal(coo, f, targ, E, target_is_cal)
             else:
-                self.z_from_cal(c, f, targ, E, target_is_cal)
-            z_deviation_with_E(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
+                self.z_from_cal(coo, f, targ, E, target_is_cal)
+            z_deviation_with_E(coo, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                                self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                                self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
                                self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
@@ -553,12 +553,12 @@ class ZEvaluatorWF(ZEvaluatorBase):
                                self.results["E_mult_mae_dual"][1], self.results["E_mult_mae_single"][0],
                                self.results["E_mult_mae_single"][1], self.E_low, self.E_high)
         else:
-            z_deviation(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
+            z_deviation(coo, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_mult_mae"][0],
                         self.results["seg_mult_mae"][1], self.results["z_mult_mae_dual"][0],
                         self.results["z_mult_mae_dual"][1], self.results["z_mult_mae_single"][0],
                         self.results["z_mult_mae_single"][1], self.seg_status, self.nx, self.ny,
                         self.nmult, self.n_bins, self.z_scale)
-        z_error(pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
+        z_error(coo, pred[:, 0, :, :], targ[:, 0, :, :], self.results["seg_sample_error"], self.n_err_bins, self.error_low,
                 self.error_high, self.nmult, self.sample_segs, self.z_scale)
 
 
@@ -621,15 +621,17 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
         """
         @param predictions: tensor of dimension 4: (batch, predictions, x, y)  here predictions is length 1
         @param target: tensor of dimension 4 (batch, phys quantities, x, y) here phys quantities is length 7 of normalized phys quantities
+        @param c: tensor of dimension 2 (batch, 3) coordinates
         @param additional_fields: list of additional fields (tensors)
         """
         pred = predictions.detach().cpu().numpy()
         targ = target.detach().cpu().numpy()
+        coo = c.detach().cpu().numpy()
         if self.has_PID:
             results = np.zeros_like(pred[:, 0, :, :])
             mean_absolute_error_dense(pred[:, 0, :, :], targ[:, self.z_index, :, :], results)
             RealDataEvaluator.add(self, results, targ, c, additional_fields)
-        z_deviation_with_E_full_correlation(pred[:, 0, :, :], targ[:, self.z_index, :, :],
+        z_deviation_with_E_full_correlation(coo, pred[:, 0, :, :], targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae"][0],
                                             self.results["seg_mult_zmae"][1],
                                             self.results["z_mult_dual"][0], self.results["z_mult_dual"][1],
@@ -642,11 +644,10 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
                                             self.n_z, self.z_scale, targ[:, self.E_index, :, :],
                                             self.E_bounds[0] / self.E_scale, self.E_bounds[1] / self.E_scale, self.n_E)
 
-        cal_pred = targ[:, self.z_index, :, :].copy()
-        cal_pred[:, self.seg_status == 0.5] = 0.5
-        cal_pred[targ[:, self.z_index, :, :] == 0] = 0
-        z_basic_prediction_dense(cal_pred, targ[:, self.z_index, :, :], truth_is_cal=True)
-        z_deviation_with_E_full_correlation(cal_pred, targ[:, self.z_index, :, :],
+        cal_pred = self.get_dense_matrix(torch.full((c.shape[0], 1), 0.5, dtype=targ.dtype), c, to_numpy=True).squeeze(1)
+        cal_pred[:, self.seg_status != 0.5] = targ[:, self.seg_status != 0.5]
+        z_basic_prediction_dense(coo, cal_pred, targ[:, self.z_index, :, :], truth_is_cal=True)
+        z_deviation_with_E_full_correlation(coo, cal_pred, targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae_cal"][0],
                                             self.results["seg_mult_zmae_cal"][1],
                                             self.results["z_mult_dual_cal"][0], self.results["z_mult_dual_cal"][1],
