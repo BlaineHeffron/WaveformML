@@ -135,7 +135,10 @@ class ModelOptimization:
         for hp in self.hyperparameters.keys():
             name = hp.split("/")[-1]
             bounds = self.hyperparameters_bounds[hp]
-            if isinstance(bounds, dict):
+            if isinstance(bounds, bool):
+                setattr(self.hyperparameters[hp], name,
+                        trial.suggest_int(name, 0, 1) == 1)
+            elif isinstance(bounds, dict):
                 if "val" in bounds.keys():
                     setattr(self.hyperparameters[hp], name,
                             trial.suggest_categorical(name, bounds["val"]))
@@ -156,9 +159,6 @@ class ModelOptimization:
                 if t is None:
                     t = trial.suggest_float(name, bounds[0], bounds[1])
                 setattr(self.hyperparameters[hp], name, t)
-            elif isinstance(bounds[0], bool):
-                setattr(self.hyperparameters[hp], name,
-                        trial.suggest_int(name, 0, 1))
             self.log.info("setting {0} to {1}"
                           .format(hp, getattr(self.hyperparameters[hp], name)))
 
