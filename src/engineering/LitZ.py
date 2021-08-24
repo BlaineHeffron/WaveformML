@@ -86,21 +86,6 @@ class LitZ(LitBase):
                 return [optimizer], [scheduler]
         return optimizer
 
-    def _format_target_and_prediction(self, pred, coords, target, batch_size, target_has_phys=False):
-        if target_has_phys:
-            target_tensor = spconv.SparseConvTensor(target, coords[:, self.model.permute_tensor],
-                                                    self.model.spatial_size, batch_size)
-        else:
-            target_tensor = spconv.SparseConvTensor(target.unsqueeze(1), coords[:, self.model.permute_tensor],
-                                                    self.model.spatial_size, batch_size)
-        target_tensor = target_tensor.dense()
-        # set output to 0 if there was no value for input
-        if target_has_phys:
-            return where(target_tensor[:, self.evaluator.z_index, :, :] == 0,
-                         target_tensor[:, self.evaluator.z_index, :, :], pred[:, 0, :, :]).unsqueeze(1), target_tensor
-        else:
-            return where(target_tensor == 0, target_tensor, pred), target_tensor
-
     def _process_batch(self, batch, target_has_phys=False):
         additional_fields = None
         (c, f), target = batch

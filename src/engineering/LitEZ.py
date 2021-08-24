@@ -88,6 +88,7 @@ class LitEZ(LitBase):
             self.write_model([c, f])
         predictions = self.model([c, f])
         batch_size = c[-1, -1] + 1
+        #TODO: fix this to use proper segment loss from LitBase
         predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
         loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor, c, batch_size)
         return c, f, predictions, target_tensor, loss, ELoss, ZLoss
