@@ -206,6 +206,7 @@ class Conv1DNet(nn.Module):
                            "kernel size {3}, padding {4}, stride {5}".format(self.out_size, planes[i], planes[i + 1],
                                                                              fs, pd, st))
             conv_layers.append(nn.Conv1d(planes[i], planes[i + 1], fs, stride=st, padding=pd))
+            conv_layers.append(nn.BatchNorm1d(planes[i+1]))
             conv_layers.append(nn.ReLU())
             arg_dict = {DIM: 1, NIN: planes[i], NOUT: planes[i + 1], FS: [fs] * 4, STR: [st] * 4,
                         PAD: [pd] * 4, DIL: [1] * 4}
