@@ -1,7 +1,7 @@
 from os.path import join
 
 from src.engineering.PSDDataModule import *
-from torch import tensor, Tensor, ones, float32
+from torch import tensor, Tensor, ones, float32, sum
 import spconv
 import logging
 
@@ -121,7 +121,7 @@ class LitBase(pl.LightningModule):
         self.register_buffer("SE_mask", SE_mask)
         print("Using single ended only loss.")
 
-    def _calc_segment_loss(self, coo: Tensor, predictions: Tensor, target: Tensor, use_float=True, target_index=None):
+    def _calc_segment_loss(self, coo: Tensor, predictions: Tensor, target: Tensor, use_float=True, target_index=None, sparse_mask=None):
         """
         @param coo: tensor of coordinates, shape (batch size, 3)
         @param predictions: dense tensor of predictions, shape (# events, # outputs, x, y)
@@ -134,7 +134,8 @@ class LitBase(pl.LightningModule):
         num_predictions = coo.shape[0]
         if target.shape[0] != num_predictions:
             raise ValueError("if using segment loss, target must have same number of elements in first dimension as coordinate tensor")
-        sparse_mask = spconv.SparseConvTensor(ones((num_predictions, predictions.shape[1]), dtype=float32, device=self.device),
+        if sparse_mask is None:
+            sparse_mask = spconv.SparseConvTensor(ones((num_predictions, predictions.shape[1]), dtype=float32, device=self.device),
                                               coo[:, self.model.permute_tensor],
                                               self.model.spatial_size, batch_size).dense()
         if len(target.shape) == 1:
@@ -168,4 +169,6 @@ class LitBase(pl.LightningModule):
                     loss = self.criterion.forward(predictions, target_tensor[:, target_index, :, :].unsqueeze(1))
                 else:
                     loss = self.criterion.forward(predictions, target_tensor[:, target_index, :, :])
-        return loss / num_predictions, target_tensor, predictions
+        if self.SE_only:
+            num_predictions = sum(self.SE_mask * sparse_mask)
+        return loss / num_predictions, target_tensor, predictions, sparse_mask

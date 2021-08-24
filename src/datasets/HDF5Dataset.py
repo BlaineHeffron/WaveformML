@@ -133,7 +133,6 @@ class HDF5Dataset(data.Dataset):
         # Search for all h5 files
         all_files = []
         for i, file_path in enumerate(file_paths):
-            print(file_path)
             p = Path(file_path)
             if not p.is_dir():
                 raise RuntimeError("{0} is not a valid directory.".format(str(p.resolve())))
@@ -144,7 +143,9 @@ class HDF5Dataset(data.Dataset):
                 files = sorted(p.glob(file_pattern), key=lambda e: _sort_pattern(e))
             if file_excludes:
                 files = [f for f in files if str(f.resolve()) not in file_excludes]
-            if len(files) < 1:
+            if len(files) < 1 and len(file_excludes) > 0:
+                raise RuntimeError('No remaining datasets available, lower the number of training and / or validation data')
+            elif len(files) < 1:
                 raise RuntimeError('No hdf5 datasets found')
             all_files.append(files)
 

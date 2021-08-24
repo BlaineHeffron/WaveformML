@@ -509,8 +509,8 @@ class ZEvaluatorWF(ZEvaluatorBase):
                        self.calibrator.light_sum_curves, self.z_scale, self.n_samples)
 
         if target_is_cal:
-            pred = self.get_dense_matrix(torch.full((c.shape[0],), 0.5, dtype=targ.dtype), c).squeeze(1)
-            pred[:, self.seg_status != 0.5] = targ[:, self.seg_status != 0.5]
+            pred = self.get_dense_matrix(torch.full((c.shape[0],), 0.5, dtype=torch.float32), c).squeeze(1)
+            pred[:, self.seg_status != 0.5] = targ[:, 0, self.seg_status != 0.5]
             z_basic_prediction_dense(c, pred, targ[:, 0, :, :], target_is_cal)
         if E is None:
             E = cal_E
@@ -644,8 +644,8 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
                                             self.n_z, self.z_scale, targ[:, self.E_index, :, :],
                                             self.E_bounds[0] / self.E_scale, self.E_bounds[1] / self.E_scale, self.n_E)
 
-        cal_pred = self.get_dense_matrix(torch.full((c.shape[0], 1), 0.5, dtype=targ.dtype), c, to_numpy=True).squeeze(1)
-        cal_pred[:, self.seg_status != 0.5] = targ[:, self.seg_status != 0.5]
+        cal_pred = self.get_dense_matrix(torch.full((c.shape[0], 1), 0.5, dtype=torch.float32), c, to_numpy=True).squeeze(1)
+        cal_pred[:, self.seg_status != 0.5] = targ[:, self.z_index, self.seg_status != 0.5]
         z_basic_prediction_dense(coo, cal_pred, targ[:, self.z_index, :, :], truth_is_cal=True)
         z_deviation_with_E_full_correlation(coo, cal_pred, targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae_cal"][0],

@@ -1,10 +1,7 @@
-import spconv
-
 from src.engineering.LitBase import LitBase
 from src.evaluation.EZEvaluator import EZEvaluatorWF, EZEvaluatorPhys
 from src.models.SingleEndedEZConv import SingleEndedEZConv
 from src.engineering.PSDDataModule import *
-from torch import where, tensor, sum
 
 
 class LitEZ(LitBase):
@@ -55,27 +52,6 @@ class LitEZ(LitBase):
                 return [optimizer], [scheduler]
         return optimizer
 
-    def _format_target_and_prediction(self, pred, coords, target, batch_size):
-        if self.e_factor != 1.:
-            target[:, 0] *= self.e_factor
-        target_tensor = spconv.SparseConvTensor(target, coords[:, self.model.permute_tensor],
-                                                self.model.spatial_size, batch_size)
-        target_tensor = target_tensor.dense()
-        # set output to 0 if there was no value for input
-        return where(target_tensor == 0, target_tensor, pred), target_tensor
-
-    def _calc_loss(self, p, t, c, batch_size):
-        if self.SE_only:
-            ZLoss = self.criterion.forward(p[:, 1, :, :] * self.SE_mask, t[:, 1, :, :] * self.SE_mask) * self.SE_factor
-            ELoss = self.criterion.forward(p[:, 0, :, :] * self.SE_mask, t[:, 0, :, :] * self.SE_mask) * self.SE_factor
-        else:
-            ELoss = self.criterion.forward(p[:, 0, :, :], t[:, 0, :, :])
-            ZLoss = self.criterion.forward(p[:, 1, :, :], t[:, 1, :, :])
-
-        ZLoss *= (self.evaluator.EnergyEvaluator.nx * self.evaluator.EnergyEvaluator.ny * batch_size / c.shape[0])
-        ELoss *= (self.evaluator.EnergyEvaluator.nx * self.evaluator.EnergyEvaluator.ny * batch_size / c.shape[0])
-        return ELoss + ZLoss, self.escale * ELoss, self.zscale * ZLoss
-
     def _process_batch(self, batch):
         (c, f), target = batch
         if self.phys_coord and self.e_factor != 1.:
@@ -87,10 +63,11 @@ class LitEZ(LitBase):
         if self.write_onnx:
             self.write_model([c, f])
         predictions = self.model([c, f])
-        batch_size = c[-1, -1] + 1
-        #TODO: fix this to use proper segment loss from LitBase
-        predictions, target_tensor = self._format_target_and_prediction(predictions, c, target, batch_size)
-        loss, ELoss, ZLoss = self._calc_loss(predictions, target_tensor, c, batch_size)
+        ZLoss, target_tensor_z, predictions_z, sparse_mask = self._calc_segment_loss(c, predictions[:, 0].unsqueeze(1), target[:, 0])
+        ELoss, target_tensor_E, predictions_E, _ = self._calc_segment_loss(c, predictions[:, 1].unsqueeze(1), target[:, 1], sparse_mask=sparse_mask)
+        predictions = cat((predictions_z, predictions_E), dim=1)
+        target_tensor = cat((target_tensor_z, target_tensor_E), dim=1)
+        loss = ZLoss + ELoss
         return c, f, predictions, target_tensor, loss, ELoss, ZLoss
 
     def training_step(self, batch, batch_idx):

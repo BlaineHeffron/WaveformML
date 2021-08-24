@@ -100,10 +100,10 @@ class LitZ(LitBase):
             f[:, self.occlude_index] = 0
         predictions = self.model([c, f])
         if target_has_phys:
-            loss, sparse_mask, target_tensor, predictions = \
+            loss, target_tensor, predictions, _ = \
                 self._calc_segment_loss( c, predictions, target, target_index=self.evaluator.z_index)
         else:
-            loss, sparse_mask, target_tensor, predictions = self._calc_segment_loss( c, predictions, target)
+            loss, target_tensor, predictions, _ = self._calc_segment_loss( c, predictions, target)
         return loss, predictions, target_tensor, c, f, additional_fields
 
     def training_step(self, batch, batch_idx):
