@@ -17,6 +17,7 @@ import csv
 import socket
 import pwd
 import hashlib
+from pytorch_lightning.plugins import DDPPlugin
 
 log = logging.getLogger(__name__)
 
@@ -232,9 +233,7 @@ def set_default_trainer_args(trainer_args, config):
     if hasattr(config.system_config, "gpu_enabled"):
         if config.system_config.gpu_enabled:
             trainer_args["gpus"] = 1  # TODO add config option for multiple gpus
-            if "num_nodes" in trainer_args.keys():
-                if trainer_args["num_nodes"] > 1:
-                    trainer_args["distributed_backend"] = 'ddp'
+            trainer_args["plugins"] = DDPPlugin(find_unused_parameters=False)
     trainer_args["max_epochs"] = config.optimize_config.total_epoch
     if hasattr(config.optimize_config, "validation_freq"):
         trainer_args["check_val_every_n_epoch"] = config.optimize_config.validation_freq
