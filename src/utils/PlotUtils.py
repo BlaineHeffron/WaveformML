@@ -2,6 +2,7 @@ import itertools
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from matplotlib.colors import LogNorm
 from matplotlib import rcParams
 import matplotlib.dates as mdate
@@ -557,3 +558,14 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
     #plt.savefig(outname)
     #plt.close()
     return fig
+
+def gen_animation(figures, outfile):
+    frames = []
+    fig = plt.figure()
+    for i in range(len(figures)):
+        frames.append([figures[i]])
+    ani = animation.ArtistAnimation(fig, frames, interval=50, blit=True,
+                                    repeat_delay=1000)
+    ani.save(outfile)
+    plt.clf()
+    plt.close('all')
