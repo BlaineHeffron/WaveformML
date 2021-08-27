@@ -71,7 +71,7 @@ class PSDEvaluator(SingleEndedEvaluator):
 
     def _init_results(self):
         metric_names = ["energy", "psd", "multiplicity", "x_dev", "y_dev", "$\Delta$t_dev", "E_dev", "t_variance", "n_variance"]
-        metric_params = [[0.0, 10.0, 40], [0.0, 0.6, 40], [0.5, 10.5, 10], [0., 4., 20], [0., 3., 20], [0., 10., 20], [0.,2.,40],
+        metric_params = [self.default_bins[self.E_index], self.default_bins[self.PSD_index], [0.5, 10.5, 10], [0., 4., 20], [0., 3., 20], [0., 10., 20], [0.,2.,40],
                          [0., 1000.0, 40], [0.0, 0.25, 40]]
         i = 0
         for name in metric_names:
@@ -129,8 +129,8 @@ class PSDEvaluator(SingleEndedEvaluator):
         energy = np.sum(summed_pulses, axis=1) * 0.5
         # print("first 10 energy: {}".format(energy[0:10]))
 
-        ene_bins = get_bins(self.emin, self.emax, self.n_bins)
-        psd_bins = get_bins(self.psd_min, self.psd_max, self.n_bins)
+        ene_bins = get_bins(*self.default_bins[self.E_index])
+        psd_bins = get_bins(*self.default_bins[self.PSD_index])
         mult_bins = np.arange(0, 21, 1)
         self.logger.experiment.add_histogram("evaluation/energy", energy, 0, max_bins=self.n_bins, bins=ene_bins)
         feature_list = [energy, psdl, psdr, multiplicity]
@@ -308,12 +308,12 @@ class PhysEvaluator(PSDEvaluator):
     def add(self, batch, output, predictions):
         (c, f), labels = batch
         c, f, labels, predictions, output = c.detach().cpu().numpy(), f.detach().cpu().numpy(), labels.detach().cpu().numpy(), predictions.detach().cpu().numpy(), output.detach().cpu().numpy()
-        ene_bins = get_bins(self.emin, self.emax, self.n_bins)
-        psd_bins = get_bins(self.psd_min, self.psd_max, self.n_bins)
-        PE_bins = np.arange(0, 500, 10)
-        z_bins = np.arange(-600, 600, 10)
-        dt_bins = np.arange(-15., 15., 10)
-        t0_bins = np.arange(0., 30., 10)
+        ene_bins = get_bins(*self.default_bins[self.E_index])
+        psd_bins = get_bins(*self.default_bins[self.PSD_index])
+        PE_bins = get_bins(*self.default_bins[self.PE0_index])
+        z_bins = get_bins(*self.default_bins[self.z_index])
+        dt_bins = get_bins(*self.default_bins[self.dt_index])
+        t0_bins = get_bins(*self.default_bins[self.toffset_index])
         energy = f[:, 0] * 12.
         dt = (f[:, 1] - 0.5) * 30.
         PEL = f[:, 2] * 5000.
