@@ -25,8 +25,8 @@ def calc_bin_edges(amin, amax, n):
 
 class PSDEvaluator(SingleEndedEvaluator):
 
-    def __init__(self, class_names, logger, device, calgroup=None, has_SE=False):
-        super().__init__(logger, calgroup)
+    def __init__(self, class_names, logger, device, calgroup=None, has_SE=False, **kwargs):
+        super().__init__(logger, calgroup, **kwargs)
         if not has_SE:
             self.unset_SE_segs()
         self.logger = logger
@@ -63,7 +63,7 @@ class PSDEvaluator(SingleEndedEvaluator):
             gains = get_gains(os.environ["PROSPECT_CALDB"], calgroup)
             self.gain_factor = np.divide(np.full((14, 11, 2), MAX_RANGE), gains)
             self.calibrated = True
-            self.emax = 10.0
+            self.emax = self.default_bins[self.E_index][1]
             self.ene_label = "Visible Energy [MeV]"
         else:
             self.gain_factor = np.ones((14, 11, 2))

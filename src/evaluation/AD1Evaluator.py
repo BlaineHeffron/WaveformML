@@ -28,8 +28,10 @@ class AD1Evaluator(StatsAggregator):
     vs[6] = ((Float_t)(p.t - toffset)) / 30.;
     """
 
-    def __init__(self, logger, calgroup=None, e_scale=None):
+    def __init__(self, logger, calgroup=None, e_scale=None, **kwargs):
         super().__init__(logger)
+        if "bin_overrides" in kwargs:
+            self.override_default_bins(kwargs["bin_overrides"])
         self.nx = 14
         self.ny = 11
         self.spatial_size = np.array([self.nx, self.ny])
