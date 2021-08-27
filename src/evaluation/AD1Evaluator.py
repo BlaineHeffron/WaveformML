@@ -30,8 +30,6 @@ class AD1Evaluator(StatsAggregator):
 
     def __init__(self, logger, calgroup=None, e_scale=None, **kwargs):
         super().__init__(logger)
-        if "bin_overrides" in kwargs:
-            self.override_default_bins(kwargs["bin_overrides"])
         self.nx = 14
         self.ny = 11
         self.spatial_size = np.array([self.nx, self.ny])
@@ -63,6 +61,8 @@ class AD1Evaluator(StatsAggregator):
                              [0.0, self.PE_scale, 100],
                              [0.0, self.PE_scale, 100], [-self.z_scale / 2., self.z_scale / 2., 100], [0.0, 0.6, 100],
                              [0.0, self.toffset_scale, 100], [0.0, CELL_LENGTH, 100]]
+        if "bin_overrides" in kwargs:
+            self.override_default_bins(kwargs["bin_overrides"])
         if calgroup is not None:
             self.hascal = True
             if "PROSPECT_CALDB" not in os.environ.keys():
