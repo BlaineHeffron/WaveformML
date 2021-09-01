@@ -91,7 +91,7 @@ class PulseDataset(HDF5Dataset):
                  label_file_pattern=None,
                  data_cache_size=3,
                  batch_index=2, model_dir=None, data_dir=None, dataset_dir=None, normalize=True, use_half=False,
-                 event_based=True, additional_fields=None):
+                 event_based=True, additional_fields=None, label_map=None):
         """
         Args:
             config: configuration file object
@@ -106,6 +106,7 @@ class PulseDataset(HDF5Dataset):
                         directories in dataset_config.paths
             data_cache_size: number of file to hold in memory
             batch_index: index of the batch number for the coordinates vector
+            label_map: dict of PID values mapped to class indices
         """
         self.file_mask = file_mask
         self.config = config.dataset_config
@@ -124,7 +125,8 @@ class PulseDataset(HDF5Dataset):
                          normalize=normalize,
                          use_half=use_half,
                          event_based=event_based,
-                         additional_fields=additional_fields)
+                         additional_fields=additional_fields,
+                         label_map=label_map)
 
         self.use_half = use_half
         self.label_file_pattern = label_file_pattern
@@ -1014,7 +1016,8 @@ class PulseDatasetRealWFPair(PulseDataset):
                  dataset_dir=None,
                  use_half=False,
                  label_name="z",
-                 additional_fields=None):
+                 additional_fields=None,
+                 label_map=None):
         """
         Args:
             config: configuration file object
@@ -1034,7 +1037,8 @@ class PulseDatasetRealWFPair(PulseDataset):
                          dataset_dir=dataset_dir,
                          use_half=use_half,
                          label_name=label_name,
-                         additional_fields=additional_fields)
+                         additional_fields=additional_fields,
+                         label_map=label_map)
         if label_name is not None:
             if label_name == "z":
                 self.norm_factor = 1. / Z_NORMALIZATION_FACTOR
@@ -1074,7 +1078,8 @@ class PulseDatasetWFPairNorm(PulseDataset):
                  use_half=False,
                  label_index=None,
                  label_name="EZ",
-                 additional_fields=None):
+                 additional_fields=None,
+                 label_map=None):
         """
         Args:
             config: configuration file object
@@ -1095,7 +1100,8 @@ class PulseDatasetWFPairNorm(PulseDataset):
                          use_half=use_half,
                          label_name=label_name,
                          normalize=False,
-                         additional_fields=additional_fields)
+                         additional_fields=additional_fields,
+                         label_map = label_map)
         self.label_index = label_index
 
     def __getitem__(self, idx):
@@ -1125,7 +1131,8 @@ class PulseDatasetWaveformNorm(PulseDataset):
                  use_half=False,
                  label_index=None,
                  label_name="EZ",
-                 additional_fields=None):
+                 additional_fields=None,
+                 label_map=None):
         """
         Args:
             config: configuration file object
@@ -1147,7 +1154,8 @@ class PulseDatasetWaveformNorm(PulseDataset):
                          label_name=label_name,
                          normalize=False,
                          event_based=False,
-                         additional_fields=additional_fields)
+                         additional_fields=additional_fields,
+                         label_map=label_map)
         self.label_index = label_index
 
     def __getitem__(self, idx):

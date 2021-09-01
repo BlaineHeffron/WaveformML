@@ -37,7 +37,7 @@ def plot_weights(model, logger):
         else:
             print(layer)
 
-def plot_waveform_evolution(model, layer_num, wf):
+def plot_waveform_evolution(model, layer_nums, wf):
     activation = {}
 
     def get_activation(name):
@@ -45,12 +45,16 @@ def plot_waveform_evolution(model, layer_num, wf):
             activation[name] = output.detach()
 
         return hook
-    model.layer[layer_num].register_forward_hook(get_activation('layer_{}'.format(layer_num)))
-    output = model(wf)
-    act = activation['layer_{}'.format(layer_num)].squeeze()
-    fig, axarr = plt.subplots(act.size(0))
-    for idx in range(act.size(0)):
-        axarr[idx].imshow(act[idx])
+    for layer_num in layer_nums:
+        model.layer[layer_num].register_forward_hook(get_activation('layer_{}'.format(layer_num)))
+    coo = torch.tensor([8, 2, 0]).unsqueeze_(0)
+    wf.unsqueeze_(0)
+    output = model([wf, coo])
+    for layer_num in layer_nums:
+        act = activation['layer_{}'.format(layer_num)].squeeze()
+        fig, axarr = plt.subplots(act.size(0))
+        for idx in range(act.size(0)):
+            axarr[idx].imshow(act[idx])
 
 def main():
     parser = argparse.ArgumentParser()

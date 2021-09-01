@@ -1482,3 +1482,16 @@ def swap_sparse_from_event(sparse_list, event_list, coords):
             sparse_list[batch_index, :] = event_list[dense_index, :]
         else:
             sparse_list[batch_index] = event_list[dense_index]
+
+@nb.jit(nopython=True)
+def gen_multiplicity_list(coo, mult):
+    cur_ind = -1
+    cur_mult = 0
+    for i in range(coo.shape[0]):
+        if coo[i] != cur_ind:
+            cur_mult = 1
+            cur_ind = coo[i]
+            #lookahead to end
+            while coo[cur_mult + i] == cur_ind:
+                cur_mult += 1
+        mult[i] = cur_mult

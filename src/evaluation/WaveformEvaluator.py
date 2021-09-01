@@ -12,8 +12,8 @@ PULSE_ANALYSIS_SAMPLES = 20
 
 
 class WaveformEvaluator(AD1Evaluator):
-    def __init__(self, logger, calgroup=None, e_scale=None):
-        super(WaveformEvaluator, self).__init__(logger, calgroup=calgroup, e_scale=e_scale)
+    def __init__(self, logger, calgroup=None, e_scale=None, **kwargs):
+        super(WaveformEvaluator, self).__init__(logger, calgroup=calgroup, e_scale=e_scale, **kwargs)
         self.hascal = False
         self.sample_width = 4
         self.n_samples = 150

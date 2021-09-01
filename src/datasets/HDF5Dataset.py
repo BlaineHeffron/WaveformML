@@ -78,7 +78,7 @@ class HDF5Dataset(data.Dataset):
                     "coord_name": conf["coord_name"], "feat_name": conf["feat_name"],
                     "label_name": conf["label_name"], "events_per_dir": ["events_per_dir"],
                     "label_file_pattern": conf["label_file_pattern"], "file_pattern": conf["file_pattern"],
-                    "event_based": conf["event_based"], "additional_fields": conf["additional_fields"]}
+                    "event_based": conf["event_based"], "additional_fields": conf["additional_fields"], "label_map": conf["label_map"]}
         cls.group_mode = False
         cls.ordered_file_set = [fp["file_path"] for fp in cls.info["data_info"]]
         cls.half_precision = use_half
@@ -100,7 +100,8 @@ class HDF5Dataset(data.Dataset):
                  normalize=False,
                  use_half=False,
                  event_based=True,
-                 additional_fields=None):
+                 additional_fields=None,
+                 label_map=None):
         super().__init__()
         self.info = {}
         self.log = logging.getLogger(__name__)
@@ -126,6 +127,8 @@ class HDF5Dataset(data.Dataset):
         self.info["events_per_dir"] = events_per_dir
         self.info["event_based"] = event_based
         self.info["additional_fields"] = additional_fields
+        self.info["label_map"] = label_map
+        self.format_label_map()
         self.coord_index = None
         # self.log.debug("file excludes is {}".format(file_excludes))
         self.group_mode = False
@@ -319,14 +322,19 @@ class HDF5Dataset(data.Dataset):
                     y = self.get_data(self.info['label_name'], index)[di['event_range'][0]:]
                 else:
                     y = self.get_data(self.info['label_name'], index)
+                self.convert_label(y)
                 y = torch.tensor(y, device=self.device, dtype=torch.int64)
         else:
+            self.convert_label(y)
+            dtype = torch.float32
+            if y.dtype == npint32:
+                dtype = torch.int64
             if second_ind > 0:
-                y = torch.tensor(y[first_ind:second_ind], dtype=torch.float32, device=self.device)
+                y = torch.tensor(y[first_ind:second_ind], dtype=dtype, device=self.device)
             elif first_ind > 0:
-                y = torch.tensor(y[first_ind:], dtype=torch.float32, device=self.device)
+                y = torch.tensor(y[first_ind:], dtype=dtype, device=self.device)
             else:
-                y = torch.tensor(y, dtype=torch.float32, device=self.device)
+                y = torch.tensor(y, dtype=dtype, device=self.device)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
         #if (self.info["label_file_pattern"]):
@@ -569,3 +577,20 @@ class HDF5Dataset(data.Dataset):
             types.append(label_type)
             lengths.append(label_size)
         return H5CompoundType(types, lengths, names).type
+
+    def convert_label(self, y):
+        if self.info["label_map"] is not None:
+            for key, val in self.info["label_map"].items():
+                y[y == key] = val
+
+    def format_label_map(self):
+        del_keys = []
+        del_vals = []
+        if self.info["label_map"] is not None:
+            for key, val in self.info["label_map"].items():
+                if isinstance(key, str):
+                    del_keys.append(key)
+                    del_vals.append(val)
+        for key, val in zip(del_keys, del_vals):
+            del self.info["label_map"][key]
+            self.info["label_map"][int(key)] = val

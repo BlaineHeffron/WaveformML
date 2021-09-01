@@ -1,0 +1,110 @@
+{
+  "run_config": {
+    "exp_name": "IoniClassifierGraphTest",
+    "imports": [
+      "src.engineering.LitSegClassifier"
+    ],
+    "run_class": "LitSegClassifier"
+  },
+  "system_config": {
+    "model_name": "IoniClassifierGraph",
+    "n_type": 5,
+    "type_names": [
+      "Ioni","Recoil","NCapt","Ingress","Muon"
+    ],
+    "n_samples": 65,
+    "gpu_enabled": false,
+    "half_precision": 0,
+    "model_base_path": "./model"
+  },
+  "net_config": {
+    "criterion_class": "CrossEntropyLoss",
+    "criterion_params": [],
+    "imports": [
+      "torch.nn",
+      "src.models.GraphNet"
+    ],
+    "net_class": "GraphNet.GraphNet",
+    "net_type": "basic",
+    "validate_algorithm": true,
+    "hparams": {
+      "k": 3,
+      "n_lin": 0,
+      "graph_class_index": 11,
+      "graph_out": 5,
+      "self_loop": false,
+      "edge_transform": "cartesian",
+      "n_expand": 2,
+      "n_contract": 3,
+      "expansion_factor": 2.89
+    }
+  },
+  "optimize_config": {
+    "imports": [
+      "torch.optim",
+      "torch.optim.lr_scheduler"
+    ],
+    "total_epoch": 5,
+    "lr": 0.02,
+    "optimizer_class": "optim.SGD",
+    "optimizer_params": {
+      "momentum": 0.98,
+      "weight_decay": 0,
+      "dampening": 0,
+      "nesterov": true
+    },
+    "scheduler_class": "lr_scheduler.ExponentialLR",
+    "scheduler_params": {
+      "gamma": 0.9
+    },
+    "validation_freq": 1
+  },
+  "dataset_config": {
+    "mode": "path",
+    "imports": [
+      "src.datasets.PulseDataset"
+    ],
+    "name": "ioni_recoil_ncapt",
+    "base_path": "/home/97h/src/WaveformML/data/",
+    "paths": [
+      "ioni_nonioni"
+    ],
+    "dataset_class": "PulseDatasetWFPairNorm",
+    "dataset_params": {
+      "label_map": {
+        "1": 0,
+        "4": 1,
+        "6": 2,
+        "256": 3,
+        "258": 2,
+        "512": 4
+      },
+      "data_cache_size": 1,
+      "label_name": "PID"
+    },
+    "test_dataset_params": {
+      "label_map": {
+        "1": 0,
+        "4": 1,
+        "6": 2,
+        "256": 3,
+        "258": 2,
+        "512": 4
+      },
+      "data_cache_size": 1,
+      "label_name": "PID",
+      "additional_fields": ["phys"]
+    },
+    "dataloader_params": {
+      "pin_memory": false,
+      "num_workers": 4,
+      "batch_size": 1
+    },
+    "n_train": 10000,
+    "n_validate": 2000,
+    "n_test": 1000
+  },
+  "evaluation_params": {
+    "additional_field_names": ["phys"]
+  }
+}
