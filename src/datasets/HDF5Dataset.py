@@ -248,66 +248,66 @@ class HDF5Dataset(data.Dataset):
                 first_ind = where(coords[:, 2] == di['event_range'][0])[0][0]
         if self.coord_index == -1:
             if second_ind > 0:
-                coords = torch.tensor(coords[first_ind:second_ind], dtype=torch.int32, device=self.device)
+                coords = torch.from_numpy(coords[first_ind:second_ind]).type(torch.int32).to(self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
                         if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind, :], dtype=valtype, device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:second_ind, :]).type(valtype).to(self.device)
                         else:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind, :], device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:second_ind, :]).to(self.device)
                 else:
-                    vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
+                    vals = torch.from_numpy(vals[first_ind:second_ind, :]).type(valtype).to(self.device)
             elif first_ind > 0:
-                coords = torch.tensor(coords[first_ind:], dtype=torch.int32, device=self.device)
+                coords = torch.from_numpy(coords[first_ind:]).type(torch.int32).to(self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
                         if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:], dtype=valtype, device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:]).type(valtype).to(self.device)
                         else:
-                            vals[i] = torch.tensor(vals[i][first_ind:], device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:]).to(self.device)
                 else:
-                    vals = torch.tensor(vals[first_ind:], dtype=valtype, device=self.device)
+                    vals = torch.from_numpy(vals[first_ind:]).type(valtype).to(self.device)
             else:
-                coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
+                coords = torch.from_numpy(coords).type(torch.int32).to(self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
                         if i == 0:
-                            vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
+                            vals[i] = torch.from_numpy(vals[i]).type(valtype).to(self.device)
                         else:
-                            vals[i] = torch.tensor(vals[i], device=self.device)
+                            vals[i] = torch.from_numpy(vals[i]).to(self.device)
                 else:
-                    vals = torch.tensor(vals, dtype=valtype, device=self.device)
+                    vals = torch.from_numpy(vals).type(valtype).to(self.device)
         else:
             if second_ind > 0:
-                coords = torch.tensor(coords[first_ind:second_ind, :], dtype=torch.int32, device=self.device)
+                coords = torch.from_numpy(coords[first_ind:second_ind, :]).type(torch.int32).to(self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
                         if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind], dtype=valtype, device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:second_ind]).type(valtype).to(self.device)
                         else:
-                            vals[i] = torch.tensor(vals[i][first_ind:second_ind], device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:second_ind]).to(self.device)
                 else:
-                    vals = torch.tensor(vals[first_ind:second_ind, :], dtype=valtype, device=self.device)
+                    vals = torch.from_numpy(vals[first_ind:second_ind, :]).type(valtype).to(self.device)
             elif first_ind > 0:
-                coords = torch.tensor(coords[first_ind:, :], dtype=torch.int32, device=self.device)
+                coords = torch.from_numpy(coords[first_ind:, :]).type(torch.int32).to(self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
                         if i == 0:
-                            vals[i] = torch.tensor(vals[i][first_ind:], dtype=valtype, device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:]).type(valtype).to(self.device)
                         else:
-                            vals[i] = torch.tensor(vals[i][first_ind:], device=self.device)
+                            vals[i] = torch.from_numpy(vals[i][first_ind:]).to(self.device)
                 else:
-                    vals = torch.tensor(vals[first_ind:, :], dtype=valtype, device=self.device)
+                    vals = torch.from_numpy(vals[first_ind:, :]).type(valtype).to(self.device)
             else:
-                coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
+                coords = torch.from_numpy(coords).type(torch.int32).to(self.device)
                 if self.info['additional_fields'] is not None:
                     for i in range(len(vals)):
                         if i == 0:
-                            vals[i] = torch.tensor(vals[i], dtype=valtype, device=self.device)
+                            vals[i] = torch.from_numpy(vals[i]).type(valtype).to(self.device)
                         else:
-                            vals[i] = torch.tensor(vals[i], device=self.device)
+                            vals[i] = torch.from_numpy(vals[i]).to(self.device)
                 else:
-                    vals = torch.tensor(vals, dtype=valtype, device=self.device)
+                    vals = torch.from_numpy(vals).type(valtype).to(self.device)
 
         if y is None:
             if self.info['label_name'] is None:
@@ -323,18 +323,19 @@ class HDF5Dataset(data.Dataset):
                 else:
                     y = self.get_data(self.info['label_name'], index)
                 self.convert_label(y)
-                y = torch.tensor(y, device=self.device, dtype=torch.int64)
+                print("sending to torch")
+                y = torch.from_numpy(y).type(torch.int64).to(self.device)
         else:
             self.convert_label(y)
             dtype = torch.float32
             if y.dtype == npint32:
                 dtype = torch.int64
             if second_ind > 0:
-                y = torch.tensor(y[first_ind:second_ind], dtype=dtype, device=self.device)
+                y = torch.from_numpy(y[first_ind:second_ind]).type(dtype).to(self.device)
             elif first_ind > 0:
-                y = torch.tensor(y[first_ind:], dtype=dtype, device=self.device)
+                y = torch.from_numpy(y[first_ind:]).type(dtype).to(self.device)
             else:
-                y = torch.tensor(y, dtype=dtype, device=self.device)
+                y = torch.from_numpy(y).type(dtype).to(self.device)
             # vals = torch.tensor(vals, device=self.device, dtype=torch.float32) # is it slow converting to tensor here? had to do it here to fix an issue, but this may not be optimal
             # self.log.debug("now coords size is ", coords.size())
         #if (self.info["label_file_pattern"]):
