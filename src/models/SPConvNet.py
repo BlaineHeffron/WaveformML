@@ -1,13 +1,29 @@
-from copy import copy
-from typing import Any
-
-import spconv
-from torch import nn, LongTensor
-from src.utils.util import DictionaryUtility
+from torch import LongTensor
 from numpy import array
 from src.utils.util import *
 from src.models.ConvBlocks import *
 from src.models.SPConvBlocks import *
+
+
+class SPConvPreserveNet(nn.Module):
+    def __init__(self, config):
+        super(SPConvPreserveNet, self).__init__()
+        self.log = logging.getLogger(__name__)
+        self.system_config = config.system_config
+        self.net_config = config.net_config
+        self.nsamples = self.system_config.n_samples
+        self.ntype = self.system_config.n_type
+        hparams = DictionaryUtility.to_dict(self.net_config.hparams.conv_params)
+        self.model = SparseConv2DPreserve(self.nsamples*2, self.ntype, self.net_config.hparams.n_conv, **hparams)
+        self.spatial_size = array([14, 11])
+        self.permute_tensor = LongTensor([2, 0, 1])  # needed because spconv requires batch index first
+
+    def forward(self, x):
+        batch_size = x[0][-1, -1] + 1
+        x = spconv.SparseConvTensor(x[1], x[0][:, self.permute_tensor], self.spatial_size, batch_size)
+        x = self.model(x)
+        return x.features
+
 
 
 class SPConvNet(nn.Module):
