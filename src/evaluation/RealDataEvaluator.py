@@ -41,7 +41,7 @@ class RealDataEvaluator(SingleEndedEvaluator):
             self.metric_names = ["energy", "psd", "multiplicity", "z"]
             self.class_names = [PID_class_map(i) for i in range(1, 8)]
             units = ["MeVee", "", "", "mm"]
-            metric_params = [self.default_bins[0], self.default_bins[5], [0.5, 6.5, 10], self.default_bins[4]]
+            metric_params = [self.default_bins[0], self.default_bins[5], [0.5, 6.5, 6], self.default_bins[4]]
             scales = [self.E_scale, 1.0, 1.0, self.z_scale]
             i = 0
             for name, unit, scale in zip(self.metric_names, units, scales):
