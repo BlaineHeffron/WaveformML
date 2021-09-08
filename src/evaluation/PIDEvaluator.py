@@ -112,7 +112,7 @@ class PIDEvaluator(SingleEndedEvaluator):
                 self.metric_pairs.add_normalized(accuracy[ind_match], parameters[:, ind_match], self.class_names[i])
         n_SE = np.zeros((results.shape[0],), dtype=np.int32)
         retrieve_n_SE(coo, self.seg_status, n_SE)
-        confusion_accumulate(results, targ, self.results["SE_confusion"])
+        confusion_accumulate(results[se_mask], targ[se_mask], self.results["SE_confusion"])
         confusion_accumulate_1d(results, targ, phys[0], self.results["confusion_energy"],
                                 get_typed_list([0.0, self.n_confusion / self.E_scale]),
                                 self.n_confusion)
