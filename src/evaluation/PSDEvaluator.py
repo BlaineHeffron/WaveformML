@@ -86,8 +86,8 @@ class PSDEvaluator(SingleEndedEvaluator):
                 zeros((self.nx + 2, self.ny + 2), dtype=np.float32), zeros((self.nx + 2, self.ny + 2), dtype=np.int32)),
             "ene_psd_acc": (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
                             zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
-            "confusion_energy": zeros((self.n_confusion, self.n_classes, self.n_classes), dtype=np.int32),
-            "confusion_SE": zeros((self.n_SE_max+1, self.n_classes, self.n_classes), dtype=np.int32)
+            "confusion_energy": zeros((self.n_confusion + 1, self.n_classes, self.n_classes), dtype=np.int32),
+            "confusion_SE": zeros((self.n_SE_max+2, self.n_classes, self.n_classes), dtype=np.int32)
         }
         for i in range(len(self.class_names)):
             self.results["ene_psd_prec_{}".format(self.class_names[i])] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),

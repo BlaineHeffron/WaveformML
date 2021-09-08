@@ -3,8 +3,12 @@ from torch import ones_like
 
 from src.evaluation.EnergyEvaluator import EnergyEvaluatorPhys
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
+from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
-from src.utils.SparseUtils import gen_multiplicity_list
+from src.utils.PlotUtils import plot_confusion_matrix
+from src.utils.SparseUtils import gen_multiplicity_list, confusion_accumulate_1d, get_typed_list, retrieve_n_SE, \
+    calculate_class_accuracy
+import numpy as np
 
 PID_MAP = {
     1: 0,  # ioni
@@ -23,12 +27,10 @@ PID_MAPPED_NAMES = {
 }
 
 
-class PIDEvaluator(WaveformEvaluator):
+class PIDEvaluator(SingleEndedEvaluator):
 
     def __init__(self, logger, calgroup=None, namespace=None, e_scale=None, additional_field_names=None, **kwargs):
-        WaveformEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale, **kwargs)
-        if calgroup is not None:
-            self.EnergyEvaluator = EnergyEvaluatorPhys(logger, calgroup=None, e_scale=e_scale, namespace=namespace)
+        super(PIDEvaluator, self).__init__(logger, calgroup=calgroup, e_scale=e_scale, **kwargs)
         self.E_bounds = self.default_bins[0][0:2]
         self.mult_bounds = [0.5, 6.5]
         self.n_mult = 6
@@ -37,6 +39,7 @@ class PIDEvaluator(WaveformEvaluator):
         self.metric_unit = ""
         self.metrics = []
         self.scaling = 1.0
+        self.n_classes = len(PID_MAPPED_NAMES.keys())
         self.additional_field_names = additional_field_names
         self.phys_index = None
         if self.additional_field_names is not None:
@@ -63,6 +66,8 @@ class PIDEvaluator(WaveformEvaluator):
         metric_params = [self.default_bins[0], self.default_bins[5], [0.5, 6.5, 6], self.default_bins[4]]
         scales = [self.E_scale, 1.0, 1.0, self.z_scale]
         i = 0
+        self.n_confusion = 10
+        self.n_SE_max = 4
         for name, unit, scale in zip(self.metric_names, units, scales):
             self.metrics.append(MetricAggregator(name, *metric_params[i], self.class_names,
                                                  metric_name=self.metric_name, metric_unit=self.metric_unit,
@@ -72,9 +77,14 @@ class PIDEvaluator(WaveformEvaluator):
             i += 1
         self.metric_pairs = MetricPairAggregator(self.metrics)
 
+        self.results = {
+            "confusion_energy": zeros((self.n_confusion + 1, self.n_classes, self.n_classes), dtype=np.int32),
+            "confusion_SE": zeros((self.n_SE_max + 2, self.n_classes, self.n_classes), dtype=np.int32)
+        }
+
     def add(self, results, target, c, additional_fields=None):
         """
-        @param results: tensor of dimension 2: (batch, n classes)
+        @param results: tensor of dimension 2: (batch, )
         @param target: tensor of dimension 1 (batch, )
         @param c: tensor of dimension 2 (batch, 3) coordinates
         @param additional_fields: list of additional fields (tensors)
@@ -84,6 +94,8 @@ class PIDEvaluator(WaveformEvaluator):
         targ = target.detach().cpu().numpy()
         coo = c.detach().cpu().numpy()
         results = results.detach().cpu().numpy()
+        accuracy = np.zeros((results.shape[0], ), np.int32)
+        calculate_class_accuracy(results, targ, accuracy)
         if self.phys_index is not None:
             phys = additional_fields[self.phys_index].detach().cpu().numpy()
         else:
@@ -96,7 +108,36 @@ class PIDEvaluator(WaveformEvaluator):
         if self.metric_pairs is not None:
             for i in range(len(self.class_names)):
                 ind_match = targ == i
-                self.metric_pairs.add_normalized(results[ind_match], parameters[:, ind_match], self.class_names[i])
+                self.metric_pairs.add_normalized(accuracy[ind_match], parameters[:, ind_match], self.class_names[i])
+        n_SE = np.zeros((results.shape[0],), dtype=np.int32)
+        retrieve_n_SE(coo, self.seg_status, n_SE)
+        confusion_accumulate_1d(results, targ, phys[0], self.results["confusion_energy"],
+                                get_typed_list([0.0, self.n_confusion / self.E_scale]),
+                                self.n_confusion)
+        confusion_accumulate_1d(results, targ, n_SE, self.results["confusion_SE"],
+                                get_typed_list([-0.5, self.n_SE_max + 0.5]),
+                                self.n_SE_max + 1)
 
     def dump(self):
         self.metric_pairs.plot(self.logger)
+        for i in range(self.n_confusion):
+            bin_width = 1.0
+            title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_energy{0}".format(i),
+                                              plot_confusion_matrix(self.results["confusion_energy"][i],
+                                                                    self.class_names,
+                                                                    normalize=True, title=title))
+        self.logger.experiment.add_figure("evaluation/confusion_matrix_energy{0}_totals".format(i),
+                                          plot_confusion_matrix(self.results["confusion_energy"][i],
+                                                                self.class_names,
+                                                                normalize=False, title=title))
+        for i in range(self.n_SE_max + 1):
+            title = "{} SE segs".format(i)
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_SE_{0}".format(i),
+                                              plot_confusion_matrix(self.results["confusion_SE"][i],
+                                                                    self.class_names,
+                                                                    normalize=True, title=title))
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_SE_{0}_totals".format(i),
+                                              plot_confusion_matrix(self.results["confusion_SE"][i],
+                                                                    self.class_names,
+                                                                    normalize=False, title=title))

@@ -107,6 +107,7 @@ def vec_sum(a):
 
 @nb.jit(nopython=True)
 def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
+    #assumes no underflow bin but one overflow bin
     xlen = xrange[1] - xrange[0]
     bin_width = xlen / nbins
     for i in range(metric.shape[0]):
@@ -115,7 +116,7 @@ def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
         if metric[i] < xrange[0]:
             find_bin = False
         elif metric[i] > xrange[1]:
-            bin_index = nbins + 1
+            bin_index = nbins
             find_bin = False
         if find_bin:
             for j in range(1, nbins + 1):
@@ -1495,3 +1496,36 @@ def gen_multiplicity_list(coo, mult):
             while coo[cur_mult + i] == cur_ind:
                 cur_mult += 1
         mult[i] = cur_mult
+
+@nb.jit(nopython=True)
+def retrieve_n_SE(coo, seg_status, n_SE):
+    cur_ind = -1
+    cur_n_SE = 0
+    for i in range(coo.shape[0]):
+        if coo[i][2] != cur_ind:
+            cur_n_SE = 0
+            cur_ind = coo[i][2]
+            j = 0
+            #lookahead to end
+            while coo[j + i][2] == cur_ind:
+                x = coo[j + i][0]
+                y = coo[j + i][1]
+                if seg_status[x, y] == 0.5:
+                    cur_n_SE += 1
+                j += 1
+        n_SE[i] = cur_n_SE
+
+@nb.jit(nopython=True)
+def calculate_class_accuracy(results, targ, accuracy):
+    """
+    @param results: list of class indices
+    @param targ: list of class indices
+    @param accuracy: list of zeros which will be filled with 0 if results mathes target, 1 otherwise
+    """
+    for i in range(results.shape[0]):
+        if results[i] == targ[i]:
+            accuracy[i] = 0
+        else:
+            accuracy[i] = 1
+
+
