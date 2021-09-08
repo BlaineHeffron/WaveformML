@@ -1,4 +1,4 @@
-from pytorch_lightning.metrics.classification import Accuracy
+from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import ConfusionMatrix
 
 from src.engineering.LitBase import LitBase

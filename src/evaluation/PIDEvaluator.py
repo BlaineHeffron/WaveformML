@@ -1,10 +1,6 @@
 from numpy import stack, zeros, swapaxes
-from torch import ones_like
-
-from src.evaluation.EnergyEvaluator import EnergyEvaluatorPhys
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
-from src.evaluation.WaveformEvaluator import WaveformEvaluator
 from src.utils.PlotUtils import plot_confusion_matrix
 from src.utils.SparseUtils import gen_multiplicity_list, confusion_accumulate_1d, get_typed_list, retrieve_n_SE, \
     calculate_class_accuracy, gen_SE_mask, confusion_accumulate
@@ -132,7 +128,7 @@ class PIDEvaluator(SingleEndedEvaluator):
                                                                 self.class_names,
                                                                 normalize=True, title=title))
         title = "SE confusion matrix totals"
-        self.logger.experiment.add_figure("evaluation/SE_confusion_matrix",
+        self.logger.experiment.add_figure("evaluation/SE_confusion_matrix_totals",
                                           plot_confusion_matrix(self.results["SE_confusion"],
                                                                 self.class_names,
                                                                 normalize=False, title=title))
