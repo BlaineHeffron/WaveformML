@@ -67,7 +67,7 @@ class PIDEvaluator(SingleEndedEvaluator):
         scales = [self.E_scale, 1.0, 1.0, self.z_scale]
         i = 0
         self.n_confusion = 10
-        self.n_SE_max = 4
+        self.n_SE_max = 6
         for name, unit, scale in zip(self.metric_names, units, scales):
             self.metrics.append(MetricAggregator(name, *metric_params[i], self.class_names,
                                                  metric_name=self.metric_name, metric_unit=self.metric_unit,

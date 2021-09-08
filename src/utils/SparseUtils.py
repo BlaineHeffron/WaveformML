@@ -1520,12 +1520,12 @@ def calculate_class_accuracy(results, targ, accuracy):
     """
     @param results: list of class indices
     @param targ: list of class indices
-    @param accuracy: list of zeros which will be filled with 0 if results mathes target, 1 otherwise
+    @param accuracy: list of zeros which will be filled with 1 if results mathes target, 0 otherwise
     """
     for i in range(results.shape[0]):
         if results[i] == targ[i]:
-            accuracy[i] = 0
-        else:
             accuracy[i] = 1
+        else:
+            accuracy[i] = 0
 
 
