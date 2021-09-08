@@ -41,8 +41,11 @@ class LitSegClassifier(LitBase):
         if self.occlude_index:
             f[:, self.occlude_index] = 0
         predictions = self.model([c, f])
-        loss = self.criterion.forward(predictions, target)
-        #loss, target_tensor, predictions, _ = self._calc_segment_loss( c, predictions, target)
+        if self.SE_only:
+            se_inds = self.SE_mask[0, 0, c[:, 0].long(), c[:, 1].long()] == 1.0
+            loss = self.criterion.forward(predictions[se_inds], target[se_inds])
+        else:
+            loss = self.criterion.forward(predictions, target)
         return loss, predictions, target, c, f, additional_fields
 
     def training_step(self, batch, batch_idx):
