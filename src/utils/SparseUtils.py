@@ -104,6 +104,10 @@ def vec_sum(a):
         out += val
     return out
 
+@nb.jit(nopython=True)
+def confusion_accumulate(prediction, label, output):
+    for i in range(prediction.shape[0]):
+        output[label[i], prediction[i]] += 1
 
 @nb.jit(nopython=True)
 def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
@@ -1529,3 +1533,15 @@ def calculate_class_accuracy(results, targ, accuracy):
             accuracy[i] = 0
 
 
+@nb.jit(nopython=True)
+def gen_SE_mask(coo, seg_status, mask):
+    """
+    @param coo: list of coordinates (x, y, batch)
+    @param seg_status: 2d array of segment statuses (0.5 for SE)
+    @param mask: list of 1s and 0s, 1 for SE, 0 for not SE
+    """
+    for i in range(coo.shape[0]):
+        if seg_status[coo[i][0], coo[i][1]] == 0.5:
+            mask[i] = 1
+        else:
+            mask[i] = 0

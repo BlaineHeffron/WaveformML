@@ -7,7 +7,7 @@ from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.WaveformEvaluator import WaveformEvaluator
 from src.utils.PlotUtils import plot_confusion_matrix
 from src.utils.SparseUtils import gen_multiplicity_list, confusion_accumulate_1d, get_typed_list, retrieve_n_SE, \
-    calculate_class_accuracy
+    calculate_class_accuracy, gen_SE_mask, confusion_accumulate
 import numpy as np
 
 PID_MAP = {
@@ -79,7 +79,8 @@ class PIDEvaluator(SingleEndedEvaluator):
 
         self.results = {
             "confusion_energy": zeros((self.n_confusion + 1, self.n_classes, self.n_classes), dtype=np.int32),
-            "confusion_SE": zeros((self.n_SE_max + 2, self.n_classes, self.n_classes), dtype=np.int32)
+            "confusion_SE": zeros((self.n_SE_max + 2, self.n_classes, self.n_classes), dtype=np.int32),
+            "SE_confusion": zeros((self.n_classes, self.n_classes), dtype=np.int32)
         }
 
     def add(self, results, target, c, additional_fields=None):
@@ -105,12 +106,17 @@ class PIDEvaluator(SingleEndedEvaluator):
         parameters = stack((phys[:, self.E_index], phys[:, self.PSD_index], mult,
                             phys[:, self.z_index]), axis=1)
         parameters = swapaxes(parameters, 0, 1)
+        # we only care about PID accuracy in SE cells, use mask to calculate
+        se_mask = np.zeros((coo.shape[0],), dtype=bool)
+        gen_SE_mask(coo, self.seg_status, se_mask)
         if self.metric_pairs is not None:
             for i in range(len(self.class_names)):
                 ind_match = targ == i
+                ind_match *= se_mask
                 self.metric_pairs.add_normalized(accuracy[ind_match], parameters[:, ind_match], self.class_names[i])
         n_SE = np.zeros((results.shape[0],), dtype=np.int32)
         retrieve_n_SE(coo, self.seg_status, n_SE)
+        confusion_accumulate(results, targ, self.results["SE_confusion"])
         confusion_accumulate_1d(results, targ, phys[0], self.results["confusion_energy"],
                                 get_typed_list([0.0, self.n_confusion / self.E_scale]),
                                 self.n_confusion)
@@ -120,6 +126,16 @@ class PIDEvaluator(SingleEndedEvaluator):
 
     def dump(self):
         self.metric_pairs.plot(self.logger)
+        title = "SE confusion matrix"
+        self.logger.experiment.add_figure("evaluation/SE_confusion_matrix",
+                                          plot_confusion_matrix(self.results["SE_confusion"],
+                                                                self.class_names,
+                                                                normalize=True, title=title))
+        title = "SE confusion matrix totals"
+        self.logger.experiment.add_figure("evaluation/SE_confusion_matrix",
+                                          plot_confusion_matrix(self.results["SE_confusion"],
+                                                                self.class_names,
+                                                                normalize=False, title=title))
         for i in range(self.n_confusion):
             bin_width = 1.0
             title = "{0:.1f} - {1:.1f} MeV".format(i * bin_width, (i + 1) * bin_width)
@@ -127,10 +143,10 @@ class PIDEvaluator(SingleEndedEvaluator):
                                               plot_confusion_matrix(self.results["confusion_energy"][i],
                                                                     self.class_names,
                                                                     normalize=True, title=title))
-        self.logger.experiment.add_figure("evaluation/confusion_matrix_energy{0}_totals".format(i),
-                                          plot_confusion_matrix(self.results["confusion_energy"][i],
-                                                                self.class_names,
-                                                                normalize=False, title=title))
+            self.logger.experiment.add_figure("evaluation/confusion_matrix_energy{0}_totals".format(i),
+                                              plot_confusion_matrix(self.results["confusion_energy"][i],
+                                                                    self.class_names,
+                                                                    normalize=False, title=title))
         for i in range(self.n_SE_max + 1):
             title = "{} SE segs".format(i)
             self.logger.experiment.add_figure("evaluation/confusion_matrix_SE_{0}".format(i),
