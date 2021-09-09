@@ -1,7 +1,7 @@
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.PIDEvaluator import PID_MAPPED_NAMES, PID_MAP
-from numpy import zeros, stack, ones_like, swapaxes
+from numpy import zeros, stack, swapaxes
 
 from src.utils.SparseUtils import gen_multiplicity_list, gen_SE_mask
 
@@ -14,10 +14,14 @@ class SegEvaluator(SingleEndedEvaluator):
         self.mult_bounds = [0.5, 6.5]
         self.n_mult = 6
         self.n_E = self.default_bins[0][-1]
-        self.metric_name = "accuracy"
-        self.metric_unit = ""
+        if "target_index" in kwargs.keys():
+            self.target_index = kwargs["target_index"]
+        else:
+            self.target_index = 4 # default to z prediction
+        self.metric_name = "mean absolute error",
+        self.metric_unit = self.phys_units[self.target_index]
         self.metrics = []
-        self.scaling = 1.0
+        self.scaling = self.scale_factor(self.target_index)
         self.PID_index = None
         self.additional_field_names = additional_field_names
         if self.additional_field_names is not None:

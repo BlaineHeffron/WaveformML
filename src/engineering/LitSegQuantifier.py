@@ -21,6 +21,7 @@ class LitSegQuantifier(LitBase):
         if hasattr(config, "evaluation_config"):
             eval_params = DictionaryUtility.to_dict(config.evaluation_config)
         self.target_index = config.dataset_config.dataset_params.label_index
+        eval_params["target_index"] = self.target_index
         self.evaluator = SegEvaluator(self.logger, **eval_params)
 
     def _process_batch(self, batch):
