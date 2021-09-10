@@ -18,7 +18,7 @@ class SegEvaluator(SingleEndedEvaluator):
             self.target_index = kwargs["target_index"]
         else:
             self.target_index = 4 # default to z prediction
-        self.metric_name = "mean absolute error",
+        self.metric_name = "mean absolute error"
         self.metric_unit = self.phys_units[self.target_index]
         self.metrics = []
         self.scaling = self.scale_factor(self.target_index)
@@ -32,7 +32,7 @@ class SegEvaluator(SingleEndedEvaluator):
             self.class_names = [val for key, val in PID_MAPPED_NAMES.items()]
             self.class_PIDs = [key for key, val in PID_MAP.items()]
         else:
-            self.class_names = ["all events"]
+            self.class_names = ["all"]
             self.class_PIDs = None
         if namespace:
             self.namespace = "evaluation/{}_".format(namespace)
@@ -68,7 +68,7 @@ class SegEvaluator(SingleEndedEvaluator):
         @param c: torch tensor 2 dim (batch, coord)
         @param additional_fields: list of torch tensors of additional fields (same shape as results)
         """
-        PID = additional_fields[self.PID_index]
+        PID = additional_fields[self.PID_index].detach().cpu().numpy()
         target = target.detach().cpu().numpy()
         coo = c.detach().cpu().numpy()
         results = results.detach().cpu().numpy()
