@@ -2,7 +2,7 @@ import numpy as np
 
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
-from src.evaluation.PIDEvaluator import PID_MAPPED_NAMES, PID_MAP
+from src.evaluation.PIDEvaluator import PID_MAPPED_NAMES, PID_MAP, retrieve_class_names_PIDS
 from numpy import zeros, stack, swapaxes
 
 from src.utils.SparseUtils import gen_multiplicity_list, gen_SE_mask
@@ -33,8 +33,7 @@ class SegEvaluator(SingleEndedEvaluator):
                 self.PID_index = self.additional_field_names.index("PID")
                 self.has_PID = True
         if self.has_PID:
-            self.class_names = [val for key, val in PID_MAPPED_NAMES.items()]
-            self.class_PIDs = [key for key, val in PID_MAP.items()]
+            self.class_names, self.class_PIDs = retrieve_class_names_PIDS()
         else:
             self.class_names = ["all"]
             self.class_PIDs = None
@@ -93,11 +92,12 @@ class SegEvaluator(SingleEndedEvaluator):
         gen_SE_mask(coo, self.seg_status, se_mask)
         if self.class_PIDs is not None:
             for i in range(len(self.class_names)):
-                ind_match = PID == self.class_PIDs[i]
-                ind_match *= se_mask
-                if results[ind_match].shape[0] > 0:
-                    self.metric_pairs.add_normalized(mae[ind_match], parameters[:, ind_match], self.class_names[i])
-                    self.error_aggregator.add_norm(results[ind_match], target[ind_match, self.target_index], self.class_names[i])
+                for pid in self.class_PIDs[i]:
+                    ind_match = PID == pid
+                    ind_match *= se_mask
+                    if results[ind_match].shape[0] > 0:
+                        self.metric_pairs.add_normalized(mae[ind_match], parameters[:, ind_match], self.class_names[i])
+                        self.error_aggregator.add_norm(results[ind_match], target[ind_match, self.target_index], self.class_names[i])
         else:
             self.metric_pairs.add_normalized(mae, parameters, self.class_names[0])
             self.error_aggregator.add_norm(results, target[:, self.target_index], self.class_names[0])

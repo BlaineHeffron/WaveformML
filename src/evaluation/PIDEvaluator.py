@@ -22,6 +22,16 @@ PID_MAPPED_NAMES = {
     4: "Muon"
 }
 
+def retrieve_class_names_PIDS():
+    class_names = [val for key, val in PID_MAPPED_NAMES.items()]
+    class_PIDS = [None]*len(class_names)
+    for key, val in PID_MAP.items():
+        if class_PIDS[val] is None:
+            class_PIDS[val] = [key]
+        else:
+            class_PIDS[val].append(key)
+    return class_names, class_PIDS,
+
 
 class PIDEvaluator(SingleEndedEvaluator):
 
