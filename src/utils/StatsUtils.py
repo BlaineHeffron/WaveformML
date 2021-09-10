@@ -5,7 +5,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 
 from src.utils.PlotUtils import plot_hist2d, plot_hist1d, plot_z_acc_matrix
-from src.utils.SparseUtils import safe_divide_2d
+from src.utils.SparseUtils import safe_divide_2d, get_typed_list, hist_add_1d, hist_add_2d
 from src.utils.util import get_bins, safe_divide
 
 
@@ -30,6 +30,70 @@ def calc_time_moments(dist_vec, n):
     for i in range(n):
         output[:, i] = moment_prod(np.arange(2, n_samples * 4 + 2, 4) ** (i + 2), pulses)
     return output
+
+class ErrorAggregator:
+    def __init__(self, name, low, high, n_bins, class_names, metric_name="precision", metric_unit="", scale_factor=1.0,
+                 truth_name='truth', pred_name='prediction'):
+        """
+        @param name: name of parameter the metric will be accumulated over
+        @param low: lower bound of metric for histogramming
+        @param high: upper bound of metric for histogramming
+        @param n_bins: number of bins in histogram
+        @param class_names: names of different classes for which the metric is aggregated over
+        @param metric_name: name of the metric
+        @param metric_unit: metric unit
+        @param scale_factor: scale factor to scale results by at the end
+        """
+        self.name = name
+        self.metric_name = metric_name
+        self.metric_unit = metric_unit
+        self.truth_name = truth_name
+        self.pred_name = pred_name
+        self.n_bins = n_bins
+        self.bin_edges = get_bins(low, high, n_bins)
+        self.class_names = class_names
+        self.error_edges = [None]*len(self.class_names)
+        self.scale_factor = scale_factor
+        self.num_classes = len(self.class_names)
+        # results are indexed by class in order of class_names
+        self.error_hist = np.zeros((self.num_classes, self.n_bins + 2), dtype=np.double)
+        self.error_2d = np.zeros((self.num_classes, self.n_bins + 2, self.n_bins + 2), dtype=np.double)
+
+    def add_norm(self, pred, actual, category_name):
+        class_ind = self.class_names.index(category_name)
+        error = pred - actual
+        if self.error_edges[class_ind] is None:
+            max_error = np.max(np.abs(error))
+            error_low = -1.1*max_error
+            error_high = 1.1*max_error
+            self.error_edges[class_ind] = get_bins(error_low, error_high, self.n_bins)
+        hist_add_1d(error, self.error_hist[class_ind], get_typed_list([self.error_edges[class_ind][0], self.error_edges[class_ind][-1]]), self.n_bins)
+        bin_edge_list = get_typed_list([0., 1.])
+        hist_add_2d(actual, pred, self.error_2d[class_ind], bin_edge_list, bin_edge_list, self.n_bins, self.n_bins)
+
+    def plot(self, logger):
+        error_label = "error [{0}]".format(self.metric_unit)
+        x_label = "{0} [{1}]".format(self.truth_name, self.metric_unit)
+        y_label = "{0} [{1}]".format(self.pred_name, self.metric_unit)
+        inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
+        for ind, class_name in zip(inds_to_plot, class_names_to_plot):
+            logger.experiment.add_figure("evaluation/{0}_error_class_{1}".format(self.name, class_name),
+                                         plot_hist1d(self.error_edges[ind] * self.scale_factor, self.error_hist[ind],
+                                                     class_name, error_label,
+                                                     "", norm_to_bin_width=False, logy=False))
+            logger.experiment.add_figure("evaluation/{0}_prediction_vs_truth_class_{1}".format(self.name, class_name),
+                                         plot_hist2d(self.bin_edges, self.bin_edges, self.error_2d[ind],
+                                                     class_name, x_label, y_label,
+                                                     "", norm_to_bin_width=False, logz=True))
+
+    def retrieve_inds_to_plot(self):
+        to_plot = []
+        classes_to_plot = []
+        for i in range(len(self.class_names)):
+            if np.sum(self.error_hist[i]) > 20:
+                to_plot.append(i)
+                classes_to_plot.append(self.class_names[i])
+        return to_plot, classes_to_plot
 
 
 class StatsAggregator:

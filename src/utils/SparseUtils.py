@@ -104,14 +104,16 @@ def vec_sum(a):
         out += val
     return out
 
+
 @nb.jit(nopython=True)
 def confusion_accumulate(prediction, label, output):
     for i in range(prediction.shape[0]):
         output[label[i], prediction[i]] += 1
 
+
 @nb.jit(nopython=True)
 def confusion_accumulate_1d(prediction, label, metric, output, xrange, nbins):
-    #assumes no underflow bin but one overflow bin
+    # assumes no underflow bin but one overflow bin
     xlen = xrange[1] - xrange[0]
     bin_width = xlen / nbins
     for i in range(metric.shape[0]):
@@ -145,6 +147,27 @@ def get_bin_index(val, low, high, bin_width, nbins):
                 bin_index = j
                 break
     return bin_index
+
+
+@nb.jit(nopython=True)
+def hist_add_1d(value, output, xrange, nbins):
+    # expects output to be of size nbins+2, 1 for overflow and underflow
+    bin_width = (xrange[1] - xrange[0]) / nbins
+    for i in range(value.shape[0]):
+        bin_index = get_bin_index(value[i], xrange[0], xrange[1], bin_width, nbins)
+        output[bin_index] += 1
+
+
+@nb.jit(nopython=True)
+def hist_add_2d(valuex, valuey, output, xrange, yrange, nbinsx, nbinsy):
+    # expects output to be of size nbins+2, 1 for overflow and underflow
+    # expects valuex and valuey to be of same size
+    bin_widthx = (xrange[1] - xrange[0]) / nbinsx
+    bin_widthy = (yrange[1] - yrange[0]) / nbinsy
+    for i in range(valuex.shape[0]):
+        bin_index_x = get_bin_index(valuex[i], xrange[0], xrange[1], bin_widthx, nbinsx)
+        bin_index_y = get_bin_index(valuey[i], yrange[0], yrange[1], bin_widthy, nbinsy)
+        output[bin_index_x, bin_index_y] += 1
 
 
 @nb.jit(nopython=True)
@@ -252,8 +275,6 @@ def mean_absolute_error_dense(predictions, target, results):
                 results[i, x, y] = abs(predictions[i, x, y] - target[i, x, y])
 
 
-
-
 @nb.jit(nopython=True)
 def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n, categories, xrange, yrange, nbinsx,
                                                nbinsy, ignore_val=0, multiplicity_index=-1):
@@ -306,6 +327,7 @@ def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n
                     ybin_index = get_bin_index(parameter[i, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
                     output[categories[i, x, y], xbin_index, ybin_index] += results[i, x, y]
                     out_n[categories[i, x, y], xbin_index, ybin_index] += 1
+
 
 @nb.jit(nopython=True)
 def normalize_coords(out_coord, tot_l_current, tot_r_current, psdl, psdr, dt):
@@ -1087,7 +1109,7 @@ def z_basic_prediction_dense(coo, z_pred, z_truth, truth_is_cal=False):
             while ind + a < coo.shape[0] and coo[ind + a, 2] == batch:
                 j = coo[ind + a, 0]
                 k = coo[ind + a, 1]
-                if z_pred[batch, j, k] != 0.5 and abs(x-j) == 1 and abs(y-k) == 1:
+                if z_pred[batch, j, k] != 0.5 and abs(x - j) == 1 and abs(y - k) == 1:
                     sum += z_pred[batch, j, k]
                     m += 1
                 a += 1
@@ -1096,14 +1118,12 @@ def z_basic_prediction_dense(coo, z_pred, z_truth, truth_is_cal=False):
             while ind + a > 0 and coo[ind + a, 2] == batch:
                 j = coo[ind + a, 0]
                 k = coo[ind + a, 1]
-                if z_pred[batch, j, k] != 0.5 and abs(x-j) == 1 and abs(y-k) == 1:
+                if z_pred[batch, j, k] != 0.5 and abs(x - j) == 1 and abs(y - k) == 1:
                     sum += z_pred[batch, j, k]
                     m += 1
                 a -= 1
             if m > 0:
                 z_pred[batch, x, y] = sum / m
-
-
 
 
 @nb.jit(nopython=True)
@@ -1181,7 +1201,7 @@ def E_deviation(coo, predictions, targets, dev, out_n, E_mult_dual_dev, E_mult_d
         if batch != coo[n, 2]:
             batch = coo[n, 2]
             mult = 0
-            #look ahead for multiplicity value
+            # look ahead for multiplicity value
             while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
                 mult += 1
         i = coo[n, 0]
@@ -1204,7 +1224,7 @@ def E_deviation_with_z(coo, predictions, targets, dev, out_n, E_mult_dual_dev, E
         if batch != coo[n, 2]:
             batch = coo[n, 2]
             mult = 0
-            #look ahead for multiplicity value
+            # look ahead for multiplicity value
             while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
                 mult += 1
         i = coo[n, 0]
@@ -1250,7 +1270,7 @@ def z_deviation(coo, predictions, targets, dev, out_n, z_mult_dual_dev, z_mult_d
         if batch != coo[n, 2]:
             batch = coo[n, 2]
             mult = 0
-            #look ahead for multiplicity value
+            # look ahead for multiplicity value
             while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
                 mult += 1
         i = coo[n, 0]
@@ -1288,7 +1308,7 @@ def z_deviation_with_E_full_correlation(coo, predictions, targets, dev, out_n, z
         if batch != coo[n, 2]:
             batch = coo[n, 2]
             mult = 0
-            #look ahead for multiplicity value
+            # look ahead for multiplicity value
             while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
                 mult += 1
         i = coo[n, 0]
@@ -1341,7 +1361,7 @@ def z_deviation_with_E(coo, predictions, targets, dev, out_n, z_mult_dual_dev, z
         if batch != coo[n, 2]:
             batch = coo[n, 2]
             mult = 0
-            #look ahead for multiplicity value
+            # look ahead for multiplicity value
             while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
                 mult += 1
         i = coo[n, 0]
@@ -1412,7 +1432,7 @@ def z_error(coo, predictions, targets, results, n_bins, low, high, nmult, sample
         if batch != coo[n, 2]:
             batch = coo[n, 2]
             mult = 0
-            #look ahead for multiplicity value
+            # look ahead for multiplicity value
             while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
                 mult += 1
         i = coo[n, 0]
@@ -1464,6 +1484,7 @@ def swap_sparse_from_dense(sparse_list, dense_list, coords):
         else:
             sparse_list[batch_index] = dense_list[dense_index, coords[batch_index, 0], coords[batch_index, 1]]
 
+
 @nb.jit(nopython=True)
 def swap_sparse_from_event(sparse_list, event_list, coords):
     """
@@ -1488,6 +1509,7 @@ def swap_sparse_from_event(sparse_list, event_list, coords):
         else:
             sparse_list[batch_index] = event_list[dense_index]
 
+
 @nb.jit(nopython=True)
 def gen_multiplicity_list(coo, mult):
     cur_ind = -1
@@ -1496,10 +1518,11 @@ def gen_multiplicity_list(coo, mult):
         if coo[i] != cur_ind:
             cur_mult = 1
             cur_ind = coo[i]
-            #lookahead to end
+            # lookahead to end
             while coo[cur_mult + i] == cur_ind:
                 cur_mult += 1
         mult[i] = cur_mult
+
 
 @nb.jit(nopython=True)
 def retrieve_n_SE(coo, seg_status, n_SE):
@@ -1510,7 +1533,7 @@ def retrieve_n_SE(coo, seg_status, n_SE):
             cur_n_SE = 0
             cur_ind = coo[i][2]
             j = 0
-            #lookahead to end
+            # lookahead to end
             while coo[j + i][2] == cur_ind:
                 x = coo[j + i][0]
                 y = coo[j + i][1]
@@ -1518,6 +1541,7 @@ def retrieve_n_SE(coo, seg_status, n_SE):
                     cur_n_SE += 1
                 j += 1
         n_SE[i] = cur_n_SE
+
 
 @nb.jit(nopython=True)
 def calculate_class_accuracy(results, targ, accuracy):

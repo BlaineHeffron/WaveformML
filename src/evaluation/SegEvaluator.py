@@ -1,9 +1,12 @@
+import numpy as np
+
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.evaluation.PIDEvaluator import PID_MAPPED_NAMES, PID_MAP
 from numpy import zeros, stack, swapaxes
 
 from src.utils.SparseUtils import gen_multiplicity_list, gen_SE_mask
+from src.utils.StatsUtils import ErrorAggregator
 
 
 class SegEvaluator(SingleEndedEvaluator):
@@ -21,6 +24,7 @@ class SegEvaluator(SingleEndedEvaluator):
         self.metric_name = "mean absolute error"
         self.metric_unit = self.phys_units[self.target_index]
         self.metrics = []
+        self.error_aggregator = None
         self.scaling = self.scale_factor(self.target_index)
         self.PID_index = None
         self.additional_field_names = additional_field_names
@@ -59,6 +63,12 @@ class SegEvaluator(SingleEndedEvaluator):
                                                  is_multiplicity=name == "multiplicity"))
             i += 1
         self.metric_pairs = MetricPairAggregator(self.metrics)
+        truth_name = "calibrated {0}".format(self.phys_names[self.target_index])
+        pred_name = "predicted {0}".format(self.phys_names[self.target_index])
+        self.error_aggregator = ErrorAggregator(self.phys_names[self.target_index],
+                                                *self.default_bins[self.target_index], self.class_names,
+                                                metric_name=self.metric_name, metric_unit=self.metric_unit,
+                                                scale_factor=self.scaling, truth_name=truth_name, pred_name=pred_name)
 
 
     def add(self, results, target, c, additional_fields=None):
@@ -72,6 +82,7 @@ class SegEvaluator(SingleEndedEvaluator):
         target = target.detach().cpu().numpy()
         coo = c.detach().cpu().numpy()
         results = results.detach().cpu().numpy()
+        mae = np.absolute(results - target[:, self.target_index])
         mult = zeros((target.shape[0],))
         gen_multiplicity_list(coo[:, 2], mult)
         parameters = stack((target[:, self.E_index], target[:, self.PSD_index], mult,
@@ -85,9 +96,12 @@ class SegEvaluator(SingleEndedEvaluator):
                 ind_match = PID == self.class_PIDs[i]
                 ind_match *= se_mask
                 if results[ind_match].shape[0] > 0:
-                    self.metric_pairs.add_normalized(results[ind_match], parameters[:, ind_match], self.class_names[i])
+                    self.metric_pairs.add_normalized(mae[ind_match], parameters[:, ind_match], self.class_names[i])
+                    self.error_aggregator.add_norm(results[ind_match], target[ind_match, self.target_index], self.class_names[i])
         else:
-            self.metric_pairs.add_normalized(results, parameters, self.class_names[0])
+            self.metric_pairs.add_normalized(mae, parameters, self.class_names[0])
+            self.error_aggregator.add_norm(results, target[:, self.target_index], self.class_names[0])
 
     def dump(self):
         self.metric_pairs.plot(self.logger)
+        self.error_aggregator.plot(self.logger)
