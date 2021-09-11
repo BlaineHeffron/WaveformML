@@ -20,7 +20,7 @@ class SegEvaluator(SingleEndedEvaluator):
         if "target_index" in kwargs.keys():
             self.target_index = kwargs["target_index"]
         else:
-            self.target_index = 4 # default to z prediction
+            self.target_index = 4  # default to z prediction
         self.metric_name = "mean absolute error"
         self.metric_unit = self.phys_units[self.target_index]
         self.metrics = []
@@ -59,7 +59,8 @@ class SegEvaluator(SingleEndedEvaluator):
                                                  metric_name=self.metric_name, metric_unit=self.metric_unit,
                                                  scale_factor=self.scaling,
                                                  norm_factor=scale, parameter_unit=unit,
-                                                 is_multiplicity=name == "multiplicity"))
+                                                 is_multiplicity=name == "multiplicity",
+                                                 is_discreet=name == "multiplicity"))
             i += 1
         self.metric_pairs = MetricPairAggregator(self.metrics)
         truth_name = "calibrated {0}".format(self.phys_names[self.target_index])
@@ -68,7 +69,6 @@ class SegEvaluator(SingleEndedEvaluator):
                                                 *self.default_bins[self.target_index], self.class_names,
                                                 metric_name=self.metric_name, metric_unit=self.metric_unit,
                                                 scale_factor=self.scaling, truth_name=truth_name, pred_name=pred_name)
-
 
     def add(self, results, target, c, additional_fields=None):
         """
@@ -87,7 +87,7 @@ class SegEvaluator(SingleEndedEvaluator):
         parameters = stack((target[:, self.E_index], target[:, self.PSD_index], mult,
                             target[:, self.z_index]), axis=1)
         parameters = swapaxes(parameters, 0, 1)
-        #only care about SE segment predictions
+        # only care about SE segment predictions
         se_mask = zeros((coo.shape[0],), dtype=bool)
         gen_SE_mask(coo, self.seg_status, se_mask)
         if self.class_PIDs is not None:
@@ -97,7 +97,8 @@ class SegEvaluator(SingleEndedEvaluator):
                     ind_match *= se_mask
                     if results[ind_match].shape[0] > 0:
                         self.metric_pairs.add_normalized(mae[ind_match], parameters[:, ind_match], self.class_names[i])
-                        self.error_aggregator.add_norm(results[ind_match], target[ind_match, self.target_index], self.class_names[i])
+                        self.error_aggregator.add_norm(results[ind_match], target[ind_match, self.target_index],
+                                                       self.class_names[i])
         else:
             self.metric_pairs.add_normalized(mae, parameters, self.class_names[0])
             self.error_aggregator.add_norm(results, target[:, self.target_index], self.class_names[0])

@@ -79,9 +79,10 @@ class PIDEvaluator(SingleEndedEvaluator):
                                                  metric_name=self.metric_name, metric_unit=self.metric_unit,
                                                  scale_factor=self.scaling,
                                                  norm_factor=scale, parameter_unit=unit,
-                                                 is_multiplicity=name == "multiplicity"))
+                                                 is_multiplicity=name == "multiplicity",
+                                                 is_discreet=name == "multiplicity"))
             i += 1
-        self.metric_pairs = MetricPairAggregator(self.metrics)
+            self.metric_pairs = MetricPairAggregator(self.metrics)
 
         self.results = {
             "confusion_energy": zeros((self.n_confusion + 1, self.n_classes, self.n_classes), dtype=np.int32),
