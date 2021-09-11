@@ -205,7 +205,7 @@ def plot_n_hist1d(xedges, vals, title, xlabel, ylabel, suptitle=None, norm_to_bi
         xs = np.zeros((tot,))
         n = 0
         for i in range(len(xedges) - 1):
-            x = xwidth * i + xwidth / 2.
+            x = xedges[0] + xwidth * i + xwidth / 2.
             w[n] = vals[m][i]
             xs[n] = x
             n += 1

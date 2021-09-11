@@ -266,7 +266,7 @@ class Metric2DAggregator:
                                                      zlabel=self.metric1.retrieve_parameter_label()))
 
             logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
-                                         plot_hist2d(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
+                                         plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                      safe_divide(self.metric1.scale_factor * self.results_val[0,
                                                                                              1:self.metric1.n_bins + 1,
                                                                                              1:self.metric2.n_bins + 1],
@@ -292,7 +292,7 @@ class Metric2DAggregator:
                                                            norm_to_bin_width=False))
 
                 logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
-                                             plot_n_hist2d(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
+                                             plot_n_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                            [safe_divide(self.metric1.scale_factor * self.results_val[i,
                                                                                                     1:self.metric1.n_bins + 1,
                                                                                                     1:self.metric2.n_bins + 1],
@@ -315,7 +315,7 @@ class Metric2DAggregator:
                                                          zlabel=self.metric1.retrieve_parameter_label()))
 
                 logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
-                                             plot_hist2d(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
+                                             plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                           safe_divide(self.metric1.scale_factor * self.results_val[0,
                                                                                                   1:self.metric1.n_bins + 1,
                                                                                                   1:self.metric2.n_bins + 1],
