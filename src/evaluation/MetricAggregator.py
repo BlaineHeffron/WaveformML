@@ -275,7 +275,8 @@ class Metric2DAggregator:
                                                      self.metric1.class_names[0],
                                                      self.metric1.retrieve_parameter_label(),
                                                      self.metric2.retrieve_parameter_label(),
-                                                     zlabel=self.metric1.retrieve_parameter_label()))
+                                                     zlabel=self.metric1.retrieve_parameter_label(), logz=False,
+                                                     norm_to_bin_width=False))
 
         else:
             inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
@@ -322,7 +323,8 @@ class Metric2DAggregator:
                                                          self.metric1.class_names[inds_to_plot[0]],
                                                           self.metric1.retrieve_parameter_label(),
                                                           self.metric2.retrieve_parameter_label(),
-                                                         zlabel=self.metric1.retrieve_parameter_label()))
+                                                         zlabel=self.metric1.retrieve_parameter_label(),
+                                                         logz=False, norm_to_bin_width=False))
 
     def retrieve_inds_to_plot(self):
         inds = []
