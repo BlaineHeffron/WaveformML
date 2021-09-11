@@ -288,7 +288,8 @@ class Metric2DAggregator:
                                                             inds_to_plot],
                                                            class_names_to_plot,
                                                            self.metric1.retrieve_parameter_label(),
-                                                           self.metric2.retrieve_parameter_label()))
+                                                           self.metric2.retrieve_parameter_label(), logz=False,
+                                                           norm_to_bin_width=False))
 
                 logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
                                              plot_n_hist2d(self.metric1.bin_midpoints(), self.metric2.bin_midpoints(),
@@ -301,7 +302,8 @@ class Metric2DAggregator:
                                                             for i in inds_to_plot],
                                                            class_names_to_plot,
                                                            self.metric1.retrieve_parameter_label(),
-                                                           self.metric2.retrieve_parameter_label()))
+                                                           self.metric2.retrieve_parameter_label(), logz=False,
+                                                           norm_to_bin_width=False))
             elif len(class_names_to_plot) == 1:
                 logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
                                              plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
