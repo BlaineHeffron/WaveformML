@@ -1,7 +1,8 @@
-from numpy import zeros_like, stack
+from numpy import stack
 from torch import ones_like
 from src.evaluation.MetricAggregator import MetricAggregator, MetricPairAggregator
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
+from src.evaluation.PIDEvaluator import retrieve_class_names_PIDS, PID_MAP
 
 
 def PID_class_map(PID):
@@ -11,11 +12,16 @@ def PID_class_map(PID):
            4: "recoil",
            5: "ionization + recoil",
            6: "neutron capture + recoil",
-           7: "neutron capture + recoil + ionization"}
+           7: "neutron capture + recoil + ionization",
+           256: "ingress",  # ingress
+           258: "ingress + neutron capture",  # ingress + ncapt
+           512: "muon"  # muon
+           }
     if PID not in map:
         return "Unknown"
     else:
         return map[PID]
+
 
 
 class RealDataEvaluator(SingleEndedEvaluator):
@@ -39,7 +45,7 @@ class RealDataEvaluator(SingleEndedEvaluator):
         self.scaling = scaling
         if self.has_PID:
             self.metric_names = ["energy", "psd", "multiplicity", "z"]
-            self.class_names = [PID_class_map(i) for i in range(1, 8)]
+            self.class_names, self.class_PIDs = retrieve_class_names_PIDS()
             units = ["MeVee", "", "", "mm"]
             metric_params = [self.default_bins[0], self.default_bins[5], [0.5, 6.5, 6], self.default_bins[4]]
             scales = [self.E_scale, 1.0, 1.0, self.z_scale]
@@ -62,7 +68,8 @@ class RealDataEvaluator(SingleEndedEvaluator):
         """
         if not self.has_PID:
             return
-        class_indices = additional_fields[self.PID_index] - 1  # map 1 to 0, 2 to 1, etc
+        class_indices = additional_fields[self.PID_index]
+        convert_PID(class_indices, PID_MAP)
         mult_inds = ones_like(class_indices)
         mult_inds = self.get_dense_matrix(mult_inds, c).squeeze(1)
         class_indices = self.get_dense_matrix(class_indices, c).squeeze(1)
@@ -75,3 +82,8 @@ class RealDataEvaluator(SingleEndedEvaluator):
     def dump(self):
         if self.metric_pairs is not None:
             self.metric_pairs.plot(self.logger)
+
+
+def convert_PID(PID, label_map):
+    for key, val in label_map.items():
+        PID[PID == key] = val
