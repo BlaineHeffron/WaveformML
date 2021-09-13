@@ -182,7 +182,7 @@ def metric_accumulate_1d(results, parameter, output, out_n, xrange, nbins):
 
 @nb.jit(nopython=True)
 def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n, categories, xrange, nbins,
-                                               ignore_val=0, use_multiplicity=False):
+                                               coo, use_multiplicity=False):
     """
     @param results: 3 dim array (batch, X, Y)
     @param parameter: 3 dim array (batch, X, Y) containing parameter for binning
@@ -190,33 +190,29 @@ def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n
     @param categories: 3 dim array (batch, X, Y) indexing the output
     @param xrange: list of 2 numbers, xlow, high
     @param nbins: number of bins (not including underflow, overflow
-    @param ignore_val: if parameter contains this value, ignore it for aggregation
+    @param coo: coordinates 2 dim array (batch, 3)
     @param use_multiplicity: if true, use multiplicity instead of parameter tensor for binning
     """
     bin_width = (xrange[1] - xrange[0]) / nbins
-    for i in range(results.shape[0]):
-        if use_multiplicity:
+    batch = coo[0, 2] - 1
+    mult = 0
+    for n in range(coo.shape[0]):
+        if batch != coo[n, 2]:
+            batch = coo[n, 2]
             mult = 0
-            for x in range(results.shape[1]):
-                for y in range(results.shape[2]):
-                    if parameter[i, x, y] == ignore_val:
-                        continue
-                    mult += 1
+            # look ahead for multiplicity value
+            while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
+                mult += 1
+        x = coo[n, 0]
+        y = coo[n, 1]
+        if use_multiplicity:
             bin_index = get_bin_index(mult, xrange[0], xrange[1], bin_width, nbins)
-            for x in range(results.shape[1]):
-                for y in range(results.shape[2]):
-                    if parameter[i, x, y] == ignore_val:
-                        continue
-                    output[categories[i, x, y], bin_index] += results[i, x, y]
-                    out_n[categories[i, x, y], bin_index] += 1
+            output[categories[batch, x, y], bin_index] += results[batch, x, y]
+            out_n[categories[batch, x, y], bin_index] += 1
         else:
-            for x in range(results.shape[1]):
-                for y in range(results.shape[2]):
-                    if parameter[i, x, y] == ignore_val:
-                        continue
-                    bin_index = get_bin_index(parameter[i, x, y], xrange[0], xrange[1], bin_width, nbins)
-                    output[categories[i, x, y], bin_index] += results[i, x, y]
-                    out_n[categories[i, x, y], bin_index] += 1
+            bin_index = get_bin_index(parameter[batch, x, y], xrange[0], xrange[1], bin_width, nbins)
+            output[categories[batch, x, y], bin_index] += results[batch, x, y]
+            out_n[categories[batch, x, y], bin_index] += 1
 
 
 def get_typed_list(mylist):
@@ -277,7 +273,7 @@ def mean_absolute_error_dense(predictions, target, results):
 
 @nb.jit(nopython=True)
 def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n, categories, xrange, yrange, nbinsx,
-                                               nbinsy, ignore_val=0, multiplicity_index=-1):
+                                               nbinsy, coo, multiplicity_index=-1):
     """
     @param results: 3 dim array (batch, X, Y) of results
     @param parameter: 4 dim array (batch, parameter [2], X, Y) containing parameter for binning - if ignore_val ignore it
@@ -287,46 +283,40 @@ def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n
     @param yrange: list of 2 numbers, ylow, high
     @param nbinsx: number of bins x (not including underflow, overflow
     @param nbinsy: number of bins y (not including underflow, overflow
-    @param ignore_val: if result contains this value, ignore it for aggregation
+    @param c: 2 dim array (batch, 3) of coordinates
     @param multiplicity_index: if -1, ignore, otherwise if 0 or 1 it indexes the metric that is multiplicity
     """
     xlen = xrange[1] - xrange[0]
     ylen = yrange[1] - yrange[0]
     bin_widthx = xlen / nbinsx
     bin_widthy = ylen / nbinsy
-    for i in range(results.shape[0]):
-        if multiplicity_index != -1:
+    batch = coo[0, 2] - 1
+    mult = 0
+    for n in range(coo.shape[0]):
+        if batch != coo[n, 2]:
+            batch = coo[n, 2]
             mult = 0
-            for x in range(results.shape[1]):
-                for y in range(results.shape[2]):
-                    if parameter[i, 1 - multiplicity_index, x, y] == ignore_val:
-                        continue
-                    mult += 1
+            # look ahead for multiplicity value
+            while n + mult < coo.shape[0] and coo[n + mult, 2] == batch:
+                mult += 1
+        x = coo[n, 0]
+        y = coo[n, 1]
+        if multiplicity_index != -1:
             if multiplicity_index == 0:
                 mult_bin_index = get_bin_index(mult, xrange[0], xrange[1], bin_widthx, nbinsx)
+                other_bin_index = get_bin_index(parameter[batch, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
+                output[categories[batch, x, y], mult_bin_index, other_bin_index] += results[batch, x, y]
+                out_n[categories[batch, x, y], mult_bin_index, other_bin_index] += 1
             else:
                 mult_bin_index = get_bin_index(mult, yrange[0], yrange[1], bin_widthy, nbinsy)
-            for x in range(results.shape[1]):
-                for y in range(results.shape[2]):
-                    if parameter[i, 1 - multiplicity_index, x, y] == ignore_val:
-                        continue
-                    if multiplicity_index == 0:
-                        other_bin_index = get_bin_index(parameter[i, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
-                        output[categories[i, x, y], mult_bin_index, other_bin_index] += results[i, x, y]
-                        out_n[categories[i, x, y], mult_bin_index, other_bin_index] += 1
-                    else:
-                        other_bin_index = get_bin_index(parameter[i, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
-                        output[categories[i, x, y], other_bin_index, mult_bin_index] += results[i, x, y]
-                        out_n[categories[i, x, y], other_bin_index, mult_bin_index] += 1
+                other_bin_index = get_bin_index(parameter[batch, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
+                output[categories[batch, x, y], other_bin_index, mult_bin_index] += results[batch, x, y]
+                out_n[categories[batch, x, y], other_bin_index, mult_bin_index] += 1
         else:
-            for x in range(results.shape[1]):
-                for y in range(results.shape[2]):
-                    if parameter[i, 0, x, y] == ignore_val:
-                        continue
-                    xbin_index = get_bin_index(parameter[i, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
-                    ybin_index = get_bin_index(parameter[i, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
-                    output[categories[i, x, y], xbin_index, ybin_index] += results[i, x, y]
-                    out_n[categories[i, x, y], xbin_index, ybin_index] += 1
+            xbin_index = get_bin_index(parameter[batch, 0, x, y], xrange[0], xrange[1], bin_widthx, nbinsx)
+            ybin_index = get_bin_index(parameter[batch, 1, x, y], yrange[0], yrange[1], bin_widthy, nbinsy)
+            output[categories[batch, x, y], xbin_index, ybin_index] += results[batch, x, y]
+            out_n[categories[batch, x, y], xbin_index, ybin_index] += 1
 
 
 @nb.jit(nopython=True)

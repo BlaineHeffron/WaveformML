@@ -37,3 +37,16 @@ class SingleEndedEvaluator(AD1Evaluator):
         self.seg_status = np.zeros((self.nx, self.ny), dtype=np.float32)  # 0 for good, 0.5 for single ended, 1 for dead
         self.blind_detl = np.zeros((self.nx, self.ny), dtype=np.int8)  # 1 for blind , 0 for good
         self.blind_detr = np.zeros((self.nx, self.ny), dtype=np.int8)
+
+    def num_left_right_SE(self):
+        n_left = 0
+        n_right = 0
+        for x in range(self.seg_status.shape[0]):
+            for y in range(self.seg_status.shape[1]):
+                if self.seg_status[x,y] == 0.5:
+                    if self.blind_detr[x, y]:
+                        n_left += 1
+                    else:
+                        n_right += 1
+        return n_left, n_right
+

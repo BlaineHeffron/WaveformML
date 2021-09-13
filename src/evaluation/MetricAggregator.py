@@ -67,7 +67,7 @@ class MetricAggregator:
         metric_accumulate_1d(results, parameter, self.results_val[class_ind], self.results_num[class_ind],
                              get_typed_list(list1), self.n_bins)
 
-    def add_dense_normalized_with_categories(self, results, parameter, categories):
+    def add_dense_normalized_with_categories(self, results, parameter, categories, c):
         """
         @param results: numpy array of dimension 3 (batch, X, Y) containing unscaled results containing the metric
                         for each element. 0 for values to be skipped
@@ -83,7 +83,7 @@ class MetricAggregator:
             else:
                 list1 = [self.bin_edges[0] / self.norm_factor, self.bin_edges[-1] / self.norm_factor]
         metric_accumulate_dense_1d_with_categories(results, parameter, self.results_val, self.results_num, categories,
-                                                   get_typed_list(list1), self.n_bins, ignore_val=self.ignore_val,
+                                                   get_typed_list(list1), self.n_bins, c,
                                                    use_multiplicity=self.is_multiplicity)
 
     def bin_midpoints(self):
@@ -233,7 +233,7 @@ class Metric2DAggregator:
                              get_typed_list(list2),
                              self.metric1.n_bins, self.metric2.n_bins)
 
-    def add_dense_normalized_with_categories(self, results, parameter1, parameter2, categories):
+    def add_dense_normalized_with_categories(self, results, parameter1, parameter2, categories, c):
         """
         @param results: numpy array of dimension 3 (batch, X, Y) containing unscaled results containing the metric
                         for each element. 0 for values to be skipped
@@ -248,8 +248,7 @@ class Metric2DAggregator:
                                                    np.stack((parameter1, parameter2), axis=1),
                                                    self.results_val, self.results_num, categories,
                                                    get_typed_list(list1), get_typed_list(list2),
-                                                   self.metric1.n_bins, self.metric2.n_bins,
-                                                   ignore_val=self.metric1.ignore_val,
+                                                   self.metric1.n_bins, self.metric2.n_bins, c,
                                                    multiplicity_index=self.multiplicity_index)
 
     def plot(self, logger):
@@ -366,7 +365,7 @@ class MetricPairAggregator:
                                                                          category_name)
         self.metric_list[-1].add_normalized(results, parameters[-1, :], category_name)
 
-    def add_dense_normalized_with_categories(self, results, parameters, parameter_names, categories):
+    def add_dense_normalized_with_categories(self, results, parameters, parameter_names, categories, c):
         """
         @param results: 3 dimensional input, batch x X x Y
         @param parameters: 4 dimensional input, batch x parameter dimension x X x Y
@@ -375,21 +374,21 @@ class MetricPairAggregator:
         """
         for i in range(len(parameter_names) - 1):
             ind1 = self.metric_index_by_name(parameter_names[i])
-            self.metric_list[ind1].add_dense_normalized_with_categories(results, parameters[:, i], categories)
+            self.metric_list[ind1].add_dense_normalized_with_categories(results, parameters[:, i], categories, c)
             for j in range(i + 1, len(parameter_names)):
                 ind2 = self.metric_index_by_name(parameter_names[j])
                 if ind2 < ind1:
                     name = "{0}_{1}".format(ind2, ind1)
                     self.metric_pairs[name].add_dense_normalized_with_categories(results, parameters[:, j],
                                                                                  parameters[:, i],
-                                                                                 categories)
+                                                                                 categories, c)
                 else:
                     name = "{0}_{1}".format(ind1, ind2)
                     self.metric_pairs[name].add_dense_normalized_with_categories(results, parameters[:, i],
                                                                                  parameters[:, j],
-                                                                                 categories)
+                                                                                 categories, c)
             ind = self.metric_index_by_name(parameter_names[-1])
-            self.metric_list[ind].add_dense_normalized_with_categories(results, parameters[:, -1], categories)
+            self.metric_list[ind].add_dense_normalized_with_categories(results, parameters[:, -1], categories, c)
 
     def metric_index_by_name(self, name):
         for i, m in enumerate(self.metric_list):

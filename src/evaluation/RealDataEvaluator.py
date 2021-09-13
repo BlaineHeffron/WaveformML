@@ -69,7 +69,8 @@ class RealDataEvaluator(SingleEndedEvaluator):
         parameters = stack((target[:, self.E_index, :], target[:, self.PSD_index], mult_inds,
                             target[:, self.z_index]), axis=1)
         if self.metric_pairs is not None:
-            self.metric_pairs.add_dense_normalized_with_categories(results, parameters, self.metric_names, class_indices)
+            self.metric_pairs.add_dense_normalized_with_categories(results, parameters, self.metric_names,
+                                                                   class_indices, c.detach().cpu().numpy())
 
     def dump(self):
         if self.metric_pairs is not None:
