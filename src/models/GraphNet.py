@@ -111,6 +111,10 @@ class GraphNet(nn.Module):
             self.k = config.net_config.hparams.k
         else:
             self.k = 6
+        if hasattr(config.net_config.hparams, "final_norm"):
+            self.final_norm = config.net_config.hparams.final_norm
+        else:
+            self.final_norm = True
         self.graph_out = 10
         self.graph_params = {}
         self.graph_layers = ModuleList()
@@ -196,10 +200,17 @@ class GraphNet(nn.Module):
                 nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
                 if dim_match:
                     match_ind = nlin_in
-                self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim,  batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
+                if self.final_norm:
+                    self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim,  batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
+                else:
+                    self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
             else:
                 nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
-                self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim, batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
+                if self.final_norm:
+                    self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim, batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
+                else:
+                    self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
+
 
 
     def forward(self, data):
