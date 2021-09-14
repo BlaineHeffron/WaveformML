@@ -42,8 +42,8 @@ class GraphDataset(Dataset):
                 additional_fields = f[1:]
                 f = f[0]
             coo = c.long()
-            edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
-            data = DataExtra(x=f, edge_index=edge_index, pos=coo, y=target)
+            #edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
+            data = DataExtra(x=f, pos=coo, y=target)
             data.additional_fields = additional_fields
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue

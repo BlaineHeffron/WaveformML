@@ -139,11 +139,11 @@ class GraphNet(nn.Module):
             self.linear = LinearBlock(self.graph_out*out_modifier, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
-        self.edge_attr_transform = Cartesian()
+        self.edge_attr_transform = Cartesian(max_value=6)
         self.edge_attr_dim = 2
         if hasattr(config.net_config.hparams, "edge_transform"):
             if config.net_config.hparams.edge_transform == "cartesian":
-                self.edge_attr_transform = Cartesian()
+                self.edge_attr_transform = Cartesian(max_value=6)
                 self.edge_attr_dim = 2
             elif config.net_config.hparams.edge_transform == "localcartesian":
                 self.edge_attr_transform = LocalCartesian()
@@ -216,6 +216,9 @@ class GraphNet(nn.Module):
     def forward(self, data):
         if isinstance(data, Data):
             geom_data = data
+            geom_data.edge_index = knn_graph(geom_data.pos[:, 0:2], self.k, geom_data.pos[:, 2], loop=self.use_self_loops)
+            if geom_data.pos.shape[1] == 3:
+                geom_data.pos = geom_data.pos[:, 0:2]
         else:
             coo = data[0].long()
             edge_index = knn_graph(coo[:, 0:2], self.k, coo[:, 2], loop=self.use_self_loops)
@@ -361,7 +364,7 @@ class PointNet(nn.Module):
             self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
-        self.edge_attr_transform = Cartesian()
+        self.edge_attr_transform = Cartesian(max_value=6)
         self.edge_attr_dim = 2
         """
         if hasattr(config.net_config.hparams, "edge_transform"):
@@ -491,11 +494,11 @@ class Graph3DNet(nn.Module):
             self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
-        self.edge_attr_transform = Cartesian()
+        self.edge_attr_transform = Cartesian(max_value=10)
         self.edge_attr_dim = 2
         if hasattr(config.net_config.hparams, "edge_transform"):
             if config.net_config.hparams.edge_transform == "cartesian":
-                self.edge_attr_transform = Cartesian()
+                self.edge_attr_transform = Cartesian(max_value=10)
                 self.edge_attr_dim = 2
             elif config.net_config.hparams.edge_transform == "localcartesian":
                 self.edge_attr_transform = LocalCartesian()
