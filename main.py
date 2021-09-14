@@ -1,6 +1,8 @@
 from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import AdvancedProfiler
 from os.path import exists
+
+from src.engineering.GraphDataModule import GraphDataModule
 from src.optimization.ModelOptimization import *
 from src.utils.ModelValidation import *
 import torch
@@ -183,7 +185,10 @@ def main():
             runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config=config)
         else:
             runner = modules.retrieve_class(config.run_config.run_class)(config)
-        data_module = PSDDataModule(config, runner.device)
+        if config.net_config.net_class.startswith("Graph"):
+            data_module = GraphDataModule(config, runner.device)
+        else:
+            data_module = PSDDataModule(config, runner.device)
         psd_callbacks.add_callback(checkpoint_callback)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
         if "auto_lr_find" in  trainer_args.keys():

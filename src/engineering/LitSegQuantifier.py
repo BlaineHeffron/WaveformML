@@ -1,3 +1,6 @@
+from torch_geometric.data import Data
+
+from src.datasets.GraphDataset import DataExtra
 from src.engineering.LitBase import LitBase
 from src.engineering.PSDDataModule import *
 from torchmetrics import MeanSquaredError
@@ -26,16 +29,29 @@ class LitSegQuantifier(LitBase):
 
     def _process_batch(self, batch):
         additional_fields = None
-        (c, f), target = batch
-        use_target_index = len(target.shape) > 1
-        if isinstance(f, list):
-            additional_fields = f[1:]
-            f = f[0]
-        if self.write_onnx:
-            self.write_model([c, f])
-        if self.occlude_index:
-            f[:, self.occlude_index] = 0
-        predictions = self.model([c, f]).squeeze(1)
+        if isinstance(batch, Data):
+            use_target_index = len(batch.y.shape) > 1
+            if hasattr(batch, "additional_fields"):
+                additional_fields = batch.additional_fields
+            if self.write_onnx:
+                self.write_model(batch)
+            if self.occlude_index:
+                batch.x[:, self.occlude_index] = 0
+            predictions = self.model(batch).squeeze(1)
+            c = batch.pos
+            target = batch.y
+            f = batch.x
+        else:
+            (c, f), target = batch
+            use_target_index = len(target.shape) > 1
+            if isinstance(f, list):
+                additional_fields = f[1:]
+                f = f[0]
+            if self.write_onnx:
+                self.write_model([c, f])
+            if self.occlude_index:
+                f[:, self.occlude_index] = 0
+            predictions = self.model([c, f]).squeeze(1)
         if self.SE_only:
             se_inds = self.SE_mask[0, 0, c[:, 0].long(), c[:, 1].long()] == 1.0
             if use_target_index:

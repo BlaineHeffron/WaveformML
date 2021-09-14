@@ -203,9 +203,12 @@ class GraphNet(nn.Module):
 
 
     def forward(self, data):
-        coo = data[0].long()
-        edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
-        geom_data = Data(x=data[1], edge_index=edge_index, pos=coo[:, 0:2])
+        if isinstance(data, Data):
+            geom_data = data
+        else:
+            coo = data[0].long()
+            edge_index = knn_graph(coo[:, 0:2], self.k, coo[:, 2], loop=self.use_self_loops)
+            geom_data = Data(x=data[1], edge_index=edge_index, pos=coo[:, 0:2])
         if self.uses_edge_attr:
             self.edge_attr_transform(geom_data)
         for layer in self.graph_layers:
@@ -403,9 +406,12 @@ class PointNet(nn.Module):
             self.norms.append(BatchNorm(nout))
 
     def forward(self, data):
-        coo = data[0].long()
-        edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
-        geom_data = Data(x=data[1], edge_index=edge_index, pos=coo[:, 0:2])
+        if isinstance(data, Data):
+            geom_data = data
+        else:
+            coo = data[0].long()
+            edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
+            geom_data = Data(x=data[1], edge_index=edge_index, pos=coo[:, 0:2])
         #self.edge_attr_transform(geom_data)
         for layer, norm in zip(self.graph_layers, self.norms):
             geom_data.x = layer(geom_data.x, geom_data.pos, geom_data.edge_index)
