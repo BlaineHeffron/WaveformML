@@ -24,14 +24,16 @@ class GraphDataModule(PSDDataModule):
     def setup(self, stage=None):
         if not hasattr(self, "train_dataset"):
             super(GraphDataModule, self).setup(None)
-        if stage is None or stage == "fit":
+        if (stage is None or stage == "fit") and self.graph_test_dataset is None:
             flist = self.train_dataset.get_file_list()
             self.graph_train_dataset = GraphDataset(self.train_dataset, flist, self.k, self.self_loop)
         elif stage is None or stage == "test":
-            flist = self.val_dataset.get_file_list()
-            self.graph_val_dataset = GraphDataset(self.val_dataset, flist, self.k, self.self_loop)
-            flist = self.test_dataset.get_file_list()
-            self.graph_test_dataset = GraphDataset(self.test_dataset, flist, self.k, self.self_loop)
+            if self.graph_val_dataset is None:
+                flist = self.val_dataset.get_file_list()
+                self.graph_val_dataset = GraphDataset(self.val_dataset, flist, self.k, self.self_loop)
+            if self.graph_test_dataset is None:
+                flist = self.test_dataset.get_file_list()
+                self.graph_test_dataset = GraphDataset(self.test_dataset, flist, self.k, self.self_loop)
 
     def train_dataloader(self):
         if not self.graph_train_dataset:
