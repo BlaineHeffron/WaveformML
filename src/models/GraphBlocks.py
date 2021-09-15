@@ -67,6 +67,7 @@ class GraphZ(nn.Module):
         data.pos = data.pos[:, 0:2]
         for i, layer in enumerate(self.nets):
             data.edge_index = knn_graph(data.pos, self.ks[i], batch, loop=self.ks[i] == 1)
+            data.edge_attr = None
             self.edge_attr_transform(data)
             data.x = layer(data.x, data.edge_index, data.edge_attr)
             if i < len(self.norms):
