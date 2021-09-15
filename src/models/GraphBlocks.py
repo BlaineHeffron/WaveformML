@@ -4,11 +4,12 @@ from copy import copy
 from torch.nn import ModuleList
 
 from torch_geometric.data import Data
-from torch_geometric.nn import GCNConv, knn_graph
+from torch_geometric.nn import knn_graph, GMMConv
+from torch_geometric.transforms import Cartesian
 
 
 class GraphZ(nn.Module):
-    def __init__(self, in_planes, out_planes=1, k=6, n_conv=1, n_point=3, conv_position=3,
+    def __init__(self, in_planes, out_planes=1, k=6, kernel=3, cartesian_max_val=6, n_conv=1, n_point=3, conv_position=3,
                  pointwise_factor=0.8, batchnorm=True):
         """
         @type out_planes: int
@@ -33,6 +34,7 @@ class GraphZ(nn.Module):
         self.ks = []
         self.norms = ModuleList()
         self.nets = ModuleList()
+        self.edge_attr_transform = Cartesian(max_value=cartesian_max_val)
         if n_conv > 0:
             conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
         else:
@@ -50,7 +52,10 @@ class GraphZ(nn.Module):
             else:
                 curr_k = 1
             self.log.debug("appending layer {0} -> {1} planes, k of {2}".format(inp, out, curr_k))
-            self.nets.append(GCNConv(inp, out))
+            if curr_k == 1:
+                self.nets.append(GMMConv(inp, out, 2, 1))
+            else:
+                self.nets.append(GMMConv(inp, out, 2, kernel))
             self.ks.append(curr_k)
             if i != (n_layers - 1):
                 if batchnorm:
@@ -60,7 +65,8 @@ class GraphZ(nn.Module):
     def forward(self, data: Data):
         for i, layer in enumerate(self.nets):
             data.edge_index = knn_graph(data.pos[:, 0:2], self.ks[i], data.pos[:, 2], loop=True)
-            data.x = layer(data.x, data.edge_index)
+            self.edge_attr_transform(data)
+            data.x = layer(data.x, data.edge_index, data.edge_attr)
             if i < len(self.norms):
                 data.x = self.norms[i](data.x)
         return data.x
