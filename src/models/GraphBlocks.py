@@ -65,6 +65,7 @@ class GraphZ(nn.Module):
     def forward(self, data: Data):
         for i, layer in enumerate(self.nets):
             data.edge_index = knn_graph(data.pos[:, 0:2], self.ks[i], data.pos[:, 2], loop=True)
+            data.pos = data.pos[:, 0:2]
             self.edge_attr_transform(data)
             data.x = layer(data.x, data.edge_index, data.edge_attr)
             if i < len(self.norms):
