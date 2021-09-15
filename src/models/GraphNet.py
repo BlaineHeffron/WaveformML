@@ -16,6 +16,7 @@ from src.models.BasicNetwork import *
 # see https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
 # try https://pytorch-geometric.readthedocs.io/en/latest/modules/nn.html#torch_geometric.nn.conv.EdgeConv
 from src.models.ConvBlocks import LinearBlock, LinearPlanes
+from src.models.GraphBlocks import GraphZ
 from src.utils.util import DictionaryUtility
 
 
@@ -139,11 +140,11 @@ class GraphNet(nn.Module):
             self.linear = LinearBlock(self.graph_out*out_modifier, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
-        self.edge_attr_transform = Cartesian(max_value=6)
+        self.edge_attr_transform = Cartesian()
         self.edge_attr_dim = 2
         if hasattr(config.net_config.hparams, "edge_transform"):
             if config.net_config.hparams.edge_transform == "cartesian":
-                self.edge_attr_transform = Cartesian(max_value=6)
+                self.edge_attr_transform = Cartesian()
                 self.edge_attr_dim = 2
             elif config.net_config.hparams.edge_transform == "localcartesian":
                 self.edge_attr_transform = LocalCartesian()
@@ -364,7 +365,7 @@ class PointNet(nn.Module):
             self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
-        self.edge_attr_transform = Cartesian(max_value=6)
+        self.edge_attr_transform = Cartesian()
         self.edge_attr_dim = 2
         """
         if hasattr(config.net_config.hparams, "edge_transform"):
@@ -494,11 +495,11 @@ class Graph3DNet(nn.Module):
             self.linear = LinearBlock(self.graph_out, self.lin_outputs, self.n_lin).func
         else:
             self.linear = None
-        self.edge_attr_transform = Cartesian(max_value=10)
+        self.edge_attr_transform = Cartesian()
         self.edge_attr_dim = 2
         if hasattr(config.net_config.hparams, "edge_transform"):
             if config.net_config.hparams.edge_transform == "cartesian":
-                self.edge_attr_transform = Cartesian(max_value=10)
+                self.edge_attr_transform = Cartesian()
                 self.edge_attr_dim = 2
             elif config.net_config.hparams.edge_transform == "localcartesian":
                 self.edge_attr_transform = LocalCartesian()
@@ -585,3 +586,29 @@ class Graph3DNet(nn.Module):
             geom_data.x = self.linear(geom_data.x)
         return geom_data.x
 
+
+class SingleEndedEZGraph(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.log = logging.getLogger(__name__)
+        self.system_config = config.system_config
+        self.net_config = config.net_config
+        self.nsamples = self.system_config.n_samples
+        if not hasattr(self.net_config, "algorithm"):
+            setattr(self.net_config, "algorithm", "conv")
+        if self.net_config.algorithm == "conv":
+            self.model = GraphZ(self.nsamples * 2, **DictionaryUtility.to_dict(self.net_config.hparams))
+        elif self.net_config.algorithm == "features":
+            self.model = GraphZ(self.nsamples, **DictionaryUtility.to_dict(self.net_config.hparams))
+
+    def forward(self, data):
+        if isinstance(data, Data):
+            geom_data = data
+            #geom_data.edge_index = knn_graph(geom_data.pos[:, 0:2], self.k, geom_data.pos[:, 2], loop=self.use_self_loops)
+            #if geom_data.pos.shape[1] == 3:
+            #    geom_data.pos = geom_data.pos[:, 0:2]
+        else:
+            coo = data[0].long()
+            #edge_index = knn_graph(coo[:, 0:2], self.k, coo[:, 2], loop=self.use_self_loops)
+            geom_data = Data(x=data[1], pos=coo[:, 0:2])
+        return self.model(geom_data)
