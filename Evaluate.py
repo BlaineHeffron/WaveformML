@@ -13,6 +13,21 @@ import torch
 from src.utils.util import get_config, ModuleUtility, get_tb_logdir_version, set_default_trainer_args, setup_logger
 
 
+def choose_data_module(config, device):
+    if hasattr(config.dataset_config, "data_module"):
+        if config.dataset_config.data_module == "PSD":
+            data_module = PSDDataModule(config, device)
+        elif config.dataset_config.data_module == "graph":
+            data_module = GraphDataModule(config, device)
+        else:
+            raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
+    elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
+        data_module = GraphDataModule(config, device)
+    else:
+        data_module = PSDDataModule(config, device)
+    return data_module
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="path to config file")
@@ -31,7 +46,8 @@ def main():
         torch.set_num_threads(args.num_threads)
     if args.calgroup:
         if hasattr(config.dataset_config, "calgroup"):
-            print("Warning: overriding calgroup {0} with user supplied calgroup {1}".format(config.dataset_config.calgroup,args.calgroup))
+            print("Warning: overriding calgroup {0} with user supplied calgroup {1}".format(
+                config.dataset_config.calgroup, args.calgroup))
         config.dataset_config.calgroup = args.calgroup
     log_folder = dirname(args.config)
     p = Path(log_folder)
@@ -44,7 +60,8 @@ def main():
         for ckpt in cp:
             print("Using existing log file {}".format(ckpt))
             vnum = get_tb_logdir_version(str(ckpt))
-            logger = TensorBoardLogger(dirname(dirname(log_folder)), name=basename(dirname(log_folder)), version=vnum, **tb_logger_args)
+            logger = TensorBoardLogger(dirname(dirname(log_folder)), name=basename(dirname(log_folder)), version=vnum,
+                                       **tb_logger_args)
             break
     else:
         logger = TensorBoardLogger(log_folder, name=config.run_config.exp_name, **tb_logger_args)
@@ -55,27 +72,13 @@ def main():
     runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(args.checkpoint, config=config)
     trainer_args = {"logger": logger, "callbacks": [LoggingCallback()]}
     set_default_trainer_args(trainer_args, config)
-    #model.set_logger(logger)
+    # model.set_logger(logger)
     if args.onnx:
         runner.write_onnx = True
     data_module = choose_data_module(config, runner.device)
     trainer = Trainer(**trainer_args)
     trainer.test(runner, datamodule=data_module)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
-
-
-def choose_data_module(config, device):
-    if hasattr(config.dataset_config, "data_module"):
-        if config.dataset_config.data_module == "PSD":
-            data_module = PSDDataModule(config, device)
-        elif config.dataset_config.data_module == "graph":
-            data_module = GraphDataModule(config, device)
-        else:
-            raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
-    elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
-        data_module = GraphDataModule(config, device)
-    else:
-        data_module = PSDDataModule(config, device)
-    return data_module

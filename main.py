@@ -18,6 +18,21 @@ CONFIG_DIR = "./config"
 CONFIG_VALIDATION = "./config_requirements.json"
 
 
+def choose_data_module(config, device):
+    if hasattr(config.dataset_config, "data_module"):
+        if config.dataset_config.data_module == "PSD":
+            data_module = PSDDataModule(config, device)
+        elif config.dataset_config.data_module == "graph":
+            data_module = GraphDataModule(config, device)
+        else:
+            raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
+    elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
+        data_module = GraphDataModule(config, device)
+    else:
+        data_module = PSDDataModule(config, device)
+    return data_module
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="relative path of config file to use (in config folder)")
@@ -205,17 +220,3 @@ if __name__ == '__main__':
     main()
 
 
-
-def choose_data_module(config, device):
-    if hasattr(config.dataset_config, "data_module"):
-        if config.dataset_config.data_module == "PSD":
-            data_module = PSDDataModule(config, device)
-        elif config.dataset_config.data_module == "graph":
-            data_module = GraphDataModule(config, device)
-        else:
-            raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
-    elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
-        data_module = GraphDataModule(config, device)
-    else:
-        data_module = PSDDataModule(config, device)
-    return data_module
