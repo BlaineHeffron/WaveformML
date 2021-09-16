@@ -185,7 +185,14 @@ def main():
             runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config=config)
         else:
             runner = modules.retrieve_class(config.run_config.run_class)(config)
-        if hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
+        if hasattr(config.dataset_config, "data_module"):
+            if config.dataset_config.data_module == "PSD":
+                data_module = PSDDataModule(config, runner.device)
+            elif config.dataset_config.data_module == "graph":
+                data_module = GraphDataModule(config, runner.device)
+            else:
+                raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
+        elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
             data_module = GraphDataModule(config, runner.device)
         else:
             data_module = PSDDataModule(config, runner.device)
