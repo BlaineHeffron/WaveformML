@@ -3,6 +3,7 @@ from pathlib import Path
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
+from main import choose_data_module
 from src.engineering.GraphDataModule import GraphDataModule
 from src.engineering.LitCallbacks import LoggingCallback
 from src.engineering.LitPSD import PSDDataModule
@@ -58,10 +59,7 @@ def main():
     #model.set_logger(logger)
     if args.onnx:
         runner.write_onnx = True
-    if hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
-        data_module = GraphDataModule(config, runner.device)
-    else:
-        data_module = PSDDataModule(config, runner.device)
+    data_module = choose_data_module(config, runner.device)
     trainer = Trainer(**trainer_args)
     trainer.test(runner, datamodule=data_module)
 

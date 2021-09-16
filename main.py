@@ -12,7 +12,7 @@ import json
 import logging
 from src.utils import util
 import argparse
-from src.utils.util import  save_config, save_path, set_default_trainer_args, \
+from src.utils.util import save_config, save_path, set_default_trainer_args, \
     retrieve_model_checkpoint, get_tb_logdir_version, check_config, setup_logger, get_model_folder
 
 MODEL_DIR = "./model"
@@ -66,17 +66,17 @@ def main():
     verbosity = args.verbosity
     config_file = args.config
     config_file = check_config(config_file, CONFIG_DIR)
-    #if args.config_validation:
+    # if args.config_validation:
     #    valid_file = args.config_validation
-    #else:
+    # else:
     #    valid_file = CONFIG_VALIDATION
     # read config
     with open(config_file) as json_data_file:
         config = json.load(json_data_file)
     # validate config
-    #if not os.path.exists(valid_file):
+    # if not os.path.exists(valid_file):
     #    print("WARNING: Could not find config validation file. Search path is set to {}".format(CONFIG_VALIDATION))
-    #else:
+    # else:
     #    ValidateUtility.validate_config(config, valid_file)
     # convert dict to object recursively for easy call
     config = util.DictionaryUtility.to_object(config)
@@ -142,7 +142,8 @@ def main():
         if args.restore_training and load_checkpoint:
             vnum = get_tb_logdir_version(load_checkpoint)
             if vnum:
-                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, version=vnum, default_hp_metric=False)
+                logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, version=vnum,
+                                           default_hp_metric=False)
                 main_logger.info("Utilizing existing log directory {}".format(logger.log_dir))
             else:
                 logger = TensorBoardLogger(tb_folder, name=config.run_config.exp_name, default_hp_metric=False)
@@ -182,29 +183,21 @@ def main():
         modules = ModuleUtility(config.run_config.imports)
         if load_checkpoint:
             main_logger.info("Loading model checkpoint {}".format(load_checkpoint))
-            runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint, config=config)
+            runner = modules.retrieve_class(config.run_config.run_class).load_from_checkpoint(load_checkpoint,
+                                                                                              config=config)
         else:
             runner = modules.retrieve_class(config.run_config.run_class)(config)
-        if hasattr(config.dataset_config, "data_module"):
-            if config.dataset_config.data_module == "PSD":
-                data_module = PSDDataModule(config, runner.device)
-            elif config.dataset_config.data_module == "graph":
-                data_module = GraphDataModule(config, runner.device)
-            else:
-                raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
-        elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
-            data_module = GraphDataModule(config, runner.device)
-        else:
-            data_module = PSDDataModule(config, runner.device)
+        data_module = choose_data_module(config, runner.device)
+
         psd_callbacks.add_callback(checkpoint_callback)
         trainer = Trainer(**trainer_args, callbacks=psd_callbacks.callbacks)
-        if "auto_lr_find" in  trainer_args.keys():
+        if "auto_lr_find" in trainer_args.keys():
             if trainer_args["auto_lr_find"]:
                 lr_finder = trainer.tuner.lr_find(runner, datamodule=data_module)
                 new_lr = lr_finder.suggestion()
                 print("Setting learning rate to suggested learning rate: {}".format(new_lr))
                 runner.lr = new_lr
-                #trainer.tune(runner, datamodule=data_module)
+                # trainer.tune(runner, datamodule=data_module)
         trainer.fit(runner, datamodule=data_module)
         if run_test:
             trainer.test()
@@ -212,3 +205,18 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+def choose_data_module(config, device):
+    if hasattr(config.dataset_config, "data_module"):
+        if config.dataset_config.data_module == "PSD":
+            data_module = PSDDataModule(config, device)
+        elif config.dataset_config.data_module == "graph":
+            data_module = GraphDataModule(config, device)
+        else:
+            raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
+    elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
+        data_module = GraphDataModule(config, device)
+    else:
+        data_module = PSDDataModule(config, device)
+    return data_module
