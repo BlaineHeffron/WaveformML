@@ -10,6 +10,7 @@ from torch.cuda import empty_cache
 
 import optuna
 
+from src.engineering.GraphDataModule import GraphDataModule
 from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
 from src.utils.util import ModuleUtility
@@ -196,8 +197,12 @@ class ModelOptimization:
 
         trainer = pl.Trainer(**trainer_args, callbacks=cbs)
         modules = ModuleUtility(self.config.run_config.imports)
+
         model = modules.retrieve_class(self.config.run_config.run_class)(self.config, trial)
-        data_module = PSDDataModule(self.config, model.device)
+        if hasattr(self.config.net_config, "net_class") and self.config.net_config.net_class.startswith("Graph"):
+            data_module = GraphDataModule(self.config, model.device)
+        else:
+            data_module = PSDDataModule(self.config, model.device)
         try:
             trainer.fit(model, datamodule=data_module)
             loss = trainer.checkpoint_callback.best_model_score.item()
