@@ -1,8 +1,6 @@
-from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import AdvancedProfiler
 from os.path import exists
 
-from src.engineering.GraphDataModule import GraphDataModule
 from src.optimization.ModelOptimization import *
 from src.utils.ModelValidation import *
 import torch
@@ -205,6 +203,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 def choose_data_module(config, device):

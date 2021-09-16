@@ -10,8 +10,6 @@ from torch.cuda import empty_cache
 
 import optuna
 
-from main import choose_data_module
-from src.engineering.GraphDataModule import GraphDataModule
 from src.engineering.LitCallbacks import *
 from src.engineering.LitPSD import *
 from src.utils.util import ModuleUtility
@@ -258,3 +256,19 @@ class ModelOptimization:
         for key, value in trial.params.items():
             self.log.info("    {}: {}".format(key, value))
         save_config(output, self.study_dir, "trial", "results", True)
+
+
+
+def choose_data_module(config, device):
+    if hasattr(config.dataset_config, "data_module"):
+        if config.dataset_config.data_module == "PSD":
+            data_module = PSDDataModule(config, device)
+        elif config.dataset_config.data_module == "graph":
+            data_module = GraphDataModule(config, device)
+        else:
+            raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
+    elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
+        data_module = GraphDataModule(config, device)
+    else:
+        data_module = PSDDataModule(config, device)
+    return data_module

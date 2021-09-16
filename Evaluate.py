@@ -3,7 +3,6 @@ from pathlib import Path
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
-from main import choose_data_module
 from src.engineering.GraphDataModule import GraphDataModule
 from src.engineering.LitCallbacks import LoggingCallback
 from src.engineering.LitPSD import PSDDataModule
@@ -65,3 +64,18 @@ def main():
 
 if __name__=="__main__":
     main()
+
+
+def choose_data_module(config, device):
+    if hasattr(config.dataset_config, "data_module"):
+        if config.dataset_config.data_module == "PSD":
+            data_module = PSDDataModule(config, device)
+        elif config.dataset_config.data_module == "graph":
+            data_module = GraphDataModule(config, device)
+        else:
+            raise IOError("Unknown data module {}".format(config.dataset_config.data_module))
+    elif hasattr(config.net_config, "net_class") and config.net_config.net_class.startswith("Graph"):
+        data_module = GraphDataModule(config, device)
+    else:
+        data_module = PSDDataModule(config, device)
+    return data_module
