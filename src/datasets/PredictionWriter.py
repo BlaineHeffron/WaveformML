@@ -170,11 +170,11 @@ class IRNIMPredictionWriter(PredictionWriter):
         coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = self.model([coords, vals]).detach().cpu().numpy()
-        if(self.output_is_sparse):
+        if (self.output_is_sparse):
             data["phys"][:, self.phys_index_replaced:] = output
         else:
-            swap_sparse_from_event(data["phys"][:, self.phys_index_replaced:], output, data["coord"])
+            swap_sparse_from_dense(data["phys"][:, self.phys_index_replaced:], output, data["coord"])
 
     def set_xml(self):
         super().set_xml()
-        self.XMLW.step_settings["phys_index_replaced"] = [2,3,4,5,6]
+        self.XMLW.step_settings["phys_index_replaced"] = [2, 3, 4, 5, 6]
