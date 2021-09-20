@@ -141,15 +141,40 @@ class IRNPredictionWriter(PredictionWriter):
 
     def __init__(self, path, input_path, config, checkpoint, **kwargs):
         PredictionWriter.__init__(self, path, input_path, config, checkpoint, **kwargs)
-        self.phy_index_replaced = 4
+        self.phys_index_replaced = 4
 
     def swap_values(self, data):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
         coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = self.model([coords, vals]).detach().cpu().numpy()
-        swap_sparse_from_event(data["phys"][:, 4:], output, data["coord"])
+        swap_sparse_from_event(data["phys"][:, self.phys_index_replaced:], output, data["coord"])
 
     def set_xml(self):
         super().set_xml()
         self.XMLW.step_settings["phys_index_replaced"] = [4, 5, 6]
+
+
+class IRNIMPredictionWriter(PredictionWriter):
+
+    def __init__(self, path, input_path, config, checkpoint, **kwargs):
+        PredictionWriter.__init__(self, path, input_path, config, checkpoint, **kwargs)
+        self.phys_index_replaced = 2
+        if "output_is_sparse" in kwargs:
+            self.output_is_sparse = kwargs["output_is_sparse"]
+        else:
+            self.output_is_sparse = True
+
+    def swap_values(self, data):
+        coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
+        coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
+        vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+        output = self.model([coords, vals]).detach().cpu().numpy()
+        if(self.output_is_sparse):
+            data["phys"][:, self.phys_index_replaced:] = output
+        else:
+            swap_sparse_from_event(data["phys"][:, self.phys_index_replaced:], output, data["coord"])
+
+    def set_xml(self):
+        super().set_xml()
+        self.XMLW.step_settings["phys_index_replaced"] = [2,3,4,5,6]
