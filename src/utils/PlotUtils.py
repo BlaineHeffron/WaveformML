@@ -454,7 +454,7 @@ def GetMPLStyles():
     return style_list
 
 
-def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname,title=None,errbar=None):
+def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, marker='o'):
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
@@ -464,9 +464,11 @@ def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname,title=None,errbar=None):
     if(errbar):
         ax1.errorbar(xaxis,yvals,yerr=errbar,fmt='')
     else:
-        ax1.scatter(xaxis,yvals,marker='o')
-    plt.savefig(outname)
-    plt.close()
+        ax1.scatter(xaxis,yvals,marker=marker)
+    if outname is not None:
+        plt.savefig(outname)
+        plt.close()
+    return fig
 
 
 def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
