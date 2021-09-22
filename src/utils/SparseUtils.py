@@ -1462,17 +1462,11 @@ def swap_sparse_from_dense(sparse_list, dense_list, coords):
     """
     prev_event = -1
     dense_index = -1
-    multi_features = False
-    if len(sparse_list.shape) == 2:
-        multi_features = True
     for batch_index in range(sparse_list.shape[0]):
         if coords[batch_index, 2] != prev_event:
             prev_event = coords[batch_index, 2]
             dense_index += 1
-        if multi_features:
-            sparse_list[batch_index, :] = dense_list[dense_index, :, coords[batch_index, 0], coords[batch_index, 1]]
-        else:
-            sparse_list[batch_index] = dense_list[dense_index, coords[batch_index, 0], coords[batch_index, 1]]
+        sparse_list[batch_index] = dense_list[dense_index, coords[batch_index, 0], coords[batch_index, 1]]
 
 
 @nb.jit(nopython=True)

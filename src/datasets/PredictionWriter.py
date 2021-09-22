@@ -1,10 +1,8 @@
 import torch
-from numpy import stack, zeros
-
 from src.datasets.PulseDataset import dataset_class_type_map
 from src.datasets.HDF5IO import P2XTableWriter, H5Input
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
-from src.utils.SparseUtils import swap_sparse_from_dense, E_basic_prediction_dense, swap_sparse_from_event
+from src.utils.SparseUtils import swap_sparse_from_dense, swap_sparse_from_event
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
 
@@ -118,6 +116,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
+        """
         if self.hascal:
             phys = torch.tensor(data["phys"], dtype=torch.float32, device=self.model.device)
             dense_phys = self.get_dense_matrix(phys, coords)
@@ -128,6 +127,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
                                      self.calibrator.light_pos_curves,
                                      self.calibrator.light_sum_curves, cal_E_pred)
             swap_sparse_from_dense(data["EZ"][:, 0], cal_E_pred, data["coord"])
+        """
 
     def set_xml(self):
         super().set_xml()
@@ -170,7 +170,7 @@ class IRNIMPredictionWriter(PredictionWriter):
         coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
         vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = self.model([coords, vals]).detach().cpu().numpy()
-        if (self.output_is_sparse):
+        if self.output_is_sparse:
             data["phys"][:, self.phys_index_replaced:] = output
         else:
             swap_sparse_from_dense(data["phys"][:, self.phys_index_replaced:], output, data["coord"])
