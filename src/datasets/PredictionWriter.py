@@ -131,10 +131,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
 
     def set_xml(self):
         super().set_xml()
-        if self.hascal:
-            self.XMLW.step_settings["EZ_index_replaced"] = [0, 1]
-        else:
-            self.XMLW.step_settings["EZ_index_replaced"] = [1]
+        self.XMLW.step_settings["EZ_index_replaced"] = [1]
 
 
 class IRNPredictionWriter(PredictionWriter):
