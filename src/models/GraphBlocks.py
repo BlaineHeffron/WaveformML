@@ -7,15 +7,18 @@ from torch_geometric.data import Data
 from torch_geometric.nn import knn_graph, GMMConv
 from torch_geometric.transforms import Cartesian
 
+from src.utils.GraphUtils import window_edges
+
 
 class GraphZ(nn.Module):
-    def __init__(self, in_planes, out_planes=1, k=6, kernel=3, cartesian_max_val=6, n_conv=1, n_point=3, conv_position=3,
-                 pointwise_factor=0.8, batchnorm=True):
+    def __init__(self, in_planes, out_planes=1, neighbors=1, kernel=3, n_conv=1, n_point=3, conv_position=3,
+                 pointwise_factor=0.8, batchnorm=True, self_loops=True):
         """
         @type out_planes: int
         """
         super(GraphZ, self).__init__()
         self.log = logging.getLogger(__name__)
+        self.self_loops = self_loops
         n_layers = n_conv + n_point
         if n_conv > 0:
             if conv_position < 1:
@@ -30,11 +33,10 @@ class GraphZ(nn.Module):
             raise ValueError("n_layers must be  integer >= 1")
         out = copy(in_planes)
         inp = copy(in_planes)
-        curr_k = k
-        self.ks = []
+        self.neighbors = []
         self.norms = ModuleList()
         self.nets = ModuleList()
-        self.edge_attr_transform = Cartesian(max_value=cartesian_max_val)
+        self.edge_attr_transform = Cartesian(max_value=neighbors)
         if n_conv > 0:
             conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
         else:
@@ -48,15 +50,15 @@ class GraphZ(nn.Module):
                     if pointwise_factor > 0:
                         out = int(round(pointwise_factor * in_planes))
             if i in conv_positions:
-                curr_k = k
+                curr_neighbors = neighbors
             else:
-                curr_k = 1
-            self.log.debug("appending layer {0} -> {1} planes, k of {2}".format(inp, out, curr_k))
-            if curr_k == 1:
+                curr_neighbors = 0
+            self.log.debug("appending layer {0} -> {1} planes, neighbor window of {2}".format(inp, out, curr_neighbors))
+            if curr_neighbors == 0:
                 self.nets.append(GMMConv(inp, out, 2, 1))
             else:
                 self.nets.append(GMMConv(inp, out, 2, kernel))
-            self.ks.append(curr_k)
+            self.neighbors.append(curr_neighbors)
             if i != (n_layers - 1):
                 if batchnorm:
                     self.norms.append(nn.BatchNorm1d(out))
@@ -66,7 +68,10 @@ class GraphZ(nn.Module):
         batch = data.pos[:, 2]
         data.pos = data.pos[:, 0:2]
         for i, layer in enumerate(self.nets):
-            data.edge_index = knn_graph(data.pos, self.ks[i], batch, loop=self.ks[i] == 1)
+            if self.neighbors[i] == 0:
+                data.edge_index = knn_graph(data.pos, self.neighbors[i], batch, loop=True)
+            else:
+                data.edge_index = window_edges(data.pos, batch, self.neighbors[i], self.self_loops)
             data.edge_attr = None
             self.edge_attr_transform(data)
             data.x = layer(data.x, data.edge_index, data.edge_attr)
