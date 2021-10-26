@@ -3,12 +3,12 @@
 #include <stdbool.h>
 
 void cffi_window_edges(
-    const int n, //distance at which points dont get included
+    const long long n, //distance at which points dont get included
     long long* edge_idx,
     const int num_elem, //square window size
-    const int* x,
-    const int* y,
-    const int* b,
+    const long long* x,
+    const long long* y,
+    const long long* b,
     bool self_loop,
     long long* edges1,
     long long* edges2

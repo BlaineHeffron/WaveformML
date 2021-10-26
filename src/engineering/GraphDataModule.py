@@ -1,6 +1,7 @@
 from src.engineering.PSDDataModule import PSDDataModule
 from torch_geometric.data import DataLoader
 from src.datasets.GraphDataset import GraphDataset
+from src.utils.util import DictionaryUtility
 
 
 class GraphDataModule(PSDDataModule):
@@ -35,14 +36,18 @@ class GraphDataModule(PSDDataModule):
     def train_dataloader(self):
         if not self.graph_train_dataset:
             self.setup("train")
-        return DataLoader(self.graph_train_dataset, shuffle=True)
+        return DataLoader(self.graph_train_dataset, shuffle=True,
+                          **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
 
     def val_dataloader(self):
         if not self.graph_val_dataset:
             self.setup("test")
-        return DataLoader(self.graph_val_dataset, shuffle=False)
+        return DataLoader(self.graph_val_dataset, shuffle=False,
+                          **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
 
     def test_dataloader(self):
         if not self.graph_test_dataset:
             self.setup("test")
-        return DataLoader(self.graph_test_dataset, shuffle=False)
+        return DataLoader(self.graph_test_dataset, shuffle=False,
+                          **DictionaryUtility.to_dict(self.config.dataset_config.dataloader_params))
+

@@ -13,7 +13,8 @@ def window_edges(coo, batch, max_dist=1, self_loops=True):
     :rtype: torch.LongTensor
     """
 
-    assert (coo.dtype == torch.int32)
+    #print(coo.dtype)
+    assert (coo.dtype == torch.int64)
 
     # Initialize output tensor to hold the edge indices
     coolen = coo.shape[0]
@@ -26,12 +27,12 @@ def window_edges(coo, batch, max_dist=1, self_loops=True):
     cur_index = torch.tensor([0], dtype=torch.int64)
     # For CFFI, the inputs have to be cast to the target C equivalents using cffi.ffi.cast.
     # Afterwards, the C function can be called like a regular Python function using the converted arguments.
-    _w = ffi.cast('int', max_dist + 1)
+    _w = ffi.cast('long long', max_dist + 1)
     _c = ffi.cast('long long*', cur_index.data_ptr())
     _n = ffi.cast('long long', coolen)
-    _x = ffi.cast('int*', coo[0].data_ptr())
-    _y = ffi.cast('int*', coo[1].data_ptr())
-    _b = ffi.cast('int*', batch.data_ptr())
+    _x = ffi.cast('long long*', coo[0].data_ptr())
+    _y = ffi.cast('long long*', coo[1].data_ptr())
+    _b = ffi.cast('long long*', batch.data_ptr())
     _sl = ffi.cast('bool', self_loops)
     _edge1 = ffi.cast('long long*', edge_index[0].data_ptr())
     _edge2 = ffi.cast('long long*', edge_index[1].data_ptr())
@@ -55,10 +56,10 @@ def get_edges(n, c):
     return torch.stack((torch.tensor(edges0,dtype=torch.int64), torch.tensor(edges1,dtype=torch.int64)), 0)
 
 def test():
-    x = torch.randint(0, 4, (100000,), dtype=torch.int32)
-    y = torch.randint(0, 4, (100000,), dtype=torch.int32)
+    x = torch.randint(0, 4, (100000,), dtype=torch.int64)
+    y = torch.randint(0, 4, (100000,), dtype=torch.int64)
     from math import floor
-    b = torch.tensor([int(floor(i / 4)) for i in range(100000)], dtype=torch.int32)
+    b = torch.tensor([int(floor(i / 4)) for i in range(100000)], dtype=torch.int64)
     coo = torch.stack((x, y, b), dim=1)
     st = time.time()
     edge_index = window_edges(coo[:, 0:2], coo[:, 2], 1, True)

@@ -69,7 +69,7 @@ class GraphZ(nn.Module):
         data.pos = data.pos[:, 0:2]
         for i, layer in enumerate(self.nets):
             if self.neighbors[i] == 0:
-                data.edge_index = knn_graph(data.pos, self.neighbors[i], batch, loop=True)
+                data.edge_index = knn_graph(data.pos, 1, batch, loop=True)
             else:
                 data.edge_index = window_edges(data.pos, batch, self.neighbors[i], self.self_loops)
             data.edge_attr = None
