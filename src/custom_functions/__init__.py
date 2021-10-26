@@ -22,13 +22,13 @@ with open('%s/cffi.c' % directory) as my_source:
             ffi.set_source(
                 '_cffi',
                 my_source.read(),
-                extra_compile_args=['-fopenmp', '-D use_openmp', '-O3', '-march=native'],
+                extra_compile_args=['-fopenmp', '-D use_openmp', '-O3', '-march=native', '-std=c99'],
                 extra_link_args=['-fopenmp'],
             )
         else:
             ffi.set_source('_cffi',
                            my_source.read(),
-                           extra_compile_args=['-O3', '-march=native'],
+                           extra_compile_args=['-O3', '-march=native', '-std=c99'],
                            )
 
 ffi.compile()
