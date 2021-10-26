@@ -6,17 +6,15 @@ import torch
 
 import os.path as osp
 
-from torch_geometric.nn import knn_graph
-
-from src.engineering.PSDDataModule import PSDDataModule
 
 class DataExtra(Data):
     def __init__(self, **kwargs):
         super(DataExtra, self).__init__(**kwargs)
         self.additional_fields = []
 
+
 class GraphDataset(Dataset):
-    def __init__(self, dataset, file_list: List, k, use_self_loops):
+    def __init__(self, dataset, file_list: List, use_self_loops):
         root = osp.dirname(file_list[0])
         procdir = osp.join(root, "processed")
         self.expected_file_names = [osp.join(procdir, osp.basename(f)[0:-3] + ".pt") for f in file_list]
@@ -24,7 +22,6 @@ class GraphDataset(Dataset):
         self.file_indices_to_process = [i for i in range(len(file_list))]
         self.raw_file_list = file_list
         self.log = logging.getLogger(__name__)
-        self.k = k
         self.use_self_loops = use_self_loops
         super().__init__(root=root)
 
@@ -32,7 +29,7 @@ class GraphDataset(Dataset):
         while len(self.file_indices_to_process) > 0:
 
             ind = self.file_indices_to_process.pop()
-            self.log.info("creating graph data from file {0} with {1} nearest neighbors".format(self.raw_file_list[ind], self.k))
+            self.log.info("creating graph data from file {0}".format(self.raw_file_list[ind]))
             if osp.exists(self.processed_file_names[ind]):
                 self.log.info("file {0} already exists, skipping".format(self.processed_file_names[ind]))
                 continue
@@ -42,7 +39,6 @@ class GraphDataset(Dataset):
                 additional_fields = f[1:]
                 f = f[0]
             coo = c.long()
-            #edge_index = knn_graph(coo, self.k, coo[:, 2], loop=self.use_self_loops)
             data = DataExtra(x=f, pos=coo, y=target)
             data.additional_fields = additional_fields
             if self.pre_filter is not None and not self.pre_filter(data):
