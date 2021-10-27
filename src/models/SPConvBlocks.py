@@ -118,7 +118,11 @@ class SparseConv2DForEZ(nn.Module):
             self.log.debug(
                 "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(inp, out,
                                                                                                curr_kernel, pd))
-            layers.append(spconv.SubMConv2d(inp, out, curr_kernel, 1, pd, indice_key="subm0"))
+            if curr_kernel < 4:
+                indkey = "subm0"
+            else:
+                indkey = "subm{}".format(curr_kernel)
+            layers.append(spconv.SubMConv2d(inp, out, curr_kernel, 1, pd, indice_key=indkey))
             if i != (n_layers - 1):
                 if batchnorm:
                     layers.append(nn.BatchNorm1d(out))
