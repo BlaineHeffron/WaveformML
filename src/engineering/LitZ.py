@@ -126,7 +126,7 @@ class LitZ(LitBase):
             if not self.evaluator.logger:
                 self.evaluator.set_logger(self.logger)
             if self.test_has_phys:
-                self.evaluator.add(predictions, target_tensor, c)
+                self.evaluator.add(predictions, target_tensor, c, f)
             else:
                 self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal)
             self.log_dict(results_dict, on_epoch=True, logger=True)
@@ -136,7 +136,7 @@ class LitZ(LitBase):
         if not self.evaluator.logger:
             self.evaluator.set_logger(self.logger)
         if self.test_has_phys:
-            self.evaluator.add(predictions, target_tensor, c, additional_fields=additional_fields)
+            self.evaluator.add(predictions, target_tensor, c, f, additional_fields=additional_fields)
         else:
             self.evaluator.add(predictions, target_tensor, c, f, target_is_cal=self.target_is_cal, additional_fields=additional_fields)
         self.log_dict(results_dict, on_epoch=True, logger=True)
