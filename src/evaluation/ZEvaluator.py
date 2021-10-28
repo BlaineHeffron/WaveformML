@@ -17,7 +17,7 @@ from src.utils.SQLUtils import CalibrationDB
 from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import z_deviation, safe_divide_2d, calc_calib_z_E, z_basic_prediction, z_error, \
     z_deviation_with_E, z_basic_prediction_dense, z_deviation_with_E_full_correlation, E_basic_prediction_dense, \
-    mean_absolute_error_dense
+    mean_absolute_error_dense, swap_sparse_from_dense
 from src.utils.util import get_bins, get_bin_midpoints
 
 
@@ -565,7 +565,7 @@ class ZEvaluatorWF(ZEvaluatorBase):
 class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
 
     def __init__(self, logger, calgroup=None, namespace=None, e_scale=None, additional_field_names=None, **kwargs):
-        WaveformEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale)
+        WaveformEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale, additional_field_names=additional_field_names)
         RealDataEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale,
                                    additional_field_names=additional_field_names, metric_name="mean absolute error", metric_unit="mm",
                                    target_has_phys=True, scaling=self.z_scale, **kwargs)
@@ -617,7 +617,7 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
                                  "Z Mean Absolute Error", "mm",
                                  underflow=False, overflow=(0, 0, 1), scale=self.z_scale)
 
-    def add(self, predictions, target, c, additional_fields=None):
+    def add(self, predictions, target, c, f, additional_fields=None):
         """
         @param predictions: tensor of dimension 4: (batch, predictions, x, y)  here predictions is length 1
         @param target: tensor of dimension 4 (batch, phys quantities, x, y) here phys quantities is length 7 of normalized phys quantities
@@ -675,6 +675,14 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
             cal_E_pred = cal_E_pred / self.E_scale
             self.EnergyEvaluator.add(np.expand_dims(cal_E_pred, 1), target[:, self.E_index, :, :].unsqueeze(1), c,
                                      target, True, Z_pred=np.expand_dims(targ[:, self.z_index, :, :], 1))
+        if self.analyze_waveforms:
+            z_pred = (pred[:, 0, :, :] - 0.5) * self.z_scale
+            z_real = (targ[:, 0, :, :] - 0.5) * self.z_scale
+            z_list = np.zeros(coo.shape[0])
+            z_pred_list = np.zeros(coo.shape[0])
+            swap_sparse_from_dense(z_pred_list, pred[:, 0, :, :], coo)
+            swap_sparse_from_dense(z_list, z_real, coo)
+            self.analyze_wf_z(f, coo, z_list, z_pred, additional_fields)
 
     def dump(self):
         self.retrieve_error_metrics()
@@ -692,6 +700,9 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
         if hasattr(self, "EnergyEvaluator"):
             self.EnergyEvaluator.dump()
         RealDataEvaluator.dump(self)
+        if self.analyze_waveforms:
+            self.dump_wf_z()
+
 
     def retrieve_error_metrics(self):
         single_err_E = []
