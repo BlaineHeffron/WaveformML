@@ -27,7 +27,7 @@ def PID_class_map(PID):
 class RealDataEvaluator(SingleEndedEvaluator):
     def __init__(self, logger, calgroup=None, e_scale=None, additional_field_names=None, metric_name=None,
                  metric_unit=None, target_has_phys=False, scaling=1.0, bin_overrides=None, **kwargs):
-        super(RealDataEvaluator, self).__init__(logger, calgroup=calgroup, e_scale=e_scale, bin_overrides=bin_overrides)
+        SingleEndedEvaluator.__init__(self, logger, calgroup=calgroup, e_scale=e_scale, bin_overrides=bin_overrides)
         self.additional_field_names = additional_field_names
         self.has_PID = False
         self.PID_index = None

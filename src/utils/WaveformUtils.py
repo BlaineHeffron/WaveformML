@@ -13,18 +13,15 @@ def align_wfs(data, out, n_before=1):
         for j in range(2):
             maxloc = find_peak(data[i, j])
             arrival_samp = maxloc + calc_crossing(data[i, j], -0.5, maxloc)
-            print(data[i, j][5:15])
-            print(maxloc)
-            print(arrival_samp)
             start = int(round(arrival_samp)) - n_before
             if start < 0:
                 zero_pad = -1 * start
                 start = 0
             else:
                 zero_pad = 0
-            for k in range(start, data.shape[2]):
+            for k in range(data.shape[2]):
                 if k + zero_pad < out.shape[2]:
-                    out[i, j, k + zero_pad] = data[i, j, k]
+                    out[i, j, k + zero_pad] = data[i, j, k + start]
                 else:
                     break
 

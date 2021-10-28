@@ -65,7 +65,7 @@ class WaveformEvaluator(AD1Evaluator):
         return Z, E
 
     def _align_wfs(self, f):
-        f = f.reshape((f.shape[0], 2, f.shape[1] / 2))
+        f = f.reshape((f.shape[0], 2, int(f.shape[1] / 2)))
         wfs = np.zeros((f.shape[0], 2, PULSE_ANALYSIS_SAMPLES))
         f = f.detach().cpu().numpy()
         align_wfs(f, wfs)

@@ -682,7 +682,7 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
             z_pred_list = np.zeros(coo.shape[0])
             swap_sparse_from_dense(z_pred_list, pred[:, 0, :, :], coo)
             swap_sparse_from_dense(z_list, z_real, coo)
-            self.analyze_wf_z(f, coo, z_list, z_pred, additional_fields)
+            self.analyze_wf_z(f, coo, z_list, z_pred_list, additional_fields)
 
     def dump(self):
         self.retrieve_error_metrics()
