@@ -41,18 +41,18 @@ class WaveformEvaluator(AD1Evaluator):
         units = ["normalized ADC"] * PULSE_ANALYSIS_SAMPLES
         metric_params = [[0.0, 1.0, 100]] * PULSE_ANALYSIS_SAMPLES
         scales = [1.0] * PULSE_ANALYSIS_SAMPLES
-        i = 0
         self.z_binned_metric_pairs = []
         for i in range(NUM_Z_BINS + 2):
             sample_metrics = []
+            j = 0
             for name, unit, scale in zip(metric_names, units, scales):
-                sample_metrics.append(MetricAggregator(name, *metric_params[i], class_names,
+                sample_metrics.append(MetricAggregator(name, *metric_params[j], class_names,
                                                        metric_name=metric_name, metric_unit=metric_unit,
                                                        scale_factor=scaling,
                                                        norm_factor=scale, parameter_unit=unit,
                                                        is_multiplicity=name == "multiplicity"))
+                j+=1
 
-                i += 1
             self.z_binned_metric_pairs.append(MetricPairAggregator(sample_metrics))
 
     def z_E_from_cal(self, c, f, shape):
