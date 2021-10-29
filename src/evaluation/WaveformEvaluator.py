@@ -21,7 +21,7 @@ class WaveformEvaluator(AD1Evaluator):
         self.n_samples = 150
         self.t_center = np.arange(2, self.n_samples * self.sample_width - 1, self.sample_width)
         self.analyze_waveforms = "wf_analysis" in kwargs.keys()
-        if "additional_field_names" in kwargs.keys():
+        if "additional_field_names" in kwargs.keys() and kwargs["additional_field_names"] is not None:
             self.additional_field_names = kwargs["additional_field_names"]
             if "PID" in self.additional_field_names:
                 self.PID_index = self.additional_field_names.index("PID")
