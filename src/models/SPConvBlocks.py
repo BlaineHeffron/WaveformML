@@ -18,6 +18,9 @@ class SparseConv2DForEZ(nn.Module):
             self._version0(in_planes, out_planes, kernel_size, n_conv, n_point, conv_position,pointwise_factor, batchnorm)
         elif version == 1:
             self._version1(in_planes, out_planes, kernel_size, n_conv, n_point, conv_position,pointwise_factor, batchnorm)
+        elif version == 2:
+            self._version2(in_planes, out_planes, kernel_size, n_conv, n_point, conv_position, pointwise_factor,
+                           batchnorm)
         else:
             raise IOError("no version {} available, choose a version <= 1".format(version))
 
@@ -110,6 +113,63 @@ class SparseConv2DForEZ(nn.Module):
                 curr_kernel = 1
             else:
                 curr_kernel = kernel_size - int((i+1 - conv_position)*2)
+                if curr_kernel < 3:
+                    curr_kernel = 3
+            if curr_kernel % 2 == 0:
+                raise ValueError("error: kernel size is even")
+            pd = int((curr_kernel - 1) / 2)
+            self.log.debug(
+                "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(inp, out,
+                                                                                               curr_kernel, pd))
+            if curr_kernel < 4:
+                indkey = "subm0"
+            else:
+                indkey = "subm{}".format(curr_kernel)
+            layers.append(spconv.SubMConv2d(inp, out, curr_kernel, 1, pd, indice_key=indkey))
+            if i != (n_layers - 1):
+                if batchnorm:
+                    layers.append(nn.BatchNorm1d(out))
+            layers.append(nn.ReLU())
+            inp = out
+        layers.append(spconv.ToDense())
+        self.network = spconv.SparseSequential(*layers)
+
+    def _version2(self, in_planes, out_planes=2, kernel_size=3, n_conv=1, n_point=3, conv_position=3,
+                  pointwise_factor=0.8, batchnorm=True):
+        layers = []
+        n_layers = n_conv + n_point
+        if n_conv > 0:
+            if conv_position < 1:
+                raise ValueError("conv position must be >= 1 if n_conv > 0")
+        if n_point > 0:
+            if n_layers == 1:
+                raise ValueError("n_layers must be > 1 if using pointwise convolution")
+            increment = int(round(int(round(in_planes * pointwise_factor - out_planes)) / float(n_layers - 1)))
+        else:
+            increment = int(round(float(in_planes-out_planes) / float(n_layers)))
+        if kernel_size % 2 != 1:
+            raise ValueError("Kernel size must be an odd integer")
+        if not isinstance(n_layers, int) or n_layers < 1:
+            raise ValueError("n_layers must be  integer >= 1")
+        out = copy(in_planes)
+        inp = copy(in_planes)
+        curr_kernel = copy(kernel_size)
+        if n_conv > 0:
+            conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
+        else:
+            conv_positions = []
+        for i in range(n_layers):
+            if i == (n_layers - 1):
+                out = copy(out_planes)
+            else:
+                out -= increment
+                if i == 0 and n_point > 0:
+                    if pointwise_factor > 0:
+                        out = int(round(pointwise_factor * in_planes))
+            if not i in conv_positions:
+                curr_kernel = 1
+            else:
+                curr_kernel = kernel_size
                 if curr_kernel < 3:
                     curr_kernel = 3
             if curr_kernel % 2 == 0:
