@@ -31,7 +31,7 @@ class WaveformEvaluator(AD1Evaluator):
 
     def init_sample_metrics(self):
         metric_name = "z"
-        metric_unit = "mm"
+        metric_unit = "mae"
         scaling = 1.
         metric_names = ["sample {}".format(i) for i in range(PULSE_ANALYSIS_SAMPLES)]
         if hasattr(self, "has_PID") and self.has_PID:
@@ -39,7 +39,7 @@ class WaveformEvaluator(AD1Evaluator):
         else:
             class_names = ["any"]
         units = ["normalized ADC"] * PULSE_ANALYSIS_SAMPLES
-        metric_params = [[0.0, 1.0, 100]] * PULSE_ANALYSIS_SAMPLES
+        metric_params = [[1.0E-6, 0.01*(i+1), 100] for i in range(PULSE_ANALYSIS_SAMPLES)]
         scales = [1.0] * PULSE_ANALYSIS_SAMPLES
         self.z_binned_metric_pairs = []
         for i in range(NUM_Z_BINS + 2):
@@ -54,6 +54,17 @@ class WaveformEvaluator(AD1Evaluator):
                 j+=1
 
             self.z_binned_metric_pairs.append(MetricPairAggregator(sample_metrics))
+
+        j = 0
+        sample_metrics = []
+        for name, unit, scale in zip(metric_names, units, scales):
+            sample_metrics.append(MetricAggregator(name, *metric_params[j], ["any"],
+                                                   metric_name=metric_name, metric_unit=metric_unit,
+                                                   scale_factor=scaling,
+                                                   norm_factor=scale, parameter_unit=unit,
+                                                   is_multiplicity=name == "multiplicity"))
+            j+=1
+        self.z_binned_metric_pairs.append(MetricPairAggregator(sample_metrics))
 
     def z_E_from_cal(self, c, f, shape):
         Z = np.zeros(shape, dtype=np.float32)
@@ -75,7 +86,10 @@ class WaveformEvaluator(AD1Evaluator):
         has_PID = False
         if hasattr(self, "has_PID") and self.has_PID and additional_fields is not None:
             class_indices = additional_fields[self.PID_index]
-            convert_PID(class_indices, PID_MAP)
+            if 3 in additional_fields[self.PID_index]:
+                pass
+            else:
+                convert_PID(class_indices, PID_MAP)
             has_PID = True
         else:
             class_indices = np.zeros((c.shape[0]))
@@ -83,6 +97,8 @@ class WaveformEvaluator(AD1Evaluator):
         wfs = np.transpose(wfs, (2, 1, 0))
         inc = 1200 / NUM_Z_BINS
         results = np.abs(z - z_pred)
+        self.z_binned_metric_pairs[-1].add(results, wfs[:, 0], "any")
+        self.z_binned_metric_pairs[-1].add(results, wfs[:, 1], "any")
         for i in range(NUM_Z_BINS + 2):
             if has_PID:
                 for j in range(len(PID_MAPPED_NAMES.keys())):
@@ -94,8 +110,9 @@ class WaveformEvaluator(AD1Evaluator):
                         inds = (class_indices == j) & (z > -600 + (i - 1) * inc) & (z < 600)
                     else:
                         inds = (class_indices == j) & (z > -600 + (i - 1) * inc) & (z <= -600 + i * inc)
-                    self.z_binned_metric_pairs[i].add(results, wfs[:, 0, inds], PID_MAPPED_NAMES[j])
-                    self.z_binned_metric_pairs[i].add(results, wfs[:, 1, inds], PID_MAPPED_NAMES[j])
+                    inds = inds == 1
+                    self.z_binned_metric_pairs[i].add(results[inds], wfs[:, 0, inds], PID_MAPPED_NAMES[j])
+                    self.z_binned_metric_pairs[i].add(results[inds], wfs[:, 1, inds], PID_MAPPED_NAMES[j])
             else:
                 if i == 0:
                     inds = (z <= -600)
@@ -105,13 +122,15 @@ class WaveformEvaluator(AD1Evaluator):
                     inds = (z > -600 + (i - 1) * inc) & (z < 600)
                 else:
                     inds = (z > -600 + (i - 1) * inc) & (z <= -600 + i * inc)
-                self.z_binned_metric_pairs[i].add(results, wfs[:, 0, inds], "any")
-                self.z_binned_metric_pairs[i].add(results, wfs[:, 1, inds], "any")
+                inds = inds == 1
+                self.z_binned_metric_pairs[i].add(results[inds], wfs[:, 0, inds], "any")
+                self.z_binned_metric_pairs[i].add(results[inds], wfs[:, 1, inds], "any")
 
     def dump_wf_z(self):
         for i in range(NUM_Z_BINS + 2):
             if self.z_binned_metric_pairs[i] is not None:
-                self.z_binned_metric_pairs[i].plot(self.logger)
+                self.z_binned_metric_pairs[i].plot(self.logger, namespace="z{}_".format(i))
+        self.z_binned_metric_pairs[-1].plot(self.logger, namespace="allz_")
 
 
     def _z_bin(self, z):

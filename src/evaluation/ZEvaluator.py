@@ -631,6 +631,15 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
             results = np.zeros_like(pred[:, 0, :, :])
             mean_absolute_error_dense(pred[:, 0, :, :], targ[:, self.z_index, :, :], results)
             RealDataEvaluator.add(self, results, targ, c, additional_fields)
+
+        if self.analyze_waveforms:
+            z_pred = (pred[:, 0, :, :] - 0.5) * self.z_scale
+            z_real = (targ[:, self.z_index, :, :] - 0.5) * self.z_scale
+            z_list = np.zeros(coo.shape[0])
+            z_pred_list = np.zeros(coo.shape[0])
+            swap_sparse_from_dense(z_pred_list, z_pred, coo)
+            swap_sparse_from_dense(z_list, z_real, coo)
+            self.analyze_wf_z(f, coo, z_list, z_pred_list, additional_fields)
         z_deviation_with_E_full_correlation(coo, pred[:, 0, :, :], targ[:, self.z_index, :, :],
                                             self.results["seg_mult_zmae"][0],
                                             self.results["seg_mult_zmae"][1],
@@ -675,14 +684,7 @@ class ZEvaluatorRealWFNorm(RealDataEvaluator, WaveformEvaluator):
             cal_E_pred = cal_E_pred / self.E_scale
             self.EnergyEvaluator.add(np.expand_dims(cal_E_pred, 1), target[:, self.E_index, :, :].unsqueeze(1), c,
                                      target, True, Z_pred=np.expand_dims(targ[:, self.z_index, :, :], 1))
-        if self.analyze_waveforms:
-            z_pred = (pred[:, 0, :, :] - 0.5) * self.z_scale
-            z_real = (targ[:, 0, :, :] - 0.5) * self.z_scale
-            z_list = np.zeros(coo.shape[0])
-            z_pred_list = np.zeros(coo.shape[0])
-            swap_sparse_from_dense(z_pred_list, pred[:, 0, :, :], coo)
-            swap_sparse_from_dense(z_list, z_real, coo)
-            self.analyze_wf_z(f, coo, z_list, z_pred_list, additional_fields)
+
 
     def dump(self):
         self.retrieve_error_metrics()

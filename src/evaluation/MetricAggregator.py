@@ -101,11 +101,11 @@ class MetricAggregator:
         else:
             return self.name
 
-    def plot(self, logger):
+    def plot(self, logger, namespace=""):
         if len(self.class_names) == 1:
             if np.sum(self.results_num[0]) < 200:
                 return
-            logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
+            logger.experiment.add_figure("evaluation/{0}{1}_{2}".format(namespace,self.name, self.metric_name),
                                          plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                      if self.is_discreet else self.bin_edges,
                                                      safe_divide(
@@ -115,7 +115,7 @@ class MetricAggregator:
                                                      self.class_names[0], self.retrieve_parameter_label(),
                                                      self.retrieve_metric_label(),
                                                      norm_to_bin_width=False, logy=False))
-            logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+            logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                          plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                      if self.is_discreet else self.bin_edges,
                                                      self.results_num[0, 1:self.n_bins + 1],
@@ -123,7 +123,7 @@ class MetricAggregator:
         else:
             inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
             if len(class_names_to_plot) > 1:
-                logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
+                logger.experiment.add_figure("evaluation/{0}{1}_{2}".format(namespace,self.name, self.metric_name),
                                              plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                            if self.is_discreet else self.bin_edges,
                                                            [safe_divide(
@@ -134,7 +134,7 @@ class MetricAggregator:
                                                            class_names_to_plot, self.retrieve_parameter_label(),
                                                            self.retrieve_metric_label(),
                                                            norm_to_bin_width=False, logy=False))
-                logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+                logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                            if self.is_discreet else self.bin_edges,
                                                            [self.results_num[i, 1:self.n_bins + 1]
@@ -142,7 +142,7 @@ class MetricAggregator:
                                                            class_names_to_plot, self.retrieve_parameter_label(),
                                                            "total"))
             elif len(class_names_to_plot) == 1:
-                logger.experiment.add_figure("evaluation/{0}_{1}".format(self.name, self.metric_name),
+                logger.experiment.add_figure("evaluation/{0}{1}_{1}".format(namespace,self.name, self.metric_name),
                                              plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                          if self.is_discreet else self.bin_edges,
                                                          safe_divide(
@@ -154,7 +154,7 @@ class MetricAggregator:
                                                          self.retrieve_parameter_label(),
                                                          self.retrieve_metric_label(),
                                                          norm_to_bin_width=False, logy=False))
-                logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+                logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                          if self.is_discreet else self.bin_edges,
                                                          self.results_num[inds_to_plot[0], 1:self.n_bins + 1],
@@ -251,11 +251,11 @@ class Metric2DAggregator:
                                                    self.metric1.n_bins, self.metric2.n_bins, c,
                                                    multiplicity_index=self.multiplicity_index)
 
-    def plot(self, logger):
+    def plot(self, logger, namespace=""):
         if len(self.metric1.class_names) == 1:
             if np.sum(self.results_num[0, 1:self.metric1.n_bins + 1, 1:self.metric2.n_bins + 1]) < 20:
                 return
-            logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+            logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                          plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                      self.results_num[0, 1:self.metric1.n_bins + 1,
                                                      1:self.metric2.n_bins + 1],
@@ -264,7 +264,7 @@ class Metric2DAggregator:
                                                      self.metric2.retrieve_parameter_label(),
                                                      zlabel=self.metric1.retrieve_parameter_label()))
 
-            logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
+            logger.experiment.add_figure("evaluation/{0}{1}_precision".format(namespace, self.name),
                                          plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                      safe_divide(self.metric1.scale_factor * self.results_val[0,
                                                                                              1:self.metric1.n_bins + 1,
@@ -280,7 +280,7 @@ class Metric2DAggregator:
         else:
             inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
             if len(class_names_to_plot) > 1:
-                logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+                logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_n_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                            [self.results_num[i, 1:self.metric1.n_bins + 1,
                                                             1:self.metric2.n_bins + 1] for i in
@@ -289,7 +289,7 @@ class Metric2DAggregator:
                                                            self.metric1.retrieve_parameter_label(),
                                                            self.metric2.retrieve_parameter_label()))
 
-                logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
+                logger.experiment.add_figure("evaluation/{0}{1}_precision".format(namespace,self.name),
                                              plot_n_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                            [safe_divide(self.metric1.scale_factor * self.results_val[i,
                                                                                                     1:self.metric1.n_bins + 1,
@@ -303,7 +303,7 @@ class Metric2DAggregator:
                                                            self.metric2.retrieve_parameter_label(), logz=False,
                                                            norm_to_bin_width=False))
             elif len(class_names_to_plot) == 1:
-                logger.experiment.add_figure("evaluation/{}_classes".format(self.name),
+                logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                          self.results_num[inds_to_plot[0], 1:self.metric1.n_bins + 1,
                                                          1:self.metric2.n_bins + 1],
@@ -312,7 +312,7 @@ class Metric2DAggregator:
                                                          self.metric2.retrieve_parameter_label(),
                                                          zlabel=self.metric1.retrieve_parameter_label()))
 
-                logger.experiment.add_figure("evaluation/{}_precision".format(self.name),
+                logger.experiment.add_figure("evaluation/{0}{1}_precision".format(namespace,self.name),
                                              plot_hist2d(self.metric1.bin_edges, self.metric2.bin_edges,
                                                           safe_divide(self.metric1.scale_factor * self.results_val[0,
                                                                                                   1:self.metric1.n_bins + 1,
@@ -396,8 +396,8 @@ class MetricPairAggregator:
                 return i
         raise ValueError("no name {} in metric list".format(name))
 
-    def plot(self, logger):
+    def plot(self, logger, namespace=""):
         for m in self.metric_list:
-            m.plot(logger)
+            m.plot(logger, namespace)
         for key in self.metric_pairs.keys():
-            self.metric_pairs[key].plot(logger)
+            self.metric_pairs[key].plot(logger, namespace)
