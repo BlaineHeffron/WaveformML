@@ -18,7 +18,7 @@ class WaveformEvaluator(AD1Evaluator):
         super(WaveformEvaluator, self).__init__(logger, calgroup=calgroup, e_scale=e_scale, **kwargs)
         self.hascal = False
         self.sample_width = 4
-        self.n_samples = 150
+        self.n_samples = 65
         self.t_center = np.arange(2, self.n_samples * self.sample_width - 1, self.sample_width)
         self.analyze_waveforms = "wf_analysis" in kwargs.keys()
         if "additional_field_names" in kwargs.keys() and kwargs["additional_field_names"] is not None:

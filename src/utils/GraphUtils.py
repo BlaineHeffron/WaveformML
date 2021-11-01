@@ -18,7 +18,7 @@ def window_edges(coo, batch, max_dist=1, self_loops=True):
 
     # Initialize output tensor to hold the edge indices
     coolen = coo.shape[0]
-    edge_index = torch.zeros((2, coolen * int(ceil(coolen / (batch[-1] - batch[0])))), dtype=torch.int64)
+    edge_index = torch.zeros((2, coolen * int(ceil(coolen / (batch[-1] - batch[0])))*2), dtype=torch.int64)
     if not edge_index.is_contiguous():
         edge_index = edge_index.contiguous()
     coo = coo.transpose(0, 1).contiguous()
@@ -62,7 +62,7 @@ def test():
     b = torch.tensor([int(floor(i / 4)) for i in range(100000)], dtype=torch.int64)
     coo = torch.stack((x, y, b), dim=1)
     st = time.time()
-    edge_index = window_edges(coo[:, 0:2], coo[:, 2], 1, True)
+    edge_index = window_edges(coo[:, 0:2], coo[:, 2], 3, True)
     #edge_index_compare = get_edges(1, coo)
     print(edge_index.shape)
     #print(edge_index_compare.shape)
