@@ -50,3 +50,6 @@ class SingleEndedEvaluator(AD1Evaluator):
                         n_right += 1
         return n_left, n_right
 
+    def retrieve_SE_inds(self, coo):
+        return self.seg_status[coo[:,0], coo[:,1]] == 0.5
+
