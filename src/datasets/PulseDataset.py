@@ -3,6 +3,7 @@ import os
 from copy import copy
 
 from torch.utils.data import get_worker_info
+from torch import cat
 
 from src.datasets.H5CompoundTypes import *
 from src.evaluation.AD1Evaluator import Z_NORMALIZATION_FACTOR, E_NORMALIZATION_FACTOR
@@ -1079,7 +1080,8 @@ class PulseDatasetWFPairNorm(PulseDataset):
                  label_index=None,
                  label_name="EZ",
                  additional_fields=None,
-                 label_map=None):
+                 label_map=None,
+                 waveform_subset=None):
         """
         Args:
             config: configuration file object
@@ -1103,13 +1105,22 @@ class PulseDatasetWFPairNorm(PulseDataset):
                          additional_fields=additional_fields,
                          label_map = label_map)
         self.label_index = label_index
+        self.waveform_subset = waveform_subset
+        self.waveform_inds = None
 
     def __getitem__(self, idx):
+        val, label = super().__getitem__(idx)
+        if self.waveform_subset is not None and self.waveform_inds is None:
+            n = int(val[1].shape[1] / 2)
+            inds = [(self.waveform_subset[0] <= i <= self.waveform_subset[1]) for i in range(n)]
+            inds = inds + inds
+            self.waveform_inds = inds
+        if self.waveform_subset is not None:
+            val[1] = val[1][:, self.waveform_inds]
         if self.label_index is not None:
-            val, label = super().__getitem__(idx)
             return val, label[:, self.label_index]
         else:
-            return super().__getitem__(idx)
+            return val, label
 
 
 class PulseDatasetWaveformNorm(PulseDataset):
