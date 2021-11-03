@@ -8,7 +8,7 @@ from src.utils.ModelValidation import ModelValidation, DIM, NIN, NOUT, FS, STR, 
 
 class SparseConv2DForEZ(nn.Module):
     def __init__(self, in_planes, out_planes=2, kernel_size=3, n_conv=1, n_point=3, conv_position=3,
-                 pointwise_factor=0.8, batchnorm=True, version=0):
+                 pointwise_factor=0.8, batchnorm=True, version=0, n_expand=0):
         """
         @type out_planes: int
         """
@@ -21,6 +21,10 @@ class SparseConv2DForEZ(nn.Module):
         elif version == 2:
             self._version2(in_planes, out_planes, kernel_size, n_conv, n_point, conv_position, pointwise_factor,
                            batchnorm)
+        elif version == 3:
+            self._version3(in_planes, out_planes, kernel_size, n_conv, n_point, conv_position, pointwise_factor,
+                           n_expand, batchnorm)
+
         else:
             raise IOError("no version {} available, choose a version <= 1".format(version))
 
@@ -125,6 +129,8 @@ class SparseConv2DForEZ(nn.Module):
                 indkey = "subm0"
             else:
                 indkey = "subm{}".format(curr_kernel)
+            if out <= 0:
+                out = 1
             layers.append(spconv.SubMConv2d(inp, out, curr_kernel, 1, pd, indice_key=indkey))
             if i != (n_layers - 1):
                 if batchnorm:
@@ -188,6 +194,63 @@ class SparseConv2DForEZ(nn.Module):
                     layers.append(nn.BatchNorm1d(out))
             layers.append(nn.ReLU())
             inp = out
+        layers.append(spconv.ToDense())
+        self.network = spconv.SparseSequential(*layers)
+
+    def _version3(self, in_planes, out_planes=2, kernel_size=3, n_conv=1, n_point=3, conv_position=3,
+                  expansion_factor=2.0, n_expand=3, batchnorm=True):
+        layers = []
+        n_layers = n_conv + n_point
+        if n_conv > 0:
+            if conv_position < 1:
+                raise ValueError("conv position must be >= 1 if n_conv > 0")
+        if n_point > 0:
+            if n_layers == 1:
+                raise ValueError("n_layers must be > 1 if using pointwise convolution")
+        nframes = [in_planes]
+        n_contraction = n_layers - n_expand
+        if n_contraction < 1:
+            raise ValueError("n expand must be <= (n_point + n_conv - 1)")
+        if kernel_size % 2 != 1:
+            raise ValueError("Kernel size must be an odd integer")
+        if not isinstance(n_conv, int) or n_conv < 1:
+            raise ValueError("n_conv must be an integer >= 1 ")
+        if n_expand > 0:
+            nframes += _get_frame_expansion(nframes[-1],expansion_factor,n_expand, True)
+        if n_contraction > 0:
+            nframes += _get_frame_contraction(nframes[-1], out_planes, n_contraction, True)
+        nframes[-1] = out_planes
+        if n_conv > 0:
+            conv_positions = [i for i in range(conv_position-1,conv_position-1+n_conv)]
+        else:
+            conv_positions = []
+        for i in range(n_layers):
+            if not i in conv_positions:
+                fs = 1
+                pd = 1
+            else:
+                if n_conv > 1:
+                    decay_factor = 1. - conv_positions.index(i) / (n_conv - 1)
+                else:
+                    decay_factor = 1.
+                fs = int(ceil(kernel_size * decay_factor))
+                if fs % 2 == 0:
+                    fs -= 1
+                if fs < 3:
+                    fs = 3
+                pd = int((fs - 1) / 2)
+            self.log.debug(
+                "appending layer {0} -> {1} planes, kernel size of {2}, padding of {3}".format(nframes[i], nframes[i+1],
+                                                                                               fs, pd))
+            if fs < 4:
+                indkey = "subm0"
+            else:
+                indkey = "subm{}".format(fs)
+            layers.append(spconv.SubMConv2d(nframes[i], nframes[i+1], fs, 1, pd, indice_key=indkey))
+            if i != (n_layers - 1):
+                if batchnorm:
+                    layers.append(nn.BatchNorm1d(nframes[i+1]))
+            layers.append(nn.ReLU())
         layers.append(spconv.ToDense())
         self.network = spconv.SparseSequential(*layers)
 
@@ -323,19 +386,25 @@ class ExtractedFeatureConv(nn.Module):
         return self.network(x)
 
 
-def _get_frame_expansion(initial_number, factor, n):
+def _get_frame_expansion(initial_number, factor, n, use_round=False):
     frames = [initial_number]
     diff = float(int(round(factor*initial_number)) - initial_number) / n
     for i in range(n):
-        frames += [int(floor(frames[-1] + diff))]
+        if use_round:
+            frames += [int(round(frames[-1] + diff))]
+        else:
+            frames += [int(floor(frames[-1] + diff))]
     return frames[1:]
 
 
-def _get_frame_contraction(initial_number, nout, n):
+def _get_frame_contraction(initial_number, nout, n, use_round=False):
     frames = [initial_number]
     diff = float(initial_number - nout) / n
     for i in range(n):
-        frames += [int(floor(frames[-1] - diff))]
+        if use_round:
+            frames += [int(round(frames[-1] - diff))]
+        else:
+            frames += [int(floor(frames[-1] - diff))]
     return frames[1:]
 
 
