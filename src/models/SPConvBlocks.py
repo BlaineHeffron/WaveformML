@@ -837,7 +837,6 @@ class SparseConv2DPreserve(nn.Module):
         if n_contraction > 0:
             nframes += _get_frame_contraction(nframes[-1], nout, n_contraction)
         nframes[-1] = nout
-        print(nframes)
         for i in range(n):
             if pointwise_factor > 0:
                 if n > 1:
