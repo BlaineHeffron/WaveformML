@@ -868,7 +868,7 @@ class SparseConv2DPreserve(nn.Module):
                 else:
                     indkey = "ind_0"
                 st, dil = 1, 1
-                self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights, indice_key='ind_{}'.format(fs)))
+                self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights, indice_key=indkey))
                 self.log.debug("added regular convolution, frames: {0} -> {1}, fs {2} pad {3}".format(nframes[i], nframes[i + 1], fs, pd))
             self.alg.append(nn.BatchNorm1d(nframes[i + 1]))
             self.alg.append(nn.ReLU())
