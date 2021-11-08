@@ -821,6 +821,8 @@ class SparseConv2DPreserve(nn.Module):
             expansion_factor=0, n_expansion=0):
 
         n = n_contraction + n_expansion
+        if pointwise_factor > 0:
+            n_expansion -= 1
         if n < 1:
             raise ValueError("n_contraction + n_expansion must be >=1")
         self.alg = []
