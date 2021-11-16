@@ -1,0 +1,10 @@
+{
+  "param_ranges": {
+    "n": [1.4, 2.2],
+    "zoff": [0, 10],
+    "PMT_sigma_t": [3, 13],
+    "PE_per_MeV": [1000, 1400],
+    "lambda": [1700, 1900]
+  },
+  "num_points": 3
+}

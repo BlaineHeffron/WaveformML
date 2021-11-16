@@ -1,5 +1,7 @@
 import sqlite3
 from math import floor
+from typing import Dict
+
 from numpy import zeros, float32
 from scipy.interpolate import splrep, splev
 
@@ -55,6 +57,12 @@ class SQLiteBase:
             self.__db_connection.commit()
         self.__db_connection.close()
 
+    def insert_dict(self, table, d: Dict):
+        columns = ', '.join(d.keys())
+        placeholders = ', '.join('?' * len(d))
+        sql = 'INSERT INTO {} ({}) VALUES ({})'.format(table, columns, placeholders)
+        values = [int(x) if isinstance(x, bool) else x for x in d.values()]
+        self.cur.execute(sql, values)
 
 class OptunaDB(SQLiteBase):
 
@@ -200,3 +208,18 @@ class CalCurve:
         if self.yerr:
             mystr += "yerr: {}".format(self.yerr)
         return mystr
+
+class WFParamsDB(SQLiteBase):
+    def __init__(self, path):
+        super(WFParamsDB, self).__init__(path)
+
+    def insert_set(self, param_set):
+        self.insert_dict("param_set", param_set)
+
+    def get_unique_name(self):
+        self.execute("SELECT seq FROM SQLITE_SEQUENCE WHERE name = 'param_set'")
+        result = self.cur.fetchone()
+        if result:
+            return "WaveCal{}".format(int(result[0]) + 1)
+        else:
+            return "WaveCal1"

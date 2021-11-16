@@ -39,16 +39,16 @@ class Calibrator:
         self.log = logging.getLogger(__name__)
         self.calibdb = calibdb
         self.gains, self.eres, self.rel_times, self.seg_times = calibdb.get_seg_cal_values()
-        atten_curves, lsum_curves, self.time_curves, lin_curves, self.psd_curves, t_interp_curves, \
+        self.atten_curves, self.lsum_curves, self.time_curves, self.lin_curves, self.psd_curves, t_interp_curves, \
         self.e_ncapt = calibdb.get_curves()
         self.sampletime = np.zeros((14, 11, 2), dtype=np.float32)
         self.light_pos_curves = np.zeros((14, 11, 51, 2), dtype=np.float32)
         self.time_pos_curves = np.zeros((14, 11, 50, 2), dtype=np.float32)
         self.light_sum_curves = np.zeros((14, 11, 50, 2), dtype=np.float32)
         self.t_interp_curves = np.zeros((14, 11, 2, 50, 2), dtype=np.float32)
-        self.calc_light_pos_curve(atten_curves)
+        self.calc_light_pos_curve(self.atten_curves)
         self.calc_time_pos_curve(self.time_curves)
-        self.calc_light_sum_curve(lsum_curves, atten_curves)
+        self.calc_light_sum_curve(self.lsum_curves, self.atten_curves)
         self.calc_t_interp_curve(t_interp_curves)
         for chan, curve in t_interp_curves.items():
             if curve:
