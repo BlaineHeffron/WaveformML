@@ -23,6 +23,9 @@ class WaveformParamSet:
         self.PMT_sigma_t = 3
         self.lamb = 1775
         self.n = 1.6
+        self.x_crit = 0
+        self.lambda_s = 0
+        self.eta_bar = 0
         self.PMT_decay_proportion_1 = 0.6
         self.PMT_decay_proportion_2 = 0.4
         self.PMT_decay_tau_1 = 0.5
