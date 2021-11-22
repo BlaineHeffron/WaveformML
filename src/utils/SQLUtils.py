@@ -223,3 +223,22 @@ class WFParamsDB(SQLiteBase):
             return "WaveCal{}".format(int(result[0]) + 1)
         else:
             return "WaveCal1"
+
+    def retrieve_simnames_for_eval(self, calname):
+        self.execute("SELECT id, name FROM param_set WHERE id NOT IN (SELECT p.id from param_set p LEFT JOIN curve_diffs c on c.param_set_id = p.id where c.calname = '{}')".format(calname))
+        result = self.cur.fetchall()
+        return result
+    
+    def insert_eval_for_seg(self, calname, seg, wfid, params):
+        self.insert_dict("curve_diffs", {"param_set_id": wfid, "calname": calname, "seg": seg,
+                                         "normed_diff": sum(params), "psd_nd0": params[0], "psd_nd1": params[1],
+                                         "att_nd0": params[2], "att_nd1": params[3], "t_nd0": params[4], "t_nd1": params[5]})
+
+    def query_smallest_diffs(self, calname, seg, params=None, limit=10):
+        if params is not None:
+            plist = ", p." + ", p.".join(params)
+        else:
+            plist = ""
+        self.execute("SELECT c.seg, p.name, c.normed_diff, c.att_nd0, c.att_nd1, c.t_nd0, c.t_nd1, c.psd_nd0, c.psd_nd1{0} from param_set p left join curve_diffs c on c.param_set_id = p.id WHERE c.seg = {1} and c.calname = '{2}' order by c.normed_diff ASC LIMIT {3}".format(plist,seg,calname,limit))
+        return self.cur.fetchall()
+
