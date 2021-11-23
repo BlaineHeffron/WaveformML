@@ -3,6 +3,8 @@ from copy import copy
 from os.path import join, dirname, realpath
 import os
 import sys
+from typing import Dict
+
 sys.path.insert(1, dirname(dirname(realpath(__file__))))
 from src.utils.util import json_load
 from src.utils.SQLUtils import WFParamsDB
@@ -23,6 +25,7 @@ class WaveformParamSet:
         self.PMT_sigma_t = 3
         self.lamb = 1775
         self.n = 1.6
+        self.zoff = 1.0
         self.x_crit = 0
         self.lambda_s = 0
         self.eta_bar = 0
@@ -85,7 +88,13 @@ class WaveformParamSet:
         if "num_points" not in config_dict.keys():
             raise IOError("num_points must be in WFParam config")
         self.set_ranges(config_dict["param_ranges"])
+        if "defaults" in config_dict.keys():
+            self.set_defaults(config_dict["defaults"])
         self.num_points = int(config_dict["num_points"])
+
+    def set_defaults(self, defaults: Dict):
+        for param, val in defaults.items():
+            self.set_parameter(param, val)
 
     def total_points(self):
         return self.num_points**(len(self.param_ranges.keys()))
