@@ -234,11 +234,19 @@ class WFParamsDB(SQLiteBase):
                                          "normed_diff": sum(params), "psd_nd0": params[0], "psd_nd1": params[1],
                                          "att_nd0": params[2], "att_nd1": params[3], "t_nd0": params[4], "t_nd1": params[5]})
 
-    def query_smallest_diffs(self, calname, seg, params=None, limit=10):
+    def query_smallest_diffs(self, calname, seg, params=None, limit=10, min=None, max=None):
         if params is not None:
             plist = ", p." + ", p.".join(params)
         else:
             plist = ""
-        self.execute("SELECT c.seg, p.name, c.normed_diff, c.att_nd0, c.att_nd1, c.t_nd0, c.t_nd1, c.psd_nd0, c.psd_nd1{0} from param_set p left join curve_diffs c on c.param_set_id = p.id WHERE c.seg = {1} and c.calname = '{2}' order by c.normed_diff ASC LIMIT {3}".format(plist,seg,calname,limit))
+        if min is None and max is not None:
+            where = " and CAST(LTRIM(p.name, 'WaveCal') AS INTEGER) <= {}".format(max)
+        elif min is not None and max is None:
+            where = " and CAST(LTRIM(p.name, 'WaveCal') AS INTEGER) >= {}".format(min)
+        elif min is not None and max is not None:
+            where = " and CAST(LTRIM(p.name, 'WaveCal') AS INTEGER) >= {0} AND CAST(LTRIM(p.name, 'WaveCal') AS INTEGER) <= {1}".format(min, max)
+        else:
+            where = ""
+        self.execute("SELECT c.seg, p.name, c.normed_diff, c.att_nd0, c.att_nd1, c.t_nd0, c.t_nd1, c.psd_nd0, c.psd_nd1{0} from param_set p left join curve_diffs c on c.param_set_id = p.id WHERE c.seg = {1} and c.calname = '{2}'{3} order by c.normed_diff ASC LIMIT {4}".format(plist,seg,calname,where,limit))
         return self.cur.fetchall()
 
