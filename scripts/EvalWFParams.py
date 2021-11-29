@@ -62,17 +62,21 @@ def main():
     wfpe = WFParamEvaluator(os.environ["WF_PARAMS_DB"], args.calname)
     wfpe.eval_wf_params()
     argdict = {}
+    diffs_dict = {}
     if args.mincal:
-        argdict["min"] =  args.mincal
+        argdict["min"] = args.mincal
+        diffs_dict["min"] = args.mincal
     if args.maxcal:
-        argdict["max"] =  args.maxcal
+        argdict["max"] = args.maxcal
+        diffs_dict["max"] = args.maxcal
     if args.config:
         json = json_load(args.config)
         if "param_ranges" in json.keys():
             argdict["printed_params"] = [p for p in json["param_ranges"].keys()]
+            diffs_dict["params"] = [p for p in json["param_ranges"].keys()]
     wfpe.best_fits_per_seg(args.calname, limit=args.limit, **argdict)
     seg = args.example_seg
-    result = wfpe.query_smallest_diffs(args.calname, seg, limit=1)
+    result = wfpe.query_smallest_diffs(args.calname, seg, limit=1, **diffs_dict)
     if result is not None:
         row = result[0]
         name = row[1]
