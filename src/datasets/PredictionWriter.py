@@ -133,7 +133,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
     def swap_values(self, data):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
         coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
-        if "waveform" in data.keys():
+        if isinstance(self.data_type, WaveformPairCal):
             if self.gains is None:
                 raise IOError("Must pass calgroup argument in order to normalize WaveformPairCal data before passing to model")
             vals = zeros(data["waveform"].shape, dtype=float32)
