@@ -1,10 +1,15 @@
 import torch
+
+from src.datasets.HDF5Dataset import MAX_RANGE
 from src.datasets.PulseDataset import dataset_class_type_map
 from src.datasets.HDF5IO import P2XTableWriter, H5Input
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
-from src.utils.SparseUtils import swap_sparse_from_dense, swap_sparse_from_event
+from src.utils.SQLiteUtils import get_gains
+from src.utils.SparseUtils import swap_sparse_from_dense, swap_sparse_from_event, normalize_waveforms
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
+from numpy import zeros, divide, full, float32
+import os
 
 
 class PredictionWriter(P2XTableWriter):
@@ -109,11 +114,26 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
         PredictionWriter.__init__(self, path, input_path, config, checkpoint, **kwargs)
         SingleEndedEvaluator.__init__(self, None, **kwargs)
         self.phy_index_replaced = 4
+        if "calgroup" in kwargs.keys():
+            gains = get_gains(os.environ["PROSPECT_CALDB"], kwargs["calgroup"])
+            if "scale_factor" in kwargs.keys():
+                self.gains = divide(full((self.nx, self.ny, 2), kwargs["scale_factor"] * 690.0 / MAX_RANGE, dtype=float32), gains)
+            else:
+                self.gains = divide(full((self.nx, self.ny, 2), 690.0 / MAX_RANGE), gains)
+        else:
+            self.gains = None
 
     def swap_values(self, data):
         coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
         coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
-        vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+        if "waveform" in data.keys():
+            if self.gains is None:
+                raise IOError("Must pass calgroup argument in order to normalize WaveformPairCal data before passing to model")
+            vals = zeros(data["waveform"].shape, dtype=float32)
+            normalize_waveforms(data["coord"], data["waveform"], self.gains, vals)
+            vals = torch.tensor(vals, dtype=torch.float32, device=self.model.device)
+        else:
+            vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
         """

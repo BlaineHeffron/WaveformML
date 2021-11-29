@@ -37,6 +37,8 @@ def dataset_class_type_map(dataset_class):
         return WaveformPairCal()
     elif dataset_class is PulseDatasetWFPairEZ:
         return WaveformPairCal()
+    elif dataset_class is PulseDatasetRealWFPair:
+        return WaveformPairCal()
 
 def _has_files(fset):
     for key in fset.keys():

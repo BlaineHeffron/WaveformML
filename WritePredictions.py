@@ -15,7 +15,8 @@ def main():
     parser.add_argument("checkpoint", help="path to checkpoint file for model")
     parser.add_argument("--writer", "-w", type=str, help="choose writer. 'z' for Z prediction writer, 'irn' for IRN prediction writer, 'irnim' for INRIM prediction writer")
     parser.add_argument("--output", "-o", type=str, help="path to output hdf5 file")
-    parser.add_argument("--calgroup", "-c", type=str, help="calibration group to use for E prediction")
+    parser.add_argument("--calgroup", "-c", type=str, help="calibration group to use for E prediction / normalization when passing WaveformPairCal")
+    parser.add_argument("--scale_factor", "-s", type=float, help="scale factor used in normalization before passing to model (when passing WaveformPairCal")
     parser.add_argument("--cpu", "-cpu", action="store_true", help="map tensor device storage to cpu")
     parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument("--buffer_size", "-b", type=int, help="number of rows to store in memory before writing to disk", default=1024*16)
@@ -46,6 +47,8 @@ def main():
         pw_args["n_rows_per_read"] = args.read_size
     if args.calgroup:
         pw_args["calgroup"] = args.calgroup
+    if args.scale_factor:
+        pw_args["scale_factor"] = args.scale_factor
     if args.num_threads:
         torch.set_num_threads(args.num_threads)
     if not args.writer:
