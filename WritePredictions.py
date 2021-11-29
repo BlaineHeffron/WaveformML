@@ -17,6 +17,7 @@ def main():
     parser.add_argument("--output", "-o", type=str, help="path to output hdf5 file")
     parser.add_argument("--calgroup", "-c", type=str, help="calibration group to use for E prediction / normalization when passing WaveformPairCal")
     parser.add_argument("--scale_factor", "-s", type=float, help="scale factor used in normalization before passing to model (when passing WaveformPairCal")
+    parser.add_argument("--datatype", "-d", type=str, help="name of datatype to use to override config file (ie use this when skipping normalization stage, pass 'WaveformPairCal')")
     parser.add_argument("--cpu", "-cpu", action="store_true", help="map tensor device storage to cpu")
     parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument("--buffer_size", "-b", type=int, help="number of rows to store in memory before writing to disk", default=1024*16)
@@ -49,6 +50,8 @@ def main():
         pw_args["calgroup"] = args.calgroup
     if args.scale_factor:
         pw_args["scale_factor"] = args.scale_factor
+    if args.datatype:
+        pw_args["datatype"] = args.datatype
     if args.num_threads:
         torch.set_num_threads(args.num_threads)
     if not args.writer:

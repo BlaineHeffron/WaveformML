@@ -1,5 +1,6 @@
 import torch
 
+from src.datasets.H5CompoundTypes import WaveformPairCal
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.datasets.PulseDataset import dataset_class_type_map
 from src.datasets.HDF5IO import P2XTableWriter, H5Input
@@ -39,7 +40,13 @@ class PredictionWriter(P2XTableWriter):
         for key, val in kwargs.items():
             setattr(self, key, val)
         self.retrieve_model()
-        self.set_datatype()
+        if "datatype" in kwargs.keys():
+            if kwargs["datatype"] == "WaveformPairCal":
+                self.data_type = WaveformPairCal()
+            else:
+                raise IOError("unrecognized datatype: {}, did you mean 'WaveformPairCal'?".format(kwargs["datatype"]))
+        else:
+            self.set_datatype()
 
     def retrieve_model(self):
         modules = ModuleUtility(self.config.run_config.imports)
