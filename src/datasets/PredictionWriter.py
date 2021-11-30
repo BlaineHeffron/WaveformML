@@ -1,15 +1,16 @@
 import torch
 
-from src.datasets.H5CompoundTypes import WaveformPairCal
+from src.datasets.H5CompoundTypes import WaveformPairCal, PhysPulse, extension_type_map
 from src.datasets.HDF5Dataset import MAX_RANGE
 from src.datasets.PulseDataset import dataset_class_type_map
 from src.datasets.HDF5IO import P2XTableWriter, H5Input
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.utils.SQLiteUtils import get_gains
-from src.utils.SparseUtils import swap_sparse_from_dense, swap_sparse_from_event, normalize_waveforms
+from src.utils.SparseUtils import swap_sparse_from_dense, swap_sparse_from_event, normalize_waveforms, \
+    convert_wf_phys_SE_classifier
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
-from numpy import zeros, divide, full, float32, int32, copy
+from numpy import zeros, divide, full, float32, copy
 import os
 
 
@@ -34,17 +35,21 @@ class PredictionWriter(P2XTableWriter):
         self.model = None
         self.data_type = None
         self.input = H5Input(input_path)
+        self.input_type = extension_type_map(input_path)
         self.n_buffer_rows = 1024 * 16
         self.n_rows_per_read = 2048
         self.map_location = None
+        self.swap = True
         for key, val in kwargs.items():
             setattr(self, key, val)
         self.retrieve_model()
         if "datatype" in kwargs.keys():
             if kwargs["datatype"] == "WaveformPairCal":
                 self.data_type = WaveformPairCal()
+            elif kwargs["datatype"] == "PhysPulse":
+                self.data_type = PhysPulse()
             else:
-                raise IOError("unrecognized datatype: {}, did you mean 'WaveformPairCal'?".format(kwargs["datatype"]))
+                raise IOError("unrecognized datatype: {}, did you mean 'WaveformPairCal' or 'PhysPulse'?".format(kwargs["datatype"]))
         else:
             self.set_datatype()
 
@@ -67,21 +72,27 @@ class PredictionWriter(P2XTableWriter):
     def write_predictions(self):
         # TODO: get dead segment list from xml file or accept list from command line input (or config file or something)
         self.copy_chanmap(self.input)
-        self.input.setup_table(self.data_type.name, self.data_type.type, self.data_type.event_index_name,
-                               event_index_coord=self.data_type.event_index_coord)
-        nrows = self.input.h5f[self.data_type.name].shape[0]
+        self.input.setup_table(self.input_type.name, self.input_type.type, self.input_type.event_index_name,
+                               event_index_coord=self.input_type.event_index_coord)
+        nrows = self.input.h5f[self.input_type.name].shape[0]
         self.create_table(self.data_type.name, (nrows,), self.data_type.type)
         n_current_buffer = 0
-        self.copy_p2x_attrs(self.input, self.data_type.name)
+        self.copy_p2x_attrs(self.input, self.data_type.name, self.input_type.name)
         with torch.no_grad():
             data = self.input.next_chunk(self.n_rows_per_read)
             n_current_buffer += data.shape[0]
-            self.swap_values(data)
+            if self.swap:
+                self.swap_values(data)
+            else:
+                data = self.convert_values(data)
             self.add_rows(self.data_type.name, data)
             while data is not None:
                 data = self.input.next_chunk(self.n_rows_per_read)
                 if data is not None:
-                    self.swap_values(data)
+                    if self.swap:
+                        self.swap_values(data)
+                    else:
+                        data = self.convert_values(data)
                     self.add_rows(self.data_type.name, data)
                     n_current_buffer += data.shape[0]
                     if n_current_buffer >= self.n_buffer_rows:
@@ -92,6 +103,9 @@ class PredictionWriter(P2XTableWriter):
         self.close()
 
     def swap_values(self, data):
+        raise NotImplementedError()
+
+    def convert_values(self, data):
         raise NotImplementedError()
 
     def set_xml(self):
@@ -131,7 +145,7 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
             self.gains = None
 
     def swap_values(self, data):
-        if isinstance(self.data_type, WaveformPairCal):
+        if 'waveform' in data.dtype.names:
             if self.gains is None:
                 raise IOError("Must pass calgroup argument in order to normalize WaveformPairCal data before passing to model")
             vals = zeros(data["waveform"].shape, dtype=float32)
@@ -180,26 +194,80 @@ class IRNPredictionWriter(PredictionWriter):
         self.XMLW.step_settings["phys_index_replaced"] = [4, 5, 6]
 
 
-class IRNIMPredictionWriter(PredictionWriter):
+class IRNIMPredictionWriter(PredictionWriter, SingleEndedEvaluator):
 
     def __init__(self, path, input_path, config, checkpoint, **kwargs):
         PredictionWriter.__init__(self, path, input_path, config, checkpoint, **kwargs)
+        SingleEndedEvaluator.__init__(self, None, **kwargs)
         self.phys_index_replaced = 2
+        if isinstance(self.data_type, PhysPulse):
+            self.swap = False
         if "output_is_sparse" in kwargs:
             self.output_is_sparse = kwargs["output_is_sparse"]
         else:
             self.output_is_sparse = True
+        if "calgroup" in kwargs.keys():
+            gains = get_gains(os.environ["PROSPECT_CALDB"], kwargs["calgroup"])
+            if "scale_factor" in kwargs.keys():
+                self.gains = divide(full((self.nx, self.ny, 2), kwargs["scale_factor"] * 690.0 / MAX_RANGE, dtype=float32), gains)
+            else:
+                self.gains = divide(full((self.nx, self.ny, 2), 690.0 / MAX_RANGE), gains)
+        else:
+            self.gains = None
 
     def swap_values(self, data):
-        coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
-        coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
-        vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+        if 'waveform' in data.dtype.names:
+            if self.gains is None:
+                raise IOError("Must pass calgroup argument in order to normalize WaveformPairCal data before passing to model")
+            vals = zeros(data["waveform"].shape, dtype=float32)
+            coords = copy(data["coord"])
+            normalize_waveforms(coords, data["waveform"], self.gains, vals)
+            vals = torch.tensor(vals, dtype=torch.float32, device=self.model.device)
+            coords = torch.tensor(coords, dtype=torch.int32, device=self.model.device)
+        else:
+            vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+            coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
+        #coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
+        #coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
+        #vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
         output = self.model([coords, vals]).detach().cpu().numpy()
         if self.output_is_sparse:
             data["phys"][:, self.phys_index_replaced:] = output
         else:
             swap_sparse_from_dense(data["phys"][:, self.phys_index_replaced:], output, data["coord"])
 
+    def convert_values(self, data):
+        if 'waveform' in data.dtype.names:
+            if self.gains is None:
+                raise IOError("Must pass calgroup argument in order to normalize WaveformPairCal data before passing to model")
+            vals = zeros(data["waveform"].shape, dtype=float32)
+            coords = copy(data["coord"])
+            normalize_waveforms(coords, data["waveform"], self.gains, vals)
+            vals = torch.tensor(vals, dtype=torch.float32, device=self.model.device)
+            coords = torch.tensor(coords, dtype=torch.int32, device=self.model.device)
+        else:
+            vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+            coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
+        output = self.model([coords, vals]).detach().cpu().numpy()
+        phys = zeros((coords.shape[0],), dtype=self.data_type.type)
+        phys["evt"] = data["evt"]
+        phys["t"] = data["t"]
+        phys["PE"] = data["PE"]
+        phys["seg"] = data["coord"][:, 0] + data["coord"][:, 1]*14
+        phys["PID"] = data["PID"]
+        convert_wf_phys_SE_classifier(data["coord"], data["E"], phys["E"], phys["rand"], data["dt"], phys["dt"], data["z"], phys["y"], data["PSD"], phys["PSD"],
+                                          phys["E_SE"], phys["y_SE"], phys["Esmear_SE"], phys["PSD_SE"], data["EZ"][:, 1], output, self.seg_status)
+        return phys
+
+
+
     def set_xml(self):
         super().set_xml()
-        self.XMLW.step_settings["phys_index_replaced"] = [2, 3, 4, 5, 6]
+        if self.swap:
+            self.XMLW.step_settings["phys_index_replaced"] = [2, 3, 4, 5, 6]
+        else:
+            self.XMLW.step_settings["classifier_score_ioni_placement"] = "E"
+            self.XMLW.step_settings["classifier_score_recoil_placement"] = "rand"
+            self.XMLW.step_settings["classifier_score_ncap_placement"] = "dt"
+            self.XMLW.step_settings["classifier_score_ingress_placement"] = "y"
+            self.XMLW.step_settings["classifier_score_muon_placement"] = "PSD"

@@ -41,7 +41,7 @@ class LitBase(pl.LightningModule):
         else:
             criterion_named_params = {"reduction": 'sum'}
         self.criterion = self.criterion_class(*config.net_config.criterion_params, **criterion_named_params)
-        self.write_onnx = False
+        self.write_script = False
         self.model_written = False
         if hasattr(config.dataset_config, "occlude_index"):
             self.occlude_index = config.dataset_config.occlude_index
@@ -91,7 +91,7 @@ class LitBase(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         data, target = batch
-        if self.write_onnx:
+        if self.write_script:
             self.write_model(data)
         predictions = self.model(data)
         loss = self.criterion.forward(predictions, target)
@@ -102,9 +102,9 @@ class LitBase(pl.LightningModule):
 
     def write_model(self, data):
         if not self.model_written:
-            path = join(self.logger.experiment.log_dir, "model.onnx")
-            print("saving onnx model to {}.".format(path))
-            onnx_model = self.to_onnx(path, data, export_params=True)
+            path = join(self.logger.experiment.log_dir, "model.pt")
+            print("saving torchscript model to {}.".format(path))
+            script_model = self.to_torchscript(path)
             print("saving model success")
             self.model_written = True
 

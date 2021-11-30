@@ -9,6 +9,7 @@ from torch_geometric.nn import EdgeConv, knn_graph, GCNConv, global_max_pool, gl
     SuperGATConv, BatchNorm
 
 from torch_geometric.nn import PointConv
+from torch_sparse import SparseTensor
 
 from src.models.BasicNetwork import *
 
@@ -61,8 +62,12 @@ class GraphLayer(nn.Module):
         if self.uses_edge_attr:
             if self.edge_attr_dim_match:
                 edge_attr = self.linear(data.edge_attr)
+                #adj = SparseTensor(row=data.edge_index[0], col=data.edge_index[1], value=edge_attr)
+                #data.x = self.graph_net(data.x, adj.t())
                 data.x = self.graph_net(data.x, data.edge_index, edge_attr)
             else:
+                #adj = SparseTensor(row=data.edge_index[0], col=data.edge_index[1], value=data.edge_attr)
+                #data.x = self.graph_net(data.x, adj.t())
                 data.x = self.graph_net(data.x, data.edge_index, data.edge_attr)
         else:
             data.x = self.graph_net(data.x, data.edge_index)
@@ -202,15 +207,15 @@ class GraphNet(nn.Module):
                 if dim_match:
                     match_ind = nlin_in
                 if self.final_norm:
-                    self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim,  batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
+                    self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params).jittable(), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim,  batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
                 else:
-                    self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
+                    self.graph_layers.append(GraphLayer(self.graph_class(LinearPlanes([nlin_in, nout], activation=nn.ReLU()), *default_params, **self.graph_params).jittable(), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
             else:
                 nlin_in = self.nn_input_modifier(self.graph_index, i)*nin
                 if self.final_norm:
-                    self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim, batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
+                    self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params).jittable(), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim, batchnorm=BatchNorm(nout*self.nn_input_modifier(self.graph_index, i + 1))))
                 else:
-                    self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
+                    self.graph_layers.append(GraphLayer(self.graph_class(nlin_in, nout, *default_params, **self.graph_params).jittable(), self.uses_edge_attr, dim_match, match_ind, self.edge_attr_dim))
 
 
 
@@ -417,7 +422,7 @@ class PointNet(nn.Module):
         for i in range(self.n_graph):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
-            self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=nn.ReLU()), LinearPlanes([nout, nout], activation=nn.ReLU()), **self.graph_params))
+            self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=nn.ReLU()), LinearPlanes([nout, nout], activation=nn.ReLU()), **self.graph_params).jittable())
             self.norms.append(BatchNorm(nout))
 
     def forward(self, data):
@@ -552,11 +557,11 @@ class Graph3DNet(nn.Module):
             nin = self.graph_planes[i]
             nout = self.graph_planes[i+1]
             if self.conv_type == "point":
-                self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=nn.ReLU()), LinearPlanes([nout, nout], activation=nn.ReLU()), **self.graph_params))
+                self.graph_layers.append(PointConv(LinearPlanes([nin + self.ndim, nout], activation=nn.ReLU()), LinearPlanes([nout, nout], activation=nn.ReLU()), **self.graph_params).jittable())
             elif self.conv_type == "gmm":
-                self.graph_layers.append(GMMConv(nin, nout, 3, 3, **self.graph_params))
+                self.graph_layers.append(GMMConv(nin, nout, 3, 3, **self.graph_params).jittable())
             elif self.conv_type == "cluster":
-                self.graph_layers.append(ClusterGCNConv(nin, nout, **self.graph_params))
+                self.graph_layers.append(ClusterGCNConv(nin, nout, **self.graph_params).jittable())
             self.norms.append(BatchNorm(nout))
 
     def forward(self, data):

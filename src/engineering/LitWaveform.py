@@ -116,7 +116,7 @@ class LitWaveform(LitBase):
             f = cat((f, coords), dim=1)
             # f = cat((f, ((c % 14) * self.detector_num_factor_x).unsqueeze(1),
             #         (floor_divide(c, 14) * self.detector_num_factor_y).unsqueeze(1), (c%2).unsqueeze(1)), dim=1)
-        if self.write_onnx:
+        if self.write_script:
             self.write_model(f.unsqueeze(self.squeeze_index))
         if self.occlude_index:
             f[:, self.occlude_index] = 0

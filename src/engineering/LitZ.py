@@ -94,7 +94,7 @@ class LitZ(LitBase):
             f = f[0]
         if self.use_fft:
             f = rfft(f)
-        if self.write_onnx:
+        if self.write_script:
             self.write_model([c, f])
         if self.occlude_index:
             f[:, self.occlude_index] = 0

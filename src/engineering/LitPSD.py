@@ -129,7 +129,7 @@ class LitPSD(LitBase):
 
     def test_step(self, batch, batch_idx):
         (c, f), target = batch
-        if self.write_onnx:
+        if self.write_script:
             self.write_model([c,f])
         if self.occlude_index:
             f[:, self.occlude_index] = 0

@@ -60,7 +60,7 @@ class LitEZ(LitBase):
             f[:, 3] *= self.e_factor
         if self.occlude_index:
             f[:, self.occlude_index] = 0
-        if self.write_onnx:
+        if self.write_script:
             self.write_model([c, f])
         predictions = self.model([c, f])
         ZLoss, target_tensor_z, predictions_z, sparse_mask = self._calc_segment_loss(c, predictions[:, 0].unsqueeze(1), target[:, 0])

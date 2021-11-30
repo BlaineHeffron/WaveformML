@@ -33,7 +33,7 @@ def main():
     parser.add_argument("config", help="path to config file")
     parser.add_argument("checkpoint", help="path to checkpoint file")
     parser.add_argument("--calgroup", "-c", help="calibration group entry in PROSPECT_CALDB", type=str)
-    parser.add_argument("--onnx", "-o", action="store_true", help="set to generate onnx model instead of evaluating")
+    parser.add_argument("--script","-s", action="store_true", help="set to generate torchscript model instead of evaluating")
     parser.add_argument("--occlude", "-oc", type=int, default=-1, help="feature index to zero out during evaluation")
     parser.add_argument("--num_threads", "-nt", type=int, help="number of threads to use")
     parser.add_argument("--verbosity", "-v",
@@ -73,8 +73,8 @@ def main():
     trainer_args = {"logger": logger, "callbacks": [LoggingCallback()]}
     set_default_trainer_args(trainer_args, config)
     # model.set_logger(logger)
-    if args.onnx:
-        runner.write_onnx = True
+    if args.script:
+        runner.write_script = True
     data_module = choose_data_module(config, runner.device)
     trainer = Trainer(**trainer_args)
     trainer.test(runner, datamodule=data_module)

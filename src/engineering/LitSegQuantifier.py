@@ -33,7 +33,7 @@ class LitSegQuantifier(LitBase):
             use_target_index = len(batch.y.shape) > 1
             if hasattr(batch, "additional_fields"):
                 additional_fields = batch.additional_fields
-            if self.write_onnx:
+            if self.write_script:
                 self.write_model(batch)
             if self.occlude_index:
                 batch.x[:, self.occlude_index] = 0
@@ -47,7 +47,7 @@ class LitSegQuantifier(LitBase):
             if isinstance(f, list):
                 additional_fields = f[1:]
                 f = f[0]
-            if self.write_onnx:
+            if self.write_script:
                 self.write_model([c, f])
             if self.occlude_index:
                 f[:, self.occlude_index] = 0

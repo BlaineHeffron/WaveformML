@@ -58,7 +58,6 @@ class H5Input(H5Base):
             return None
         if self.current_index == -1:
             self.current_index = 0
-        data = None
         data = self.table[self.current_index:self.current_index + nrows]
         if data.shape[0] != nrows:
             self.current_index = -2
@@ -132,7 +131,7 @@ class P2XTableWriter(H5Output):
 
     def copy_chanmap(self, h5input):
         self.copy_table("Chanmap", h5input)
-        self.copy_p2x_attrs(h5input, "Chanmap")
+        self.copy_p2x_attrs(h5input, "Chanmap", "Chanmap")
 
     def get_attr_string_type(self, h5input, table, name):
         if name in h5input.h5f[table].attrs.keys():
@@ -142,7 +141,7 @@ class P2XTableWriter(H5Output):
         else:
             return None
 
-    def copy_p2x_attrs(self, h5input, table):
+    def copy_p2x_attrs(self, h5input, table, input_table):
         tid = h5t.C_S1.copy()
         tid.set_size(6)
         H5T6 = Datatype(tid.copy())
@@ -150,24 +149,24 @@ class P2XTableWriter(H5Output):
         shapes = [None]
         types = [H5T6]
         n = 0
-        while "FIELD_{0}_NAME".format(n) in h5input.h5f[table].attrs.keys():
+        while "FIELD_{0}_NAME".format(n) in h5input.h5f[input_table].attrs.keys():
             names.append("FIELD_{0}_NAME".format(n))
             shapes.append(None)
-            tid.set_size(len(h5input.h5f[table].attrs[names[-1]]) + 1)
+            tid.set_size(len(h5input.h5f[input_table].attrs[names[-1]]) + 1)
             types.append(Datatype(tid.copy()))
             n += 1
         names.append("TITLE")
         shapes.append(None)
-        tid.set_size(len(h5input.h5f[table].attrs[names[-1]]) + 1)
+        tid.set_size(len(h5input.h5f[input_table].attrs[names[-1]]) + 1)
         types.append(Datatype(tid.copy()))
         names.append("VERSION")
         shapes.append(None)
-        tid.set_size(len(h5input.h5f[table].attrs[names[-1]]) + 1)
+        tid.set_size(len(h5input.h5f[input_table].attrs[names[-1]]) + 1)
         types.append(Datatype(tid.copy()))
         names.append("abstime")
         shapes.append((1,))
         types.append(float64)
-        thistype = self.get_attr_string_type(h5input, table, "calgrp")
+        thistype = self.get_attr_string_type(h5input, input_table, "calgrp")
         if thistype is not None:
             names.append("calgrp")
             types.append(thistype)
@@ -175,7 +174,7 @@ class P2XTableWriter(H5Output):
         names.append("nevents")
         shapes.append((1,))
         types.append(float64)
-        thistype = self.get_attr_string_type(h5input, table, "rname")
+        thistype = self.get_attr_string_type(h5input, input_table, "rname")
         if thistype is not None:
             names.append("rname")
             types.append(thistype)
@@ -186,7 +185,7 @@ class P2XTableWriter(H5Output):
         names.append("scalingfactor")
         shapes.append((1,))
         types.append(float64)
-        self.copy_attrs(table, h5input, table, names, types, shapes)
+        self.copy_attrs(table, h5input, input_table, names, types, shapes)
 
 
 def print_dtypes():

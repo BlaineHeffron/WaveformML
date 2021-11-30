@@ -67,7 +67,7 @@ class GraphZ(nn.Module):
             else:
                 curr_neighbors = 0
             self.log.debug("appending layer {0} -> {1} planes, neighbor window of {2}".format(inp, out, curr_neighbors))
-            self.nets.append(self.choose_network(inp, out))
+            self.nets.append(self.choose_network(inp, out).jittable())
             self.neighbors.append(curr_neighbors)
             if i != (n_layers - 1):
                 if batchnorm:
