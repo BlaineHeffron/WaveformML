@@ -1554,6 +1554,7 @@ def gen_SE_mask(coo, seg_status, mask):
         else:
             mask[i] = 0
 
+
 @nb.jit(nopython=True)
 def normalize_waveforms(coo, wf, gain_factors, output):
     """
@@ -1563,11 +1564,15 @@ def normalize_waveforms(coo, wf, gain_factors, output):
     @param output: output waveforms (float32)
     """
     len = int(wf.shape[1] / 2)
+    batch_ind = -1
+    cur_ind = -1
     for i in range(coo.shape[0]):
         for j in range(wf.shape[1]):
             if j < len:
                 output[i, j] = wf[i, j] * gain_factors[coo[i, 0], coo[i, 1], 0]
             else:
                 output[i, j] = wf[i, j] * gain_factors[coo[i, 0], coo[i, 1], 1]
-
-
+        if cur_ind != coo[i, 2]:
+            cur_ind = coo[i, 2]
+            batch_ind += 1
+        coo[i, 2] = batch_ind

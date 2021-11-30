@@ -102,15 +102,13 @@ class WaveformPairCal(H5CompoundType):
         self.event_index_name = "coord"
         super(WaveformPairCal, self).__init__(types, l, fields, "WaveformPairCal")
 
-    """
+
     def create_type(self):
         self.type = dtype({'names': ['evt', 't', 'dt', 'z', 'E', 'PSD', 'PE', 'coord', 'waveform', 'EZ', 'PID'],
                            'formats': ['<i8', '<f8', '<f4', '<f4', '<f4', '<f4', ('<f4', (2,)), ('<i4', (3,)),
                                        ('<i2', (130,)),
                                        ('<f4', (2,)), '<i4'],
-                           'offsets': [0, 260, 272, 280, 284, 288, 292, 296, 304, 312, 316],
-                           'itemsize': 564})
-   """
+                           'itemsize': 324})
 
 
 class Waveform(H5CompoundType):

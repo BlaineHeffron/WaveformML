@@ -9,7 +9,7 @@ from src.utils.SQLiteUtils import get_gains
 from src.utils.SparseUtils import swap_sparse_from_dense, swap_sparse_from_event, normalize_waveforms
 from src.utils.XMLUtils import XMLWriter
 from src.utils.util import get_config, ModuleUtility, get_file_md5
-from numpy import zeros, divide, full, float32
+from numpy import zeros, divide, full, float32, int32, copy
 import os
 
 
@@ -131,16 +131,17 @@ class ZPredictionWriter(PredictionWriter, SingleEndedEvaluator):
             self.gains = None
 
     def swap_values(self, data):
-        coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
-        coords[:, -1] = coords[:, -1] - coords[0, -1]  # make sure always starts with 0
         if isinstance(self.data_type, WaveformPairCal):
             if self.gains is None:
                 raise IOError("Must pass calgroup argument in order to normalize WaveformPairCal data before passing to model")
             vals = zeros(data["waveform"].shape, dtype=float32)
-            normalize_waveforms(data["coord"], data["waveform"], self.gains, vals)
+            coords = copy(data["coord"])
+            normalize_waveforms(coords, data["waveform"], self.gains, vals)
             vals = torch.tensor(vals, dtype=torch.float32, device=self.model.device)
+            coords = torch.tensor(coords, dtype=torch.int32, device=self.model.device)
         else:
             vals = torch.tensor(data["pulse"], dtype=torch.float32, device=self.model.device)
+            coords = torch.tensor(data["coord"], dtype=torch.int32, device=self.model.device)
         output = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         swap_sparse_from_dense(data["EZ"][:, 1], output, data["coord"])
         """
