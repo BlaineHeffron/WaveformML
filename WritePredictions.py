@@ -27,8 +27,12 @@ def main():
     input_path = check_path(args.input_path)
     config = check_path(args.config)
     checkpoint = check_path(args.checkpoint)
-    print("Setting up output")
-    output = input_path[0:-3] + "ModelOut.h5"
+    if args.datatype == "PhysPulse":
+        output = input_path[:input_path.rfind("_")] + "_Phys.h5"
+        print("Writing phys pulse output to {}".format(output))
+    else:
+        output = input_path[0:-3] + "ModelOut.h5"
+        print("Writing output to {0}".format(output))
     if args.output is not None:
         out = expanduser(args.output)
         if out.endswith(".h5"):
