@@ -64,6 +64,7 @@ class PredictionWriter(P2XTableWriter):
         self.model.eval()
         self.model.freeze()
 
+
     def set_datatype(self):
         modules = ModuleUtility(self.config.dataset_config.imports)
         dataset_class = modules.retrieve_class(self.config.dataset_config.dataset_class)
@@ -271,3 +272,80 @@ class IRNIMPredictionWriter(PredictionWriter, SingleEndedEvaluator):
             self.XMLW.step_settings["classifier_score_ncap_placement"] = "dt"
             self.XMLW.step_settings["classifier_score_ingress_placement"] = "y"
             self.XMLW.step_settings["classifier_score_muon_placement"] = "PSD"
+
+
+class ZAndClassWriter(PredictionWriter, SingleEndedEvaluator):
+    def __init__(self, path, input_path, zconfig, zcheckpoint, classconfig, classcheckpoint, **kwargs):
+        if "datatype" in kwargs.keys() and kwargs["datatype"] != "PhysPulse":
+            raise IOError("datatype must be physpulse for ZAndClassWriter")
+        kwargs["datatype"] = "PhysPulse"
+        PredictionWriter.__init__(self, path, input_path, zconfig, zcheckpoint, **kwargs)
+        SingleEndedEvaluator.__init__(self, None, **kwargs)
+        self.phys_index_replaced = 2
+        self.swap = False
+        if "output_is_sparse" in kwargs:
+            self.output_is_sparse = kwargs["output_is_sparse"]
+        else:
+            self.output_is_sparse = True
+        if "calgroup" in kwargs.keys():
+            gains = get_gains(os.environ["PROSPECT_CALDB"], kwargs["calgroup"])
+            self.gains = divide(full((self.nx, self.ny, 2), 690.0 / MAX_RANGE), gains)
+        else:
+            self.gains = None
+        if "scale_factor" in kwargs.keys():
+            raise IOError("Must specify scale factor for z or classifier (scale_factor_z or scale_factor_class)")
+        self.class_config_path = classconfig
+        self.class_config = get_config(classconfig)
+        self.class_checkpoint_path = classcheckpoint
+        modules = ModuleUtility(self.class_config.run_config.imports)
+        args = {}
+        if self.map_location is not None:
+            args["map_location"] = self.map_location
+        self.class_model = modules.retrieve_class(self.class_config.run_config.run_class).load_from_checkpoint(self.class_checkpoint_path,
+                                                                                                               config=self.class_config,
+                                                                                                               **args)
+        self.class_model.eval()
+        self.class_model.freeze()
+
+    def convert_values(self, data):
+        if self.gains is None:
+            raise IOError(
+                "Must pass calgroup argument in order to normalize WaveformPairCal data before passing to model")
+        vals = zeros(data["waveform"].shape, dtype=float32)
+        coords = copy(data["coord"])
+        if hasattr(self, "scale_factor_class"):
+            normalize_waveforms(coords, data["waveform"], self.gains * self.scale_factor_class, vals)
+        else:
+            normalize_waveforms(coords, data["waveform"], self.gains, vals)
+            self.scale_factor_class = 1.0
+        vals = torch.tensor(vals, dtype=torch.float32, device=self.model.device)
+        coords = torch.tensor(coords, dtype=torch.int32, device=self.model.device)
+        class_out = self.class_model([coords, vals]).detach().cpu().numpy()
+        if not hasattr(self, "scale_factor_z"):
+            self.scale_factor_z = 1.0
+        if self.scale_factor_z / self.scale_factor_class != 1.0:
+            z_out = (self.model([coords, vals * (self.scale_factor_z / self.scale_factor_class)]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
+        else:
+            z_out = (self.model([coords, vals]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
+        swap_sparse_from_dense(data["EZ"][:, 1], z_out, data["coord"])
+        phys = zeros((coords.shape[0],), dtype=self.data_type.type)
+        phys["evt"] = data["evt"]
+        phys["t"] = data["t"]
+        phys["PE"] = data["PE"]
+        phys["seg"] = data["coord"][:, 0] + data["coord"][:, 1] * 14
+        phys["PID"] = data["PID"]
+        convert_wf_phys_SE_classifier(data["coord"], data["E"], phys["E"], phys["rand"], data["dt"], phys["dt"], data["z"],
+                                      phys["y"], data["PSD"], phys["PSD"],
+                                      phys["E_SE"], phys["y_SE"], phys["Esmear_SE"], phys["PSD_SE"], data["EZ"][:, 1],
+                                      class_out, self.seg_status)
+        return phys
+
+
+    def set_xml(self):
+        super().set_xml()
+        self.XMLW.step_settings["ML_z_placement"] = "SE_Z"
+        self.XMLW.step_settings["classifier_score_ioni_placement"] = "E"
+        self.XMLW.step_settings["classifier_score_recoil_placement"] = "rand"
+        self.XMLW.step_settings["classifier_score_ncap_placement"] = "dt"
+        self.XMLW.step_settings["classifier_score_ingress_placement"] = "y"
+        self.XMLW.step_settings["classifier_score_muon_placement"] = "PSD"
