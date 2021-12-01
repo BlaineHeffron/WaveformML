@@ -118,7 +118,7 @@ class PredictionWriter(P2XTableWriter):
         settings = {"model_checkpoint": self.checkpoint_path,
                     "model_checkpoint_hash": get_file_md5(self.checkpoint_path),
                     "model_config": self.config_path,
-                    "model_config_hash": get_file_md5(self.checkpoint_path)}
+                    "model_config_hash": get_file_md5(self.config_path)}
         for key, val in settings.items():
             self.XMLW.step_settings[key] = val
 
@@ -349,3 +349,13 @@ class ZAndClassWriter(PredictionWriter, SingleEndedEvaluator):
         self.XMLW.step_settings["classifier_score_ncap_placement"] = "dt"
         self.XMLW.step_settings["classifier_score_ingress_placement"] = "y"
         self.XMLW.step_settings["classifier_score_muon_placement"] = "PSD"
+        settings = {"model_z_checkpoint": self.checkpoint_path,
+                    "model_z_checkpoint_hash": get_file_md5(self.checkpoint_path),
+                    "model_z_config": self.config_path,
+                    "model_z_config_hash": get_file_md5(self.config_path),
+                    "model_classifier_checkpoint": self.class_checkpoint_path,
+                    "model_classifier_checkpoint_hash": get_file_md5(self.class_checkpoint_path),
+                    "model_classifier_config": self.class_config_path,
+                    "model_classifier_config_hash": get_file_md5(self.class_config_path)}
+        for key, val in settings.items():
+            self.XMLW.step_settings[key] = val
