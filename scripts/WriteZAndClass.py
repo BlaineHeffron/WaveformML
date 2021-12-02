@@ -30,16 +30,16 @@ def main():
     config_class = check_path(args.config_class)
     checkpoint_class = check_path(args.checkpoint_class)
     output = input_path[:input_path.rfind("_")] + "_Phys.h5"
-    print("Writing phys pulse output to {}".format(output))
     if args.output is not None:
         out = expanduser(args.output)
         if out.endswith(".h5"):
             output = out
         elif isdir(out):
             fname = basename(input_path)
-            output = join(out, fname[0:-3] + "ModelOut.h5")
+            output = join(out, fname[:fname.rfind("_")] + "_Phys.h5")
         else:
             raise IOError("Output path {} not a valid directory or .h5 file".format(args.output))
+    print("Writing phys pulse output to {}".format(output))
     start_time = time.time()
     pw_args = {}
     if args.cpu:
