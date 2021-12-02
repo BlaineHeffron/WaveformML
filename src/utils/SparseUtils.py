@@ -1583,19 +1583,31 @@ def seed(n):
     rseed(n)
 
 @nb.jit(nopython=True)
-def convert_wf_phys_SE_classifier(coord, E_in, E_out, rand_out, dt_in, dt_out, z_in, z_out, PSD_in, PSD_out, E_SE_out, z_SE_out, Esmear_SE_out, PSD_SE_out, nn_z, nn_out, seg_status):
+def convert_wf_phys_SE_classifier(coord, E_in, E_out, rand_out, dt_in, dt_out, z_in, z_out, PSD_in, PSD_out, E_SE_out, z_SE_out, Esmear_SE_out, PSD_SE_out, nn_z, nn_out, blind_detl, blind_detr):
     """"""
     for i in range(coord.shape[0]):
-        if seg_status[coord[i,0], coord[i,1]] == 0.5:
+        if blind_detl[coord[i, 0], coord[i, 1]] == 1:
+            if blind_detr[coord[i, 0], coord[i, 1]] == 1:
+                continue
             E_out[i] = nn_out[i, 0]
             rand_out[i] = nn_out[i, 1]
             dt_out[i] = nn_out[i, 2]
             z_out[i] = nn_out[i, 3]
             PSD_out[i] = nn_out[i, 4]
-            E_SE_out[i] = E_in[i]
+            E_SE_out[i, 1] = E_in[i]
             z_SE_out[i] = nn_z[i]
-            Esmear_SE_out[i] = uniform(0.0, 1.0)
-            PSD_SE_out[i] = PSD_in[i]
+            Esmear_SE_out[i, 1] = uniform(0.0, 1.0)
+            PSD_SE_out[i, 1] = PSD_in[i]
+        elif blind_detr[coord[i, 0], coord[i, 1]] == 1:
+            E_out[i] = nn_out[i, 0]
+            rand_out[i] = nn_out[i, 1]
+            dt_out[i] = nn_out[i, 2]
+            z_out[i] = nn_out[i, 3]
+            PSD_out[i] = nn_out[i, 4]
+            E_SE_out[i, 0] = E_in[i]
+            z_SE_out[i] = nn_z[i]
+            Esmear_SE_out[i, 0] = uniform(0.0, 1.0)
+            PSD_SE_out[i, 0] = PSD_in[i]
         else:
             E_out[i] = E_in[i]
             rand_out[i] = uniform(0.0, 1.0)

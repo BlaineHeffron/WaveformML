@@ -257,7 +257,7 @@ class IRNIMPredictionWriter(PredictionWriter, SingleEndedEvaluator):
         phys["seg"] = data["coord"][:, 0] + data["coord"][:, 1]*14
         phys["PID"] = data["PID"]
         convert_wf_phys_SE_classifier(data["coord"], data["E"], phys["E"], phys["rand"], data["dt"], phys["dt"], data["z"], phys["y"], data["PSD"], phys["PSD"],
-                                          phys["E_SE"], phys["y_SE"], phys["Esmear_SE"], phys["PSD_SE"], data["EZ"][:, 1], output, self.seg_status)
+                                          phys["E_SE"], phys["y_SE"], phys["Esmear_SE"], phys["PSD_SE"], data["EZ"][:, 1], output, self.blind_detl, self.blind_detr)
         return phys
 
 
@@ -276,6 +276,8 @@ class IRNIMPredictionWriter(PredictionWriter, SingleEndedEvaluator):
 
 class ZAndClassWriter(PredictionWriter, SingleEndedEvaluator):
     def __init__(self, path, input_path, zconfig, zcheckpoint, classconfig, classcheckpoint, **kwargs):
+        self.scale_factor_z = 1.0
+        self.scale_factor_class = 1.0
         if "datatype" in kwargs.keys() and kwargs["datatype"] != "PhysPulse":
             raise IOError("datatype must be physpulse for ZAndClassWriter")
         kwargs["datatype"] = "PhysPulse"
@@ -317,12 +319,9 @@ class ZAndClassWriter(PredictionWriter, SingleEndedEvaluator):
             normalize_waveforms(coords, data["waveform"], self.gains * self.scale_factor_class, vals)
         else:
             normalize_waveforms(coords, data["waveform"], self.gains, vals)
-            self.scale_factor_class = 1.0
         vals = torch.tensor(vals, dtype=torch.float32, device=self.model.device)
         coords = torch.tensor(coords, dtype=torch.int32, device=self.model.device)
         class_out = self.class_model([coords, vals]).detach().cpu().numpy()
-        if not hasattr(self, "scale_factor_z"):
-            self.scale_factor_z = 1.0
         if self.scale_factor_z / self.scale_factor_class != 1.0:
             z_out = (self.model([coords, vals * (self.scale_factor_z / self.scale_factor_class)]).detach().cpu().numpy().squeeze(1) - 0.5) * self.z_scale
         else:
@@ -337,13 +336,13 @@ class ZAndClassWriter(PredictionWriter, SingleEndedEvaluator):
         convert_wf_phys_SE_classifier(data["coord"], data["E"], phys["E"], phys["rand"], data["dt"], phys["dt"], data["z"],
                                       phys["y"], data["PSD"], phys["PSD"],
                                       phys["E_SE"], phys["y_SE"], phys["Esmear_SE"], phys["PSD_SE"], data["EZ"][:, 1],
-                                      class_out, self.seg_status)
+                                      class_out, self.blind_detl, self.blind_detr)
         return phys
 
 
     def set_xml(self):
         super().set_xml()
-        self.XMLW.step_settings["ML_z_placement"] = "SE_Z"
+        self.XMLW.step_settings["ML_z_placement"] = "y_SE"
         self.XMLW.step_settings["classifier_score_ioni_placement"] = "E"
         self.XMLW.step_settings["classifier_score_recoil_placement"] = "rand"
         self.XMLW.step_settings["classifier_score_ncap_placement"] = "dt"
@@ -356,6 +355,8 @@ class ZAndClassWriter(PredictionWriter, SingleEndedEvaluator):
                     "model_classifier_checkpoint": self.class_checkpoint_path,
                     "model_classifier_checkpoint_hash": get_file_md5(self.class_checkpoint_path),
                     "model_classifier_config": self.class_config_path,
-                    "model_classifier_config_hash": get_file_md5(self.class_config_path)}
+                    "model_classifier_config_hash": get_file_md5(self.class_config_path),
+                    "scale_factor_z": self.scale_factor_z,
+                    "scale_factor_class": self.scale_factor_class}
         for key, val in settings.items():
             self.XMLW.step_settings[key] = val
