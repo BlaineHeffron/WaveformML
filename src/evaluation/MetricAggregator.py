@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from src.utils.PlotUtils import plot_n_hist1d, plot_n_hist2d,  plot_hist1d, plot_hist2d
+from src.utils.PlotUtils import plot_n_hist1d, plot_n_hist2d, plot_hist1d, plot_hist2d, MultiScatterPlot
 from src.utils.SparseUtils import metric_accumulate_2d, metric_accumulate_1d, \
     get_typed_list, metric_accumulate_dense_1d_with_categories, metric_accumulate_dense_2d_with_categories
 from src.utils.util import safe_divide, get_bins, get_bin_midpoints
@@ -124,16 +124,16 @@ class MetricAggregator:
             inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
             if len(class_names_to_plot) > 1:
                 logger.experiment.add_figure("evaluation/{0}{1}_{2}".format(namespace,self.name, self.metric_name),
-                                             plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
+                                             MultiScatterPlot(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                            if self.is_discreet else self.bin_edges,
                                                            [safe_divide(
                                                                self.scale_factor * self.results_val[i,
                                                                                    1:self.n_bins + 1],
                                                                self.results_num[i, 1:self.n_bins + 1]
-                                                           ) for i in inds_to_plot],
+                                                           ) for i in inds_to_plot], [0]*self.n_bins,
                                                            class_names_to_plot, self.retrieve_parameter_label(),
                                                            self.retrieve_metric_label(),
-                                                           norm_to_bin_width=False, logy=False))
+                                                           ylog=False))
                 logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                            if self.is_discreet else self.bin_edges,

@@ -470,6 +470,98 @@ def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, ma
         plt.close()
     return fig
 
+def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
+                     colors=None, styles=None,
+                     xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
+                     vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9)):
+    if colors is None:
+        colors = []
+    if styles is None:
+        styles = []
+    if(xdates):
+        xaxis = mdate.epoch2num(xaxis)
+        if(vertlines):
+            vertlines = mdate.epoch2num(vertlines)
+    rcParams.update({'font.size': 18})
+    fig = plt.figure(figsize=figsize)
+    ax1 = fig.add_subplot(111)
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    if(ymin is None):
+        if(ylog):
+            ymin = min([min(y)  for y in yvals])*0.5
+            if(ymin <= 0):
+                print("error: ymin is ", ymin, " on a log-y axis. Defaulting to 1e-5")
+                ymin = 1e-5
+        else:
+            ymin = min([min(y)  for y in yvals])
+            if ymin < 0: ymin *= 1.05
+            else: ymin *= .95
+    if(xmin is None):
+        xmin = min(xaxis)
+    if(xlog):
+        ax1.set_xscale('log')
+    else:
+        ax1.set_xscale('linear')
+    if(ylog):
+        ax1.set_yscale('log')
+    else:
+        ax1.set_yscale('linear')
+    if(ymax == -1):
+        if(ylog):
+            ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.5)
+        else:
+            ax1.set_ylim(ymin,max([max(y) for y in yvals])*1.05)
+    else:
+        ax1.set_ylim(ymin,ymax)
+    if(xmax == -1):
+        ax1.set_xlim(xmin,max(xaxis))
+    else:
+        ax1.set_xlim(xmin,xmax)
+    #for i, y in enumerate(yvals):
+    if not colors:
+        colors = tab_colors
+    if not styles:
+        styles = category_styles
+    for i in range(len(yvals)):
+        ax1.errorbar(xaxis,yvals[i],yerr=errors[i],color=colors[i%10],fmt=category_markers[i%len(category_markers)])
+    if(vertlines is not None):
+        for v in vertlines:
+            ax1.axvline(v,color='k',linestyle='-')#,label=vlinelabel)
+    if(xdates):
+        #date_fmt = '%y-%m-%d %H:%M:%S'
+        date_fmt = '%y-%m-%d'
+        date_formatter = mdate.DateFormatter(date_fmt,tz=timezone('US/Eastern'))
+        ax1.xaxis.set_major_formatter(date_formatter)
+        fig.autofmt_xdate()
+    else:
+        pass
+        #start,end = ax1.get_xlim()
+        #diff = (end - start) / 8.
+        #ax1.xaxis.set_ticks(np.arange(start,end,diff))
+        #ax1.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
+        #plt.setp(ax1.get_xticklabels(), rotation=30,\
+        #horizontalalignment='right')
+    box = ax1.get_position()
+    if(len(yvals) == 1):
+        if(not title):
+            ax1.set_title(line_labels[0])
+        else:
+            ax1.set_title(title)
+    else:
+        if(title):
+            ax1.set_title(title)
+        ax1.set_position([box.x0,box.y0,box.width,box.height])
+        ax1.legend(line_labels,loc='center left', \
+                   bbox_to_anchor=(0.5,0.85),ncol=1)
+        rcParams.update({'font.size':14})
+    #plt.gcf().subplots_adjust(left=0.16)
+    #plt.gcf().subplots_adjust(bottom=0.22)
+    #plt.gcf().subplots_adjust(right=0.05)
+    #plt.savefig(outname)
+    #plt.close()
+    return fig
+
 
 def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
