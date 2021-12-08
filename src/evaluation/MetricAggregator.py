@@ -124,13 +124,12 @@ class MetricAggregator:
             inds_to_plot, class_names_to_plot = self.retrieve_inds_to_plot()
             if len(class_names_to_plot) > 1:
                 logger.experiment.add_figure("evaluation/{0}{1}_{2}".format(namespace,self.name, self.metric_name),
-                                             MultiScatterPlot(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
-                                                           if self.is_discreet else self.bin_edges,
+                                             MultiScatterPlot(self.bin_midpoints(),
                                                            [safe_divide(
                                                                self.scale_factor * self.results_val[i,
                                                                                    1:self.n_bins + 1],
                                                                self.results_num[i, 1:self.n_bins + 1]
-                                                           ) for i in inds_to_plot], [0]*self.n_bins,
+                                                           ) for i in inds_to_plot], [[0]*self.n_bins]*len(inds_to_plot),
                                                            class_names_to_plot, self.retrieve_parameter_label(),
                                                            self.retrieve_metric_label(),
                                                            ylog=False))
