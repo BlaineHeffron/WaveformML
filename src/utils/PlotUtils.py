@@ -484,9 +484,9 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
         styles = []
     if ignore_zeros:
         for i in range(len(yvals)):
-            yvals[i][yvals == 0] = np.nan
-            yvals[i][errors == 0] = np.nan
-            errors[i][errors == 0] = np.nan
+            yvals[i][yvals[i] == 0] = np.nan
+            yvals[i][errors[i] == 0] = np.nan
+            errors[i][errors[i] == 0] = np.nan
     if(xdates):
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):
@@ -587,7 +587,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
             vertlines = mdate.epoch2num(vertlines)
     if ignore_zeros:
         for i in range(len(yvals)):
-            yvals[i][yvals == 0] = np.nan
+            yvals[i][yvals[i] == 0] = np.nan
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
