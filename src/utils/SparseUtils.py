@@ -172,17 +172,20 @@ def hist_add_2d(valuex, valuey, output, xrange, yrange, nbinsx, nbinsy):
 
 
 @nb.jit(nopython=True)
-def metric_accumulate_1d(results, parameter, output, out_n, xrange, nbins):
+def metric_accumulate_1d(results, parameter, output, out_n, out_M2, xrange, nbins):
     # expects output to be of size nbins+2, 1 for overflow and underflow
     bin_width = (xrange[1] - xrange[0]) / nbins
     for i in range(results.shape[0]):
         bin_index = get_bin_index(parameter[i], xrange[0], xrange[1], bin_width, nbins)
-        output[bin_index] += results[i]
         out_n[bin_index] += 1
+        delta = results[i] - output[bin_index]
+        output[bin_index] += delta / out_n[bin_index]
+        delta2 = results[i] - output[bin_index]
+        out_M2[bin_index] += delta * delta2
 
 
 @nb.jit(nopython=True)
-def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n, categories, xrange, nbins,
+def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n, out_M2, categories, xrange, nbins,
                                                coo, use_multiplicity=False):
     """
     @param results: 3 dim array (batch, X, Y)
@@ -208,12 +211,13 @@ def metric_accumulate_dense_1d_with_categories(results, parameter, output, out_n
         y = coo[n, 1]
         if use_multiplicity:
             bin_index = get_bin_index(mult, xrange[0], xrange[1], bin_width, nbins)
-            output[categories[batch, x, y], bin_index] += results[batch, x, y]
-            out_n[categories[batch, x, y], bin_index] += 1
         else:
             bin_index = get_bin_index(parameter[batch, x, y], xrange[0], xrange[1], bin_width, nbins)
-            output[categories[batch, x, y], bin_index] += results[batch, x, y]
-            out_n[categories[batch, x, y], bin_index] += 1
+        out_n[categories[batch, x, y], bin_index] += 1
+        delta = results[batch, x, y] - output[categories[batch,x,y], bin_index]
+        output[categories[batch, x, y], bin_index] += delta / out_n[categories[batch, x, y], bin_index]
+        delta2 = results[batch, x, y] - output[categories[batch,x,y], bin_index]
+        out_M2[categories[batch, x, y], bin_index] += delta * delta2
 
 
 def get_typed_list(mylist):
@@ -223,7 +227,7 @@ def get_typed_list(mylist):
 
 
 @nb.jit(nopython=True)
-def metric_accumulate_2d(results, metric, output, out_n, xrange, yrange, nbinsx, nbinsy):
+def metric_accumulate_2d(results, metric, output, out_n, out_M2, xrange, yrange, nbinsx, nbinsy):
     # expects output to be of size nbins+2, 1 for overflow and underflow
     xlen = xrange[1] - xrange[0]
     ylen = yrange[1] - yrange[0]
@@ -1614,6 +1618,23 @@ def convert_wf_phys_SE_classifier(coord, E_in, E_out, rand_out, dt_in, dt_out, z
             dt_out[i] = dt_in[i]
             z_out[i] = z_in[i]
             PSD_out[i] = PSD_in[i]
+
+
+@nb.jit(nopython=True)
+def finalize(mean, counts, M2):
+    if len(mean.shape) == 1:
+        for i in range(mean.shape[0]):
+            if counts[i] > 2:
+                M2[i] = sqrt(M2[i] / (counts[i] - 1))
+            else:
+                M2[i] = float("nan")
+    elif len(mean.shape) == 2:
+        for i in range(mean.shape[0]):
+            for j in range(mean.shape[1]):
+                if counts[i, j] > 2:
+                    M2[i, j] = sqrt(M2[i, j] / (counts[i, j] - 1))
+                else:
+                    M2[i, j] = float("nan")
 
 
 

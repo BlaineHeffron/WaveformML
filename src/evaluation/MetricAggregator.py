@@ -2,9 +2,9 @@ from typing import List
 
 import numpy as np
 
-from src.utils.PlotUtils import plot_n_hist1d, plot_n_hist2d, plot_hist1d, plot_hist2d, MultiScatterPlot
+from src.utils.PlotUtils import plot_n_hist1d, plot_n_hist2d, plot_hist1d, plot_hist2d, MultiScatterPlot, ScatterPlt
 from src.utils.SparseUtils import metric_accumulate_2d, metric_accumulate_1d, \
-    get_typed_list, metric_accumulate_dense_1d_with_categories, metric_accumulate_dense_2d_with_categories
+    get_typed_list, metric_accumulate_dense_1d_with_categories, metric_accumulate_dense_2d_with_categories, finalize
 from src.utils.util import safe_divide, get_bins, get_bin_midpoints
 
 
@@ -42,12 +42,13 @@ class MetricAggregator:
         # results are indexed by class in order of class_names
         self.results_val = np.zeros((self.num_classes, self.n_bins + 2), dtype=np.double)
         self.results_num = np.zeros((self.num_classes, self.n_bins + 2), dtype=np.long)
+        self.results_M2 = np.zeros((self.num_classes, self.n_bins + 2), dtype=np.double)
         self.ignore_val = ignore_val
         self.is_multiplicity = is_multiplicity
 
     def add(self, results, parameter, category_name):
         class_ind = self.class_names.index(category_name)
-        metric_accumulate_1d(results, parameter, self.results_val[class_ind], self.results_num[class_ind],
+        metric_accumulate_1d(results, parameter, self.results_val[class_ind], self.results_num[class_ind], self.results_M2[class_ind],
                              get_typed_list([self.bin_edges[0], self.bin_edges[-1]]), self.n_bins)
 
     def add_normalized(self, results, parameter, category_name):
@@ -65,7 +66,7 @@ class MetricAggregator:
                 list1 = [self.bin_edges[0] / self.norm_factor, self.bin_edges[-1] / self.norm_factor]
         class_ind = self.class_names.index(category_name)
         metric_accumulate_1d(results, parameter, self.results_val[class_ind], self.results_num[class_ind],
-                             get_typed_list(list1), self.n_bins)
+                             self.results_M2[class_ind], get_typed_list(list1), self.n_bins)
 
     def add_dense_normalized_with_categories(self, results, parameter, categories, c):
         """
@@ -82,7 +83,7 @@ class MetricAggregator:
                 list1 = [self.bin_edges[0] / self.norm_factor + 0.5, self.bin_edges[-1] / self.norm_factor + 0.5]
             else:
                 list1 = [self.bin_edges[0] / self.norm_factor, self.bin_edges[-1] / self.norm_factor]
-        metric_accumulate_dense_1d_with_categories(results, parameter, self.results_val, self.results_num, categories,
+        metric_accumulate_dense_1d_with_categories(results, parameter, self.results_val, self.results_num, self.results_M2, categories,
                                                    get_typed_list(list1), self.n_bins, c,
                                                    use_multiplicity=self.is_multiplicity)
 
@@ -101,20 +102,20 @@ class MetricAggregator:
         else:
             return self.name
 
+    def finalize(self):
+        finalize(self.results_val, self.results_num, self.results_M2)
+
     def plot(self, logger, namespace=""):
+        self.finalize()
         if len(self.class_names) == 1:
             if np.sum(self.results_num[0]) < 200:
                 return
             logger.experiment.add_figure("evaluation/{0}{1}_{2}".format(namespace,self.name, self.metric_name),
-                                         plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
-                                                     if self.is_discreet else self.bin_edges,
-                                                     safe_divide(
-                                                         self.scale_factor * self.results_val[0, 1:self.n_bins + 1],
-                                                         self.results_num[0, 1:self.n_bins + 1]
-                                                     ),
-                                                     self.class_names[0], self.retrieve_parameter_label(),
-                                                     self.retrieve_metric_label(),
-                                                     norm_to_bin_width=False, logy=False))
+                                         ScatterPlt(self.bin_midpoints(),
+                                                    self.scale_factor * self.results_val[0, 1:self.n_bins + 1],
+                                                    self.class_names[0], self.retrieve_parameter_label(),
+                                                    self.retrieve_metric_label(),
+                                                    errbar=self.scale_factor * self.results_M2[0, 1:self.n_bins + 1]))
             logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                          plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                      if self.is_discreet else self.bin_edges,
@@ -125,11 +126,9 @@ class MetricAggregator:
             if len(class_names_to_plot) > 1:
                 logger.experiment.add_figure("evaluation/{0}{1}_{2}".format(namespace,self.name, self.metric_name),
                                              MultiScatterPlot(self.bin_midpoints(),
-                                                           [safe_divide(
-                                                               self.scale_factor * self.results_val[i,
-                                                                                   1:self.n_bins + 1],
-                                                               self.results_num[i, 1:self.n_bins + 1]
-                                                           ) for i in inds_to_plot], [[0]*self.n_bins]*len(inds_to_plot),
+                                                           [self.scale_factor * self.results_val[i, 1:self.n_bins + 1]
+                                                           for i in inds_to_plot],
+                                                           [self.scale_factor * self.results_M2[i, 1:self.n_bins + 1] for i in inds_to_plot],
                                                            class_names_to_plot, self.retrieve_parameter_label(),
                                                            self.retrieve_metric_label(),
                                                            ylog=False))
@@ -142,17 +141,12 @@ class MetricAggregator:
                                                            "total"))
             elif len(class_names_to_plot) == 1:
                 logger.experiment.add_figure("evaluation/{0}{1}_{1}".format(namespace,self.name, self.metric_name),
-                                             plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
-                                                         if self.is_discreet else self.bin_edges,
-                                                         safe_divide(
-                                                             self.scale_factor * self.results_val[inds_to_plot[0],
-                                                                                 1:self.n_bins + 1],
-                                                             self.results_num[inds_to_plot[0], 1:self.n_bins + 1]
-                                                         ),
-                                                         self.class_names[inds_to_plot[0]],
-                                                         self.retrieve_parameter_label(),
-                                                         self.retrieve_metric_label(),
-                                                         norm_to_bin_width=False, logy=False))
+                                             ScatterPlt(self.bin_midpoints(),
+                                                        self.scale_factor * self.results_val[inds_to_plot[0], 1:self.n_bins + 1],
+                                                        self.class_names[inds_to_plot[0]], self.retrieve_parameter_label(),
+                                                        self.retrieve_metric_label(),
+                                                        errbar=self.scale_factor * self.results_M2[inds_to_plot[0],
+                                                                                   1:self.n_bins + 1]))
                 logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                          if self.is_discreet else self.bin_edges,

@@ -8,9 +8,10 @@ from src.datasets.HDF5Dataset import MAX_RANGE
 from src.evaluation.MetricAggregator import *
 from src.evaluation.SingleEndedEvaluator import SingleEndedEvaluator
 from src.utils.PlotUtils import plot_contour, plot_pr, plot_roc, plot_wfs, plot_bar, plot_hist2d, plot_hist1d, \
-    plot_confusion_matrix
+    plot_confusion_matrix, plot_n_contour
 from src.utils.SQLiteUtils import get_gains
-from src.utils.SparseUtils import average_pulse, find_matches, weighted_average_quantities, confusion_accumulate_1d
+from src.utils.SparseUtils import average_pulse, find_matches, weighted_average_quantities, confusion_accumulate_1d, \
+    finalize
 # from src.utils.StatsUtils import calc_time_moments
 from src.utils.util import list_matches
 
@@ -80,22 +81,22 @@ class PSDEvaluator(SingleEndedEvaluator):
         self.metric_pairs = MetricPairAggregator(self.metrics)
 
         self.results = {
-            "mult_acc": (zeros((self.n_mult + 2,), dtype=np.float32), zeros((self.n_mult + 2,), dtype=np.int32)),
-            "ene_acc": (zeros((self.n_bins + 2,), dtype=np.float32), zeros((self.n_bins + 2,), dtype=np.int32)),
+            "mult_acc": (zeros((self.n_mult + 2,), dtype=np.double), zeros((self.n_mult + 2,), dtype=np.long), zeros((self.n_mult + 2,), dtype=np.double)),
+            "ene_acc": (zeros((self.n_bins + 2,), dtype=np.double), zeros((self.n_bins + 2,), dtype=np.long), zeros((self.n_bins + 2,), dtype=np.double)),
             "pos_acc": (
-                zeros((self.nx + 2, self.ny + 2), dtype=np.float32), zeros((self.nx + 2, self.ny + 2), dtype=np.int32)),
-            "ene_psd_acc": (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
-                            zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32)),
-            "confusion_energy": zeros((self.n_confusion + 1, self.n_classes, self.n_classes), dtype=np.int32),
-            "confusion_SE": zeros((self.n_SE_max+2, self.n_classes, self.n_classes), dtype=np.int32)
+                zeros((self.nx + 2, self.ny + 2), dtype=np.double), zeros((self.nx + 2, self.ny + 2), dtype=np.long), zeros((self.nx + 2, self.ny + 2), dtype=np.double)),
+            "ene_psd_acc": (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.double),
+                            zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.long), zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.double)),
+            "confusion_energy": zeros((self.n_confusion + 1, self.n_classes, self.n_classes), dtype=np.long),
+            "confusion_SE": zeros((self.n_SE_max+2, self.n_classes, self.n_classes), dtype=np.long)
         }
         for i in range(len(self.class_names)):
-            self.results["ene_psd_prec_{}".format(self.class_names[i])] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.float32),
-                            zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.int32))
+            self.results["ene_psd_prec_{}".format(self.class_names[i])] = (zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.double),
+                            zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.long), zeros((self.n_bins + 2, self.n_bins + 2), dtype=np.double))
             self.results["ene_prec_{}".format(self.class_names[i])] = \
-                (zeros((self.n_bins + 2,), dtype=np.float32), zeros((self.n_bins + 2,), dtype=np.int32))
+                (zeros((self.n_bins + 2,), dtype=np.double), zeros((self.n_bins + 2,), dtype=np.long), zeros((self.n_bins + 2,), dtype=np.double))
             self.results["mult_prec_{}".format(self.class_names[i])] = \
-                (zeros((self.n_mult + 2,), dtype=np.float32), zeros((self.n_mult + 2,), dtype=np.int32))
+                (zeros((self.n_mult + 2,), dtype=np.double), zeros((self.n_mult + 2,), dtype=np.long), zeros((self.n_mult + 2,), dtype=np.double))
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -197,6 +198,7 @@ class PSDEvaluator(SingleEndedEvaluator):
                              get_typed_list([0.0, float(self.ny)]), self.nx, self.ny)
 
     def dump(self):
+        self.finalize()
         self.logger.experiment.add_figure("evaluation/energy_psd_accuracy",
                                           plot_contour(calc_axis(self.emin, self.emax, self.n_bins),
                                                        calc_axis(self.psd_min, self.psd_max, self.n_bins),
@@ -213,8 +215,7 @@ class PSDEvaluator(SingleEndedEvaluator):
                                                        "x", "y", "accuracy", filled=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_accuracy",
                                           plot_bar(np.arange(1, self.n_mult + 1),
-                                                   safe_divide(self.results["mult_acc"][0][1:self.n_mult + 1],
-                                                               self.results["mult_acc"][1][1:self.n_mult + 1]),
+                                                   self.results["mult_acc"][0][1:self.n_mult + 1],
                                                    "multiplicity",
                                                    "accuracy"))
         # print("n_wfs  is {0}".format(self.n_wfs))
@@ -287,6 +288,15 @@ class PSDEvaluator(SingleEndedEvaluator):
                 feat[preds_class_inds], 0, bins=bins, max_bins=len(bins) - 1)
         return missing_classes
 
+    def finalize(self):
+        if self.is_finalized:
+            return
+        self.is_finalized = True
+        finalize(*self.results["ene_acc"])
+        finalize(*self.results["mult_acc"])
+        for i in range(len(self.class_names)):
+            finalize(*self.results["ene_prec_{}".format(self.class_names[i])])
+            finalize(*self.results["mult_prec_{}".format(self.class_names[i])])
 
 class PhysEvaluator(PSDEvaluator):
     """for phys pulse training, 7 features in order:
@@ -304,6 +314,7 @@ class PhysEvaluator(PSDEvaluator):
         super(PhysEvaluator, self).__init__(class_names, logger, device)
         self.ene_label = "Visible Energy [MeV]"
         self.emax = 10.
+        self.is_finalized = False
 
     def add(self, batch, output, predictions):
         (c, f), labels = batch
@@ -385,7 +396,9 @@ class PhysEvaluator(PSDEvaluator):
         metric_accumulate_2d(results, avg_coo, *self.results["pos_acc"], get_typed_list([0.0, float(self.nx)]),
                              get_typed_list([0.0, float(self.ny)]), self.nx, self.ny)
 
+
     def dump(self):
+        self.finalize()
         self.logger.experiment.add_figure("evaluation/energy_psd_accuracy",
                                           plot_contour(calc_axis(self.emin, self.emax, self.n_bins),
                                                        calc_axis(self.psd_min, self.psd_max, self.n_bins),
@@ -402,8 +415,7 @@ class PhysEvaluator(PSDEvaluator):
                                                        "x", "y", "accuracy", filled=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_accuracy",
                                           plot_bar(np.arange(1, self.n_mult + 1),
-                                                   safe_divide(self.results["mult_acc"][0][1:self.n_mult + 1],
-                                                               self.results["mult_acc"][1][1:self.n_mult + 1]),
+                                                   self.results["mult_acc"][0][1:self.n_mult + 1],
                                                    "multiplicity",
                                                    "accuracy"))
         xwidth = (self.emax - self.emin) / self.n_bins
@@ -444,20 +456,16 @@ class PhysEvaluator(PSDEvaluator):
 
         self.logger.experiment.add_figure("evaluation/energy_precision",
                                           plot_n_hist1d(calc_bin_edges(self.emin, self.emax, self.n_bins),
-                                                        [safe_divide(self.results["ene_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_bins + 1],
-                                                                     self.results["ene_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_bins + 1]
-                                                                     ) for i in range(len(self.class_names))],
+                                                        [self.results["ene_prec_{}".format(
+                                                            self.class_names[i])][0][1:self.n_bins + 1]
+                                                         for i in range(len(self.class_names))],
                                                         self.class_names, self.ene_label, "precision",
                                                         norm_to_bin_width=False, logy=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_precision",
                                           plot_n_hist1d(calc_bin_edges(0.5, self.n_mult + 0.5, self.n_mult),
-                                                        [safe_divide(self.results["mult_prec_{}".format(
-                                                            self.class_names[i])][0][1:self.n_mult + 1],
-                                                                     self.results["mult_prec_{}".format(
-                                                                         self.class_names[i])][1][1:self.n_mult + 1]
-                                                                     ) for i in range(len(self.class_names))],
+                                                        [self.results["mult_prec_{}".format(
+                                                            self.class_names[i])][0][1:self.n_mult + 1]
+                                                                      for i in range(len(self.class_names))],
                                                         self.class_names, "multiplicity", "precision",
                                                         norm_to_bin_width=False, logy=False))
         self.logger.experiment.add_figure("evaluation/multiplicity_classes",

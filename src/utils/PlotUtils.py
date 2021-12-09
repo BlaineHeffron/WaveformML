@@ -454,7 +454,7 @@ def GetMPLStyles():
     return style_list
 
 
-def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, marker='o'):
+def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, marker='o', ylog=False):
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
@@ -465,6 +465,8 @@ def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, ma
         ax1.errorbar(xaxis,yvals,yerr=errbar,fmt='')
     else:
         ax1.scatter(xaxis,yvals,marker=marker)
+    if(ylog):
+        ax1.set_yscale('log')
     if outname is not None:
         plt.savefig(outname)
         plt.close()
