@@ -1626,7 +1626,7 @@ def finalize(mean, counts, M2):
         if counts[i] > 2:
             M2[i] = sqrt(M2[i] / (counts[i] - 1))
         else:
-            M2[i] = float("nan")
+            M2[i] = 0
 
 
 @nb.jit(nopython=True)
@@ -1636,7 +1636,7 @@ def finalize2d(mean, counts, M2):
             if counts[i, j] > 2:
                 M2[i, j] = sqrt(M2[i, j] / (counts[i, j] - 1))
             else:
-                M2[i, j] = float("nan")
+                M2[i, j] = 0
 
 
 
