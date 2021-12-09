@@ -454,11 +454,13 @@ def GetMPLStyles():
     return style_list
 
 
-def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, marker='o', ylog=False):
+def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, marker='o', ylog=False, ignore_zeros=False):
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
+    if ignore_zeros:
+        yvals[yvals == 0] = np.nan
     if(title):
         ax1.set_title(title)
     if(errbar):
@@ -473,13 +475,17 @@ def ScatterPlt(xaxis,yvals,xlabel,ylabel,outname=None,title=None,errbar=None, ma
     return fig
 
 def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
-                     colors=None, styles=None,
+                     colors=None, styles=None, ignore_zeros=False,
                      xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
                      vertlines=None, vlinelabel=None, xlog=False, title=None,  figsize=(12, 9)):
     if colors is None:
         colors = []
     if styles is None:
         styles = []
+    if ignore_zeros:
+        yvals[yvals == 0] = np.nan
+        yvals[errors == 0] = np.nan
+        errors[errors == 0] = np.nan
     if(xdates):
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):

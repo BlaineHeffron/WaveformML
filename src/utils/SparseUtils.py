@@ -1622,19 +1622,21 @@ def convert_wf_phys_SE_classifier(coord, E_in, E_out, rand_out, dt_in, dt_out, z
 
 @nb.jit(nopython=True)
 def finalize(mean, counts, M2):
-    if len(mean.shape) == 1:
-        for i in range(mean.shape[0]):
-            if counts[i] > 2:
-                M2[i] = sqrt(M2[i] / (counts[i] - 1))
+    for i in range(mean.shape[0]):
+        if counts[i] > 2:
+            M2[i] = sqrt(M2[i] / (counts[i] - 1))
+        else:
+            M2[i] = float("nan")
+
+
+@nb.jit(nopython=True)
+def finalize2d(mean, counts, M2):
+    for i in range(mean.shape[0]):
+        for j in range(mean.shape[1]):
+            if counts[i, j] > 2:
+                M2[i, j] = sqrt(M2[i, j] / (counts[i, j] - 1))
             else:
-                M2[i] = float("nan")
-    elif len(mean.shape) == 2:
-        for i in range(mean.shape[0]):
-            for j in range(mean.shape[1]):
-                if counts[i, j] > 2:
-                    M2[i, j] = sqrt(M2[i, j] / (counts[i, j] - 1))
-                else:
-                    M2[i, j] = float("nan")
+                M2[i, j] = float("nan")
 
 
 

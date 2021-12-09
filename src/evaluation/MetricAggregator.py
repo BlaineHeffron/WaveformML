@@ -4,7 +4,7 @@ import numpy as np
 
 from src.utils.PlotUtils import plot_n_hist1d, plot_n_hist2d, plot_hist1d, plot_hist2d, MultiScatterPlot, ScatterPlt
 from src.utils.SparseUtils import metric_accumulate_2d, metric_accumulate_1d, \
-    get_typed_list, metric_accumulate_dense_1d_with_categories, metric_accumulate_dense_2d_with_categories, finalize
+    get_typed_list, metric_accumulate_dense_1d_with_categories, metric_accumulate_dense_2d_with_categories, finalize2d
 from src.utils.util import safe_divide, get_bins, get_bin_midpoints
 
 
@@ -103,7 +103,7 @@ class MetricAggregator:
             return self.name
 
     def finalize(self):
-        finalize(self.results_val, self.results_num, self.results_M2)
+        finalize2d(self.results_val, self.results_num, self.results_M2)
 
     def plot(self, logger, namespace=""):
         self.finalize()
@@ -114,7 +114,7 @@ class MetricAggregator:
                                          ScatterPlt(self.bin_midpoints(),
                                                     self.scale_factor * self.results_val[0, 1:self.n_bins + 1],
                                                     self.class_names[0], self.retrieve_parameter_label(),
-                                                    self.retrieve_metric_label(),
+                                                    self.retrieve_metric_label(), ignore_zeros=True,
                                                     errbar=self.scale_factor * self.results_M2[0, 1:self.n_bins + 1]))
             logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                          plot_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
@@ -130,7 +130,7 @@ class MetricAggregator:
                                                            for i in inds_to_plot],
                                                            [self.scale_factor * self.results_M2[i, 1:self.n_bins + 1] for i in inds_to_plot],
                                                            class_names_to_plot, self.retrieve_parameter_label(),
-                                                           self.retrieve_metric_label(),
+                                                           self.retrieve_metric_label(), ignore_zeros=True,
                                                            ylog=False))
                 logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
@@ -144,7 +144,7 @@ class MetricAggregator:
                                              ScatterPlt(self.bin_midpoints(),
                                                         self.scale_factor * self.results_val[inds_to_plot[0], 1:self.n_bins + 1],
                                                         self.class_names[inds_to_plot[0]], self.retrieve_parameter_label(),
-                                                        self.retrieve_metric_label(),
+                                                        self.retrieve_metric_label(), ignore_zeros=True,
                                                         errbar=self.scale_factor * self.results_M2[inds_to_plot[0],
                                                                                    1:self.n_bins + 1]))
                 logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
