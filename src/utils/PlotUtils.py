@@ -25,7 +25,7 @@ tab_colors = ['#377eb8', '#ff7f00', '#4daf4a','#a65628', '#984ea3',
                   '#999999', '#e41a1c', '#dede00']
 # see markers list here https://matplotlib.org/3.2.1/api/markers_api.html
 category_markers = ['.', '^', 'o', 'v', 's', 'P', 'x', '*', 'd', 'h', '8', 'D', '|', '1', 'p', '<', 'H', '4']
-category_styles = ['-', '--', '--', '-', ':']
+category_styles = ['-', '--', '-.', ':']
 
 # ================================================================================== #
 # color maps taken from https://matplotlib.org/3.1.0/tutorials/colors/colormaps.html
@@ -45,7 +45,7 @@ cmaps['Diverging'] = [
     'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
     'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']
 cmaps['Cyclic'] = ['twilight', 'twilight_shifted', 'hsv']
-cmaps['Qualitative'] = ['Pastel1', 'Pastel2', 'Paired', 'Accent',
+cmaps['Qualitative'] = ['Pastel1', 'Pasel2', 'Paired', 'Accent',
                         'Dark2', 'Set1', 'Set2', 'Set3',
                         'tab10', 'tab20', 'tab20b', 'tab20c']
 cmaps['Miscellaneous'] = [
