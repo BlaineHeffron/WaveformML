@@ -576,7 +576,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
                   colors=None, styles=None,
                   xmax=-1, ymax=-1, ymin=None, xmin=None, ylog=True, xdates=False,
                   vertlines=None, vlinelabel=None, xlog=False, title=None,
-                  width_factor=0.9, legend_xoff=0.4, legend_yoff=0.75):
+                  width_factor=0.9, legend_xoff=0.4, legend_yoff=0.75, ignore_zeros=False):
     if colors is None:
         colors = []
     if styles is None:
@@ -585,6 +585,9 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):
             vertlines = mdate.epoch2num(vertlines)
+    if ignore_zeros:
+        for i in range(len(yvals)):
+            yvals[i][yvals == 0] = np.nan
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     ax1.set_xlabel(xlabel)
