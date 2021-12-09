@@ -483,9 +483,10 @@ def MultiScatterPlot(xaxis, yvals, errors, line_labels, xlabel, ylabel,
     if styles is None:
         styles = []
     if ignore_zeros:
-        yvals[yvals == 0] = np.nan
-        yvals[errors == 0] = np.nan
-        errors[errors == 0] = np.nan
+        for i in range(len(yvals)):
+            yvals[i][yvals == 0] = np.nan
+            yvals[i][errors == 0] = np.nan
+            errors[i][errors == 0] = np.nan
     if(xdates):
         xaxis = mdate.epoch2num(xaxis)
         if(vertlines):
