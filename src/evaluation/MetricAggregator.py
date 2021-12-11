@@ -138,7 +138,7 @@ class MetricAggregator:
                                                            for i in inds_to_plot],
                                                            class_names_to_plot, self.retrieve_parameter_label(),
                                                            self.retrieve_metric_label(), ignore_zeros=True,
-                                                           ylog=False, legend_xoff=0.))
+                                                           ylog=False, legend_xoff=0.5))
                 logger.experiment.add_figure("evaluation/{0}{1}_classes".format(namespace,self.name),
                                              plot_n_hist1d(get_bins(0.5, self.n_bins + 0.5, self.n_bins)
                                                            if self.is_discreet else self.bin_edges,

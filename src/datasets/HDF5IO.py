@@ -32,6 +32,7 @@ class H5Input(H5Base):
         self.event_index_name = ""
         self.event_index_coord = None
         self.current_index = -1
+        self.table_length = 0
 
     def setup_table(self, name, data_type, event_index_name, event_index_coord=None, base="/"):
         if self.table:
@@ -41,6 +42,7 @@ class H5Input(H5Base):
         self.record_type = data_type
         self.table_name = name
         self.table = self.h5f[base + name]
+        self.table_length = self.table.len()
         self.event_index_name = event_index_name
         self.event_index_coord = event_index_coord
 
@@ -58,10 +60,10 @@ class H5Input(H5Base):
             return None
         if self.current_index == -1:
             self.current_index = 0
-        data = self.table[self.current_index:self.current_index + nrows]
-        if data.shape[0] != nrows:
+        if self.current_index + nrows >= self.table_length:
             self.current_index = -2
-            return data
+            return self.table[self.current_index:self.table_length]
+        data = self.table[self.current_index:self.current_index + nrows]
         self.current_index += nrows
         if preserve_event:
             last_event = self.get_event_number(data[-1])
@@ -69,6 +71,8 @@ class H5Input(H5Base):
             while self.get_event_number(current_row) == last_event:
                 data = append(data, current_row)
                 self.current_index += 1
+                if self.current_index >= self.table_length:
+                    break
                 current_row = self.table[self.current_index]
         return data
 

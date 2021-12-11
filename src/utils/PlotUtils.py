@@ -657,7 +657,7 @@ def MultiLinePlot(xaxis, yvals, line_labels, xlabel, ylabel,
         ax1.set_position([box.x0,box.y0,box.width*width_factor,box.height])
         ax1.legend(line_labels,loc='center left',\
                 bbox_to_anchor=(legend_xoff,legend_yoff),ncol=1)
-        rcParams.update({'font.size':14})
+        rcParams.update({'font.size':18})
     #plt.gcf().subplots_adjust(left=0.16)
     #plt.gcf().subplots_adjust(bottom=0.22)
     #plt.gcf().subplots_adjust(right=0.05)
