@@ -72,7 +72,8 @@ class H5Input(H5Base):
                 data = append(data, current_row)
                 self.current_index += 1
                 if self.current_index >= self.table_length:
-                    break
+                    self.current_index = -2
+                    return data
                 current_row = self.table[self.current_index]
         return data
 
