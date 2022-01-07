@@ -171,6 +171,9 @@ class P2XTableWriter(H5Output):
         names.append("abstime")
         shapes.append((1,))
         types.append(float64)
+        names.append("runtime")
+        shapes.append((1,))
+        types.append(float64)
         thistype = self.get_attr_string_type(h5input, input_table, "calgrp")
         if thistype is not None:
             names.append("calgrp")
