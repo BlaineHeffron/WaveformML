@@ -11,7 +11,10 @@ class SingleEndedEvaluator(AD1Evaluator):
         except TypeError:
             #hack for backwards compatibility loading old models
             AD1Evaluator.__init__(self,logger, calgroup=calgroup, e_scale=e_scale)
-        SE_dead_pmts = [1, 0, 2, 4, 6, 7, 9, 10, 12, 13, 16, 19, 20, 21, 22, 24, 26, 27, 34, 36, 37, 43, 46, 48,
+        if "excludes" in kwargs.keys():
+            SE_dead_pmts = kwargs["excludes"]
+        else:
+            SE_dead_pmts = [1, 0, 2, 4, 6, 7, 9, 10, 12, 13, 16, 19, 20, 21, 22, 24, 26, 27, 34, 36, 37, 43, 46, 48,
                         55,
                         54, 56, 58, 65, 68, 72, 80, 82, 85, 88, 93, 95, 97, 96, 105, 111, 112, 120, 122, 137, 138,
                         139, 141, 147, 158, 166, 173, 175, 188, 195, 215, 230, 243, 244, 245, 252, 255, 256, 261,

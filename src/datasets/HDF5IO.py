@@ -61,8 +61,9 @@ class H5Input(H5Base):
         if self.current_index == -1:
             self.current_index = 0
         if self.current_index + nrows >= self.table_length:
+            ci = self.current_index
             self.current_index = -2
-            return self.table[self.current_index:self.table_length]
+            return self.table[ci:self.table_length]
         data = self.table[self.current_index:self.current_index + nrows]
         self.current_index += nrows
         if preserve_event:

@@ -99,7 +99,7 @@ class PredictionWriter(P2XTableWriter):
                     if n_current_buffer >= self.n_buffer_rows:
                         n_current_buffer = 0
                         self.flush(self.data_type.name)
-        self.flush()
+        self.flush(self.data_type.name)
         self.input.close()
         self.close()
 

@@ -9,9 +9,7 @@ def main():
     args = parser.parse_args()
     ref = h5py.File(args.ref_file, 'r')
     f = h5py.File(args.file, 'r+')
-    rt = ref["PhysPulse"].attrs["runtime"]
-    f["PhysPulse"].attrs.create("runtime", rt, shape=(1,), dtype=float64)
-    print(rt)
+    f["PhysPulse"].attrs.create("runtime", ref["PhysPulse"].attrs["runtime"])
     f.flush()
     ref.close()
     f.close()
