@@ -11,6 +11,8 @@ def main():
     f = h5py.File(args.file, 'r+')
     rt = ref["PhysPulse"].attrs["runtime"]
     f["PhysPulse"].attrs.create("runtime", rt, shape=(1,), dtype=float64)
+    print(rt)
+    f.flush()
     ref.close()
     f.close()
 
