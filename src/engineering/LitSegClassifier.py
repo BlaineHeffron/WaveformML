@@ -1,5 +1,6 @@
 from torchmetrics.classification.accuracy import Accuracy
 from torchmetrics import ConfusionMatrix
+from torch_geometric.data import Data
 
 from src.engineering.LitBase import LitBase
 from src.engineering.PSDDataModule import *
@@ -32,15 +33,27 @@ class LitSegClassifier(LitBase):
 
     def _process_batch(self, batch):
         additional_fields = None
-        (c, f), target = batch
-        if isinstance(f, list):
-            additional_fields = f[1:]
-            f = f[0]
-        if self.write_script:
-            self.write_model([c, f])
-        if self.occlude_index:
-            f[:, self.occlude_index] = 0
-        predictions = self.model([c, f])
+        if isinstance(batch, Data):
+            if hasattr(batch, "additional_fields"):
+                additional_fields = batch.additional_fields
+            if self.write_script:
+                self.write_model(batch)
+            if self.occlude_index:
+                batch.x[:, self.occlude_index] = 0
+            predictions = self.model(batch).squeeze(1)
+            c = batch.pos
+            target = batch.y
+            f = batch.x
+        else:
+            (c, f), target = batch
+            if isinstance(f, list):
+                additional_fields = f[1:]
+                f = f[0]
+            if self.write_script:
+                self.write_model([c, f])
+            if self.occlude_index:
+                f[:, self.occlude_index] = 0
+            predictions = self.model([c, f])
         if self.SE_only:
             se_inds = self.SE_mask[0, 0, c[:, 0].long(), c[:, 1].long()] == 1.0
             loss = self.criterion.forward(predictions[se_inds], target[se_inds])
