@@ -227,7 +227,7 @@ def get_typed_list(mylist):
 
 
 @nb.jit(nopython=True)
-def metric_accumulate_2d(results, metric, output, out_n, out_M2, xrange, yrange, nbinsx, nbinsy):
+def metric_accumulate_2d(results, metric, output, out_n, xrange, yrange, nbinsx, nbinsy):
     # expects output to be of size nbins+2, 1 for overflow and underflow
     xlen = xrange[1] - xrange[0]
     ylen = yrange[1] - yrange[0]
