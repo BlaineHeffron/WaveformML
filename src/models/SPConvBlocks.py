@@ -898,7 +898,7 @@ class SparseConv2DPreserve(nn.Module):
         self.log = logging.getLogger(__name__)
         self.log.debug("Initializing convolution block preserving input size with nin {0}, nout {1}".format(nin, nout))
         if size_factor % 2 != 1:
-            raise ValueError("size factor must be odd if version == 1")
+            raise ValueError("size factor must be odd if version == 2")
         nframes = [nin]
         if pointwise_factor > 0:
             nframes.append(int(nin*pointwise_factor))
@@ -926,15 +926,15 @@ class SparseConv2DPreserve(nn.Module):
             pd = int((fs - 1) / 2)
             if i == 0 and pointwise_factor > 0:
                 pd, fs, dil, st = 0, 1, 1, 1
-                indkey = "ind_0"
+                indkey = "subm0"
                 self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, bias=trainable_weights, indice_key=indkey))
                 # self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights))
                 self.log.debug("added pointwise convolution, frames: {0} -> {1}".format(nframes[i], nframes[i + 1]))
             else:
-                if fs > 3:
-                    indkey = "ind_{}".format(fs)
+                if fs < 4:
+                    indkey = "subm0"
                 else:
-                    indkey = "ind_0"
+                    indkey = "subm{}".format(fs)
                 st, dil = 1, 1
                 self.alg.append(spconv.SubMConv2d(nframes[i], nframes[i + 1], fs, st, pd, dil, 1, trainable_weights, indice_key=indkey))
                 self.log.debug("added regular convolution, frames: {0} -> {1}, fs {2} pad {3}".format(nframes[i], nframes[i + 1], fs, pd))
