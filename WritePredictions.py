@@ -52,6 +52,8 @@ def main():
         pw_args["n_rows_per_read"] = args.read_size
     if args.calgroup:
         pw_args["calgroup"] = args.calgroup
+    else:
+        pw_args["calgroup"] = basename(input_path[:input_path.rfind("_")])
     if args.scale_factor:
         pw_args["scale_factor"] = args.scale_factor
     if args.datatype:
