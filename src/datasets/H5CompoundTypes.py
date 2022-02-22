@@ -4,6 +4,7 @@ from h5py import h5t, h5f, h5d, h5s, File, Datatype
 from numpy import double, float32, int32, dtype, array, int64, int16, ones, float64
 from numpy.random import randint
 
+
 def extension_type_map(path):
     if path.endswith("WFNorm.h5"):
         return WaveformPairNorm()
@@ -11,6 +12,7 @@ def extension_type_map(path):
         return PhysPulse()
     else:
         return WaveformPairCal()
+
 
 class H5CompoundType:
     def __init__(self, types: List, lengths: List[int], names: List[str], name: str):
@@ -109,7 +111,6 @@ class WaveformPairCal(H5CompoundType):
         self.event_index_name = "coord"
         super(WaveformPairCal, self).__init__(types, l, fields, "WaveformPairCal")
 
-
     def create_type(self):
         self.type = dtype({'names': ['evt', 't', 'dt', 'z', 'E', 'PSD', 'PE', 'coord', 'waveform', 'EZ', 'PID'],
                            'formats': ['<i8', '<f8', '<f4', '<f4', '<f4', '<f4', ('<f4', (2,)), ('<i4', (3,)),
@@ -117,20 +118,22 @@ class WaveformPairCal(H5CompoundType):
                                        ('<f4', (2,)), '<i4'],
                            'itemsize': 324})
 
+
 class PhysPulse(H5CompoundType):
     def __init__(self):
-
-        fields = ["evt", "seg", "E", "rand", "t", "dt", "PE", "y", "PSD", "PID", "E_SE", "Esmear_SE", "y_SE", "PSD_SE" ]
-        types = [int64, int32, float32, float32, double, float32, float32, float32, float32, int32, float32, float32, float32, float32]
+        fields = ["evt", "seg", "E", "rand", "t", "dt", "PE", "y", "PSD", "PID", "E_SE", "Esmear_SE", "y_SE", "PSD_SE"]
+        types = [int64, int32, float32, float32, double, float32, float32, float32, float32, int32, float32, float32,
+                 float32, float32]
         l = [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 2, 1, 2]
         self.event_index_coord = 2
         self.event_index_name = "coord"
         super(PhysPulse, self).__init__(types, l, fields, "PhysPulse")
 
-
     def create_type(self):
-        self.type = dtype({'names': ["evt", "seg", "E", "rand", "t", "dt", "PE", "y", "PSD", "PID", "E_SE", "Esmear_SE", "y_SE", "PSD_SE" ],
-                           'formats': ['<i8', '<i4', '<f4', '<f4', '<f8', '<f4', ('<f4', (2,)), '<f4','<f4','<f4', ('<f4', (2,)), ('<f4', (2,)), '<f4',('<f4', (2,))],
+        self.type = dtype({'names': ["evt", "seg", "E", "rand", "t", "dt", "PE", "y", "PSD", "PID", "E_SE", "Esmear_SE",
+                                     "y_SE", "PSD_SE"],
+                           'formats': ['<i8', '<i4', '<f4', '<f4', '<f8', '<f4', ('<f4', (2,)), '<f4', '<f4', '<f4',
+                                       ('<f4', (2,)), ('<f4', (2,)), '<f4', ('<f4', (2,))],
                            'itemsize': 84})
 
 

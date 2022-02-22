@@ -78,7 +78,7 @@ class PredictionWriter(P2XTableWriter):
         nrows = self.input.h5f[self.input_type.name].shape[0]
         self.create_table(self.data_type.name, (nrows,), self.data_type.type)
         n_current_buffer = 0
-        self.copy_p2x_attrs(self.input, self.data_type.name, self.input_type.name)
+        self.copy_p2x_attrs(self.input, self.data_type.name, self.input_type.name, self.data_type.names)
         with torch.no_grad():
             data = self.input.next_chunk(self.n_rows_per_read)
             n_current_buffer += data.shape[0]

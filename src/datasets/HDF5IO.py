@@ -147,20 +147,29 @@ class P2XTableWriter(H5Output):
         else:
             return None
 
-    def copy_p2x_attrs(self, h5input, table, input_table):
+    def copy_p2x_attrs(self, h5input, table, input_table, dtype_names=None):
         tid = h5t.C_S1.copy()
         tid.set_size(6)
         H5T6 = Datatype(tid.copy())
         names = ["CLASS"]
         shapes = [None]
         types = [H5T6]
-        n = 0
-        while "FIELD_{0}_NAME".format(n) in h5input.h5f[input_table].attrs.keys():
-            names.append("FIELD_{0}_NAME".format(n))
-            shapes.append(None)
-            tid.set_size(len(h5input.h5f[input_table].attrs[names[-1]]) + 1)
-            types.append(Datatype(tid.copy()))
-            n += 1
+        if dtype_names is not None:
+            n = 0
+            for name in dtype_names:
+                field = "FIELD_{0}_NAME".format(n)
+                tid.set_size(len(name) + 1)
+                type = Datatype(tid.copy())
+                self.tables[table].attrs.create(field, name, dtype=type)
+                n += 1
+        else:
+            n = 0
+            while "FIELD_{0}_NAME".format(n) in h5input.h5f[input_table].attrs.keys():
+                names.append("FIELD_{0}_NAME".format(n))
+                shapes.append(None)
+                tid.set_size(len(h5input.h5f[input_table].attrs[names[-1]]) + 1)
+                types.append(Datatype(tid.copy()))
+                n += 1
         names.append("TITLE")
         shapes.append(None)
         tid.set_size(len(h5input.h5f[input_table].attrs[names[-1]]) + 1)
