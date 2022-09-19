@@ -4,10 +4,11 @@ from torch_geometric.data import Data
 
 from src.engineering.LitBase import LitBase
 from src.engineering.PSDDataModule import *
-from torch.nn import LogSoftmax
+from torch.nn import Softmax
 from torch import argmax
 
 from src.evaluation.PIDEvaluator import PIDEvaluator
+from src.evaluation.ROCCurve import ROCCurve
 import logging
 
 
@@ -16,7 +17,7 @@ class LitSegClassifier(LitBase):
     def __init__(self, config, trial=None):
         super(LitSegClassifier, self).__init__(config, trial)
         self.n_type = config.system_config.n_type
-        self.softmax = LogSoftmax(dim=1)
+        self.softmax = Softmax(dim=1)
         self.accuracy = Accuracy()
         self.confusion = ConfusionMatrix(num_classes=self.n_type)
         if hasattr(self.config.dataset_config, "calgroup"):
@@ -30,6 +31,7 @@ class LitSegClassifier(LitBase):
         if hasattr(config, "evaluation_config"):
             eval_params = DictionaryUtility.to_dict(config.evaluation_config)
         self.evaluator = PIDEvaluator(self.logger, **eval_params)
+        self.roc_curve = ROCCurve(class_name=self.evaluator.class_names[0])
 
     def _process_batch(self, batch):
         additional_fields = None
@@ -81,13 +83,15 @@ class LitSegClassifier(LitBase):
 
     def test_step(self, batch, batch_idx):
         loss, predictions, target, c, f, additional_fields = self._process_batch(batch)
-        pred = argmax(self.softmax(predictions), dim=1)
+        prob = self.softmax(predictions)
+        pred = argmax(prob, dim=1)
         acc = self.accuracy(pred, target)
         results_dict = {'test_loss': loss, 'test_acc': acc}
         if not hasattr(self, "test_confusion_matrix"):
             self.test_confusion_matrix = self.confusion(pred, target)
         else:
             self.test_confusion_matrix += self.confusion(pred, target)
+        self.roc_curve.update(prob, target)
         if not self.evaluator.logger:
             self.evaluator.logger = self.logger
         self.evaluator.add(pred, target, c, additional_fields)

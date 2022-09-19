@@ -4,7 +4,7 @@ from os.path import join
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.callbacks.base import Callback
 from torch import zeros
-from src.utils.PlotUtils import plot_confusion_matrix
+from src.utils.PlotUtils import plot_confusion_matrix, ScatterPlt
 from torch.jit import script
 
 class PSDCallbacks:
@@ -62,4 +62,12 @@ class LoggingCallback(Callback):
                 pl_module.config.system_config.type_names,
                 normalize=True))
             pl_module.test_confusion_matrix = zeros(pl_module.test_confusion_matrix.shape, device=pl_module.device)
+        if hasattr(pl_module, "roc_curve"):
+            res = pl_module.roc_curve.compute()
+            class_name = pl_module.roc_curve.class_name
+            nm = "evaluation/roc_curve"
+            if class_name is not None:
+                nm += "_{}".format(class_name)
+            pl_module.logger.experiment.add_figure(nm, ScatterPlt(res[0], res[1],
+                                                                  "true positive rate", "false positive rate"))
         pl_module.evaluator.dump()
