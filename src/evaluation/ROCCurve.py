@@ -23,6 +23,10 @@ class ROCCurve(Metric):
             preds: probabilities from model (after softmax is applied to model output logits)
             target: true class index
         """
+        class_inds = target == self.class_index
+        non_class_inds = target != self.class_index
+        target[class_inds] = 1
+        target[non_class_inds] = 0
         for i in range(len(self.conf_matrices)):
             self.conf_matrices[i].update(preds[:, self.class_index], target)
 
