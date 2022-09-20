@@ -224,7 +224,9 @@ class GraphNet(nn.Module):
             geom_data = data
             geom_data.edge_index = knn_graph(geom_data.pos[:, 0:2], self.k, geom_data.pos[:, 2], loop=self.use_self_loops)
             if geom_data.pos.shape[1] == 3:
+                geom_data.batch = geom_data.pos[:,2]
                 geom_data.pos = geom_data.pos[:, 0:2]
+
         else:
             coo = data[0].long()
             edge_index = knn_graph(coo[:, 0:2], self.k, coo[:, 2], loop=self.use_self_loops)

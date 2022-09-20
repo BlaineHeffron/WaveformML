@@ -105,7 +105,10 @@ class PIDEvaluator(SingleEndedEvaluator):
         accuracy = np.zeros((results.shape[0], ), np.int32)
         calculate_class_accuracy(results, targ, accuracy)
         if self.phys_index is not None:
-            phys = additional_fields[self.phys_index].detach().cpu().numpy()
+            if isinstance(additional_fields[self.phys_index], list):
+                phys = additional_fields[self.phys_index][0].detach().cpu().numpy()
+            else:
+                phys = additional_fields[self.phys_index].detach().cpu().numpy()
         else:
             phys = additional_fields[0].detach().cpu().numpy()
         mult = zeros((phys.shape[0],))

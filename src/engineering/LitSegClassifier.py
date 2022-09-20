@@ -5,7 +5,7 @@ from torch_geometric.data import Data
 from src.engineering.LitBase import LitBase
 from src.engineering.PSDDataModule import *
 from torch.nn import LogSoftmax
-from torch import argmax
+from torch import argmax, cat, unsqueeze
 
 from src.evaluation.PIDEvaluator import PIDEvaluator
 import logging
@@ -41,7 +41,7 @@ class LitSegClassifier(LitBase):
             if self.occlude_index:
                 batch.x[:, self.occlude_index] = 0
             predictions = self.model(batch).squeeze(1)
-            c = batch.pos
+            c = cat([batch.pos, unsqueeze(batch.batch, dim=1)], dim=1)
             target = batch.y
             f = batch.x
         else:
