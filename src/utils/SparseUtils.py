@@ -288,7 +288,7 @@ def metric_accumulate_dense_2d_with_categories(results, parameter, output, out_n
     @param yrange: list of 2 numbers, ylow, high
     @param nbinsx: number of bins x (not including underflow, overflow
     @param nbinsy: number of bins y (not including underflow, overflow
-    @param c: 2 dim array (batch, 3) of coordinates
+    @param coo: 2 dim array (batch, 3) of coordinates
     @param multiplicity_index: if -1, ignore, otherwise if 0 or 1 it indexes the metric that is multiplicity
     """
     xlen = xrange[1] - xrange[0]

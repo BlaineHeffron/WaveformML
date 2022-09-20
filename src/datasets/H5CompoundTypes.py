@@ -111,13 +111,13 @@ class WaveformPairCal(H5CompoundType):
         self.event_index_name = "coord"
         super(WaveformPairCal, self).__init__(types, l, fields, "WaveformPairCal")
 
+
     def create_type(self):
         self.type = dtype({'names': ['evt', 't', 'dt', 'z', 'E', 'PSD', 'PE', 'coord', 'waveform', 'EZ', 'PID'],
                            'formats': ['<i8', '<f8', '<f4', '<f4', '<f4', '<f4', ('<f4', (2,)), ('<i4', (3,)),
                                        ('<i2', (130,)),
                                        ('<f4', (2,)), '<i4'],
                            'itemsize': 324})
-
 
 class PhysPulse(H5CompoundType):
     def __init__(self):
@@ -132,7 +132,7 @@ class PhysPulse(H5CompoundType):
     def create_type(self):
         self.type = dtype({'names': ["evt", "seg", "E", "rand", "t", "dt", "PE", "y", "PSD", "PID", "E_SE", "Esmear_SE",
                                      "y_SE", "PSD_SE"],
-                           'formats': ['<i8', '<i4', '<f4', '<f4', '<f8', '<f4', ('<f4', (2,)), '<f4', '<f4', '<f4',
+                           'formats': ['<i8', '<i4', '<f4', '<f4', '<f8', '<f4', ('<f4', (2,)), '<f4', '<f4', '<i4',
                                        ('<f4', (2,)), ('<f4', (2,)), '<f4', ('<f4', (2,))],
                            'itemsize': 84})
 
